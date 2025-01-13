@@ -2,15 +2,60 @@ PROJECT_CONTEXT: Admin frontend for managing teams, users, levels, feedback sess
 TECH_STACK: Next.js 14 (App Router), TypeScript, Tailwind CSS, Shadcn UI, Radix UI, React Query, React Hook Form, Supabase
 COMPONENT_ARCHITECTURE: Feature-first modular architecture with strict separation of concerns and optimized for React Server Components
 DIRECTORY_STRUCTURE:
-src/app/(routes)/admin/(features)/{clusters,teams,users,levels,processes,feedback}/page.tsx
-src/components/admin/(modules)/{clusters,teams,users,levels,processes,feedback}/{components,hooks,types}/
-src/components/shared/{data-display,layout,forms}/
-src/components/ui/(shadcn-components)/
-src/features/(domain-specific-features)/
-src/hooks/{admin,shared,features}/
-src/lib/{api,supabase,constants}/
-src/types/(domain-types)/
-src/utils/(utility-functions)/
+ **public/**
+ - file.svg
+ - globe.svg
+ - next.svg
+ - vercel.svg
+ - window.svg
+- **src/**
+ - **app/**
+  - **(routes)/**
+   - **admin/**
+  - **admin/**
+   - **clusters/**
+    - page.tsx
+   - **teams/**
+    - page.tsx
+   - layout.tsx
+  - favicon.ico
+  - globals.css
+  - layout.tsx
+  - page.tsx
+ - **components/**
+  - **clusters/**
+   - clusters-table.tsx
+  - **layout/**
+   - admin-header.tsx
+  - **stats/**
+   - stat-card.tsx
+  - **teams/**
+   - memberships-table.tsx
+   - memberships-view.tsx
+   - teams-table.tsx
+   - teams-view.tsx
+  - **ui/**
+   - button.tsx
+   - input.tsx
+   - sheet.tsx
+   - table.tsx
+   - tabs.tsx
+ - **lib/**
+  - utils.ts
+- .gitignore
+- .windsurfrules
+- .windsurfrules.new
+- components.json
+- eslint.config.mjs
+- next-env.d.ts
+- next.config.ts
+- package-lock.json
+- package.json
+- postcss.config.mjs
+- README.md
+- tailwind.config.ts
+- tsconfig.json
+- update_directory.ps1
 COMPONENT_ORGANIZATION:
 admin-modules: Each admin module follows ModuleTable/ModuleForm/ModuleActions pattern
 shared-components: Reusable components with clear interfaces and documentation
