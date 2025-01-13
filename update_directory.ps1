@@ -4,15 +4,15 @@ $outputFile = "./.notes/directory_structure.md"
 # Lista di cartelle da escludere
 $excludedFolders = @("node_modules", ".git", ".notes", ".next")
 
-# Funzione per generare la struttura di directory in formato testuale
-function Get-FormattedDirectory {
+# Funzione per generare la struttura di directory in formato compatto con gestione della lunghezza delle righe
+function Get-CompactDirectory {
     param (
         [string]$path,
-        [int]$indent = 0
+        [int]$maxLineLength = 80
     )
 
-    $indentString = " " * $indent
-    $content = ""
+    $result = @()
+    $currentLine = ""
 
     foreach ($item in Get-ChildItem -Path $path -Force) {
         # Salta le cartelle escluse
@@ -21,18 +21,36 @@ function Get-FormattedDirectory {
         }
 
         if ($item.PSIsContainer) {
-            $content += "$indentString- **$($item.Name)/**`n"
-            $content += Get-FormattedDirectory -path $item.FullName -indent ($indent + 1)
+            # Elabora la sottocartella in modo ricorsivo
+            $subItems = Get-CompactDirectory -path $item.FullName -maxLineLength $maxLineLength
+            $formatted = "$($item.Name)/{$subItems}"
         } else {
-            $content += "$indentString- $($item.Name)`n"
+            $formatted = "$($item.Name)"
+        }
+
+        # Aggiungi elemento alla riga corrente se non supera la lunghezza massima
+        if (($currentLine.Length + $formatted.Length + 2) -le $maxLineLength) {
+            if ($currentLine -ne "") {
+                $currentLine += ", "
+            }
+            $currentLine += $formatted
+        } else {
+            # Aggiungi la riga al risultato e inizia una nuova riga
+            $result += $currentLine
+            $currentLine = $formatted
         }
     }
 
-    return $content
+    # Aggiungi l'ultima riga al risultato
+    if ($currentLine -ne "") {
+        $result += $currentLine
+    }
+
+    return $result -join "`n"
 }
 
 # Esegui la funzione e cattura l'output in una variabile
-$directoryStructure = Get-FormattedDirectory -path $projectRoot
+$directoryStructure = Get-CompactDirectory -path $projectRoot
 
 # Prepara il contenuto in formato Markdown
 $markdownContent = @"
