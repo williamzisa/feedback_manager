@@ -23,9 +23,9 @@ export const AdminHeader = () => {
   const pathname = usePathname()
 
   return (
-    <header className="border-b">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-        <div className="flex items-center space-x-8">
+    <header className="bg-white border-b">
+      <nav className="mx-auto flex max-w-full items-center justify-between px-8 py-4">
+        <div className="flex items-center space-x-10">
           {navigationLeft.map((item) => (
             <Link
               key={item.name}
@@ -34,14 +34,14 @@ export const AdminHeader = () => {
                 pathname === item.href
                   ? 'text-blue-600'
                   : 'text-gray-500 hover:text-gray-700',
-                'text-sm font-medium transition-colors'
+                'text-base font-medium transition-colors'
               )}
             >
               {item.name}
             </Link>
           ))}
         </div>
-        <div className="flex items-center space-x-8">
+        <div className="flex items-center space-x-10">
           {navigationRight.map((item) => (
             <Link
               key={item.name}
@@ -50,7 +50,7 @@ export const AdminHeader = () => {
                 pathname === item.href
                   ? 'text-blue-600'
                   : 'text-gray-500 hover:text-gray-700',
-                'text-sm font-medium transition-colors'
+                'text-base font-medium transition-colors'
               )}
             >
               {item.name}

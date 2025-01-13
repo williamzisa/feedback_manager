@@ -16,9 +16,9 @@ export default function ClustersPage() {
     <div className="min-h-screen bg-gray-50">
       <AdminHeader />
       
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-full px-8 py-8">
         {/* Stats Section */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title="STAT1" value={18} className="bg-white" />
           <StatCard title="STAT2" value={113} className="bg-red-50" />
           <StatCard title="STAT3" value={33} className="bg-red-50" />
@@ -26,7 +26,7 @@ export default function ClustersPage() {
         </div>
 
         {/* Clusters Section */}
-        <div className="mt-8">
+        <div className="mt-6">
           <div className="mb-4 flex items-center">
             <svg
               className="mr-2 h-5 w-5 text-gray-600"
@@ -47,22 +47,26 @@ export default function ClustersPage() {
             <h2 className="text-xl font-semibold">Clusters</h2>
           </div>
 
-          <div className="mb-6 flex items-center justify-between">
-            <div className="w-96">
+          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="w-full sm:w-96">
               <Input
                 type="text"
                 placeholder="Cerca Cluster"
                 className="bg-white"
               />
             </div>
-            <Button className="bg-[#1E2A4A] text-white hover:bg-[#2A3B66]">
+            <Button className="w-full sm:w-auto bg-[#1E2A4A] text-white hover:bg-[#2A3B66]">
               AGGIUNGI CLUSTER
             </Button>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow-sm">
-            <p className="mb-4 text-sm text-gray-500">111 risultati</p>
-            <ClustersTable clusters={mockClusters} />
+          <div className="rounded-lg bg-white shadow-sm">
+            <div className="px-4 py-3 border-b">
+              <p className="text-sm text-gray-500">111 risultati</p>
+            </div>
+            <div className="p-4">
+              <ClustersTable clusters={mockClusters} />
+            </div>
           </div>
         </div>
       </main>
