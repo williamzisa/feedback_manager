@@ -1,0 +1,99 @@
+Objective: Build an admin frontend for managing teams, users, levels, feedback sessions, and rules, with a clean and maintainable architecture.
+Database: Supabase (to be implemented).
+Hosting: Vercel (target platform).
+Dependencies Installed:
+React (TypeScript-based): Leveraging React 19 and TypeScript for strong typing.
+Tailwind CSS: Utility-first CSS framework for styling.
+Radix UI: Accessible UI primitives for components like Dialog, Tabs, and more.
+Shadcn UI: For pre-built components (refer to components.json for added components).
+React Query (@tanstack/react-query): Managing server-state data.
+React Hook Form: Lightweight library for form management.
+directory structure
+src/
+├── app/
+│ ├── page.tsx
+│ ├── admin/
+│ │ ├── clusters/
+│ │ │ └── page.tsx
+│ │ ├── teams/
+│ │ │ └── page.tsx
+│ │ ├── users/
+│ │ │ └── page.tsx
+│ │ ├── levels/
+│ │ │ └── page.tsx
+│ │ ├── processes/
+│ │ │ └── page.tsx
+│ │ └── feedback/
+│ │ └── page.tsx
+├── components/
+│ ├── ui/
+│ ├── feedback/
+│ ├── tables/
+│ └── forms/
+├── hooks/
+├── lib/
+│ ├── api.ts
+│ ├── supabase.ts
+│ └── constants.ts
+├── types/
+│ ├── feedback.ts
+│ ├── teams.ts
+│ ├── users.ts
+│ └── levels.ts
+├── utils/
+└── styles/
+├── globals.css
+└── theme.css
+
+file tracking
+components.json: Tracks added Shadcn components.
+supabase.ts: Centralized Supabase client for database connections.
+tailwind.config.js: Controls Tailwind’s customization and theme.
+
+guidelines
+file naming conventions
+Use PascalCase for components and page files (e.g., ClustersPage.tsx).
+Use camelCase for utility and helper files (e.g., dateFormatter.ts).
+Use lowercase and dashes for directories (e.g., admin/teams).
+Use PascalCase for TypeScript types and interfaces.
+react components
+Use functional components exclusively.
+Export components as named exports.
+Component logic should be modular, reusable, and organized under components/ or app/admin specific directories.
+tailwind css
+Centralize themes, colors, and spacing in tailwind.config.js.
+Use utility classes for styling whenever possible.
+Define reusable class patterns in globals.css for consistent styles.
+state management
+Use React Query for all server-state data management.
+Persist minimal global state using React Context if necessary.
+Use React Query Devtools during development to debug queries and caches.
+forms
+Use React Hook Form for form state management and validation.
+Ensure validation rules are centralized and reusable through a validation schema.
+Organize forms in the forms/ directory under components/.
+error handling
+Implement a global error boundary for React components to catch runtime errors.
+Handle API errors in React Query using the onError callback.
+Provide user-friendly feedback for both frontend and backend errors.
+testing
+Write unit tests for all utilities and shared components using Jest.
+Write E2E tests for critical user flows using Cypress.
+Mock API responses during testing to isolate the frontend.
+documentation
+Ensure the components.json file is always updated when adding Shadcn components.
+Document any changes to tailwind.config.js and Supabase setup.
+Maintain up-to-date README.md with instructions on project setup and development workflow.
+styles and css
+Use Tailwind exclusively for component-level styling.
+Avoid writing custom CSS unless absolutely necessary.
+Ensure globals.css includes any necessary resets or global patterns.
+Keep additional theme customizations in theme.css if using CSS variables.
+error logs and debugging
+Ensure consistent error logging through a centralized utility in utils/.
+Use Supabase logs for backend debugging.
+Use console.error sparingly in production; prefer logging to external tools for critical issues.
+build and deploy
+Set up environment variables in .env.local for local development and in the Vercel dashboard for production.
+Deploy via Vercel’s Git integration for CI/CD.
+Ensure Supabase keys are properly scoped and secured in production builds.
