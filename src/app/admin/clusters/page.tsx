@@ -19,10 +19,10 @@ export default function ClustersPage() {
       <main className="mx-auto max-w-full px-8 py-8">
         {/* Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="STAT1" value={18} className="bg-white" />
-          <StatCard title="STAT2" value={113} className="bg-red-50" />
-          <StatCard title="STAT3" value={33} className="bg-red-50" />
-          <StatCard title="STAT4" value={6} className="bg-green-50" />
+          <StatCard title="STAT1" value={18} className="bg-white shadow-sm" />
+          <StatCard title="STAT2" value={113} className="bg-red-100" />
+          <StatCard title="STAT3" value={33} className="bg-red-100" />
+          <StatCard title="STAT4" value={6} className="bg-green-100" />
         </div>
 
         {/* Clusters Section */}
