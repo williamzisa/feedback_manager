@@ -1,5 +1,5 @@
 PROJECT_CONTEXT: Admin frontend for managing teams, users, levels, feedback sessions with Next.js 14, TypeScript, and Supabase.
-TECH_STACK: Next.js 14 (App Router), TypeScript, Tailwind CSS, Shadcn UI, Radix UI, React Query, React Hook Form, Supabase
+TECH_STACK: Next.js 14 (App Router), TypeScript, Tailwind CSS, Shadcn@latest, Radix UI, React Query, React Hook Form, Supabase
 COMPONENT_ARCHITECTURE: Feature-first modular architecture with strict separation of concerns and optimized for React Server Components
 DIRECTORY_STRUCTURE:
 public/{file.svg, globe.svg, next.svg, vercel.svg, window.svg}
