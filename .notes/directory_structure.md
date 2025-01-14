@@ -9,7 +9,7 @@ app/{
 (routes)/{
 admin/{clusters/{page.tsx}, levels/{page.tsx}, processes/{page.tsx}
 questions/{page.tsx}, rules/{page.tsx}, sessions/{page.tsx}, teams/{page.tsx}
-users/{page.tsx}, layout.tsx}}
+users/{page.tsx}, layout.tsx, page.tsx}}
 favicon.ico, globals.css, layout.tsx, page.tsx}
 components/{clusters/{clusters-table.tsx}, layout/{admin-header.tsx}
 levels/{levels-table.tsx}, processes/{processes-table.tsx}

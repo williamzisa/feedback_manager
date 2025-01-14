@@ -29,8 +29,32 @@ export const TeamsView = () => {
         <div className="px-4 py-3 border-b">
           <p className="text-sm text-gray-500">111 risultati</p>
         </div>
-        <div className="p-4">
-          <TeamsTable teams={mockTeams} />
+        <div className="p-4 overflow-x-auto">
+          <div className="block sm:hidden">
+            {mockTeams.map((team, index) => (
+              <div key={index} className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold text-lg">{team.name}</h3>
+                  <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {team.cluster}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p className="flex items-center">
+                    <span className="w-20">Leader:</span>
+                    {team.leader}
+                  </p>
+                  <p className="flex items-center">
+                    <span className="w-20">Membri:</span>
+                    {team.members}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden sm:block">
+            <TeamsTable teams={mockTeams} />
+          </div>
         </div>
       </div>
     </div>

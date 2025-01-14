@@ -6,9 +6,29 @@ import { MembershipsView } from '@/components/teams/memberships-view'
 export default function TeamsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="mx-auto max-w-full px-8 py-8">
+      <main className="mx-auto max-w-full px-4 sm:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-6 flex items-center">
+          <svg
+            className="mr-2 h-5 w-5 text-gray-600"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <h2 className="text-xl font-semibold">Teams</h2>
+        </div>
+
         {/* Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCard title="STAT1" value={18} className="bg-white shadow-sm" />
           <StatCard title="STAT2" value={113} className="bg-red-100" />
           <StatCard title="STAT3" value={33} className="bg-red-100" />
@@ -18,8 +38,8 @@ export default function TeamsPage() {
         {/* Teams Tabs Section */}
         <div className="mt-6">
           <Tabs defaultValue="teams" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="teams" className="flex items-center">
+            <TabsList className="mb-4 w-full flex space-x-2 overflow-x-auto">
+              <TabsTrigger value="teams" className="flex-1 flex items-center justify-center">
                 <svg
                   className="mr-2 h-5 w-5"
                   xmlns="http://www.w3.org/2000/svg"
@@ -38,7 +58,7 @@ export default function TeamsPage() {
                 </svg>
                 Teams
               </TabsTrigger>
-              <TabsTrigger value="membership" className="flex items-center">
+              <TabsTrigger value="membership" className="flex-1 flex items-center justify-center">
                 <svg
                   className="mr-2 h-5 w-5"
                   xmlns="http://www.w3.org/2000/svg"
@@ -58,11 +78,11 @@ export default function TeamsPage() {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="teams">
+            <TabsContent value="teams" className="space-y-4">
               <TeamsView />
             </TabsContent>
             
-            <TabsContent value="membership">
+            <TabsContent value="membership" className="space-y-4">
               <MembershipsView />
             </TabsContent>
           </Tabs>
