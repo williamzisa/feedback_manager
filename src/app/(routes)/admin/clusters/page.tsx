@@ -16,9 +16,30 @@ export default function ClustersPage() {
     <div className="min-h-screen bg-gray-50">
       <AdminHeader />
       
-      <main className="mx-auto max-w-full px-8 py-8">
+      <main className="mx-auto max-w-full px-4 sm:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-6 flex items-center">
+          <svg
+            className="mr-2 h-5 w-5 text-gray-600"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+          <h2 className="text-xl font-semibold">Clusters</h2>
+        </div>
+
         {/* Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCard title="STAT1" value={18} className="bg-white shadow-sm" />
           <StatCard title="STAT2" value={113} className="bg-red-100" />
           <StatCard title="STAT3" value={33} className="bg-red-100" />
@@ -27,26 +48,6 @@ export default function ClustersPage() {
 
         {/* Clusters Section */}
         <div className="mt-6">
-          <div className="mb-4 flex items-center">
-            <svg
-              className="mr-2 h-5 w-5 text-gray-600"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
-            </svg>
-            <h2 className="text-xl font-semibold">Clusters</h2>
-          </div>
-
           <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="w-full sm:w-96">
               <Input
@@ -64,8 +65,26 @@ export default function ClustersPage() {
             <div className="px-4 py-3 border-b">
               <p className="text-sm text-gray-500">111 risultati</p>
             </div>
-            <div className="p-4">
-              <ClustersTable clusters={mockClusters} />
+            <div className="p-4 overflow-x-auto">
+              <div className="block sm:hidden">
+                {mockClusters.map((cluster, index) => (
+                  <div key={index} className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-semibold text-lg">{cluster.name}</h3>
+                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        Livello {cluster.level}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <p>Leader: {cluster.leader}</p>
+                      <p>Teams: {cluster.teamCount}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden sm:block">
+                <ClustersTable clusters={mockClusters} />
+              </div>
             </div>
           </div>
         </div>
