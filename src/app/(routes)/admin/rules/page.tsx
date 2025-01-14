@@ -1,7 +1,8 @@
 import { AdminHeader } from '@/components/layout/admin-header'
 import { RulesTable } from '@/components/rules/rules-table'
+import type { Rule } from '@/components/rules/rules-table'
 
-const mockRules = [
+const mockRules: Rule[] = [
   {
     numero: 1,
     nomeRegola: 'FEEDBACK SOFT E STRATEGY DA CLU VERSO TL',

@@ -1,5 +1,4 @@
 import { AdminHeader } from '@/components/layout/admin-header'
-import { StatCard } from '@/components/stats/stat-card'
 import { SessionsTable } from '@/components/sessions/sessions-table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
