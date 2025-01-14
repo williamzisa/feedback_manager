@@ -2,13 +2,6 @@ import { AdminHeader } from '@/components/layout/admin-header'
 import { StatCard } from '@/components/stats/stat-card'
 import { LevelsView } from '@/components/levels/levels-view'
 
-const mockLevels = [
-  { categoria: 'CEO', numero: 1, lettera: 'A', pesoExecution: '30%', pesoSoft: '30%', pesoStrategy: '40%', standard: 4.2, nUser: 2 },
-  { categoria: 'Chief', numero: 2, lettera: 'A', pesoExecution: '30%', pesoSoft: '40%', pesoStrategy: '30%', standard: 4, nUser: 4 },
-  { categoria: 'Director', numero: 1, lettera: 'A', pesoExecution: '40%', pesoSoft: '30%', pesoStrategy: '30%', standard: 4, nUser: 4 },
-  { categoria: 'Director', numero: 3, lettera: 'B', pesoExecution: '30%', pesoSoft: '50%', pesoStrategy: '20%', standard: 3.8, nUser: 6 },
-]
-
 export default function LevelsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
