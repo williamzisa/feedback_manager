@@ -1,4 +1,3 @@
-import { AdminHeader } from '@/components/layout/admin-header'
 import { StatCard } from '@/components/stats/stat-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TeamsView } from '@/components/teams/teams-view'
@@ -7,8 +6,6 @@ import { MembershipsView } from '@/components/teams/memberships-view'
 export default function TeamsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader />
-      
       <main className="mx-auto max-w-full px-8 py-8">
         {/* Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
