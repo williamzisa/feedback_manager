@@ -2,8 +2,9 @@ import { AdminHeader } from '@/components/layout/admin-header'
 import { QuestionsTable } from '@/components/questions/questions-table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import type { Question } from '@/components/questions/questions-table'
 
-const mockQuestions = [
+const mockQuestions: Question[] = [
   { id: 1, domanda: 'Ottimista nell\'approccio al futuro', type: 'SOFT' },
   { id: 2, domanda: 'L\'elemento che tutti vorrebbero nel proprio team', type: 'STRATEGY' },
   { id: 3, domanda: 'Sa comunicare e condividere in modo chiaro l\'esito del proprio lavoro', type: 'EXECUTION' },

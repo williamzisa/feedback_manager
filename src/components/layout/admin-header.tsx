@@ -8,7 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Menu } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
-const navigationLeft = [
+interface NavigationItem {
+  name: string
+  href: string
+  subtitle?: string
+}
+
+const navigationLeft: NavigationItem[] = [
   { name: 'Clusters', href: '/admin/clusters' },
   { name: 'Teams', href: '/admin/teams' },
   { name: 'Users', href: '/admin/users' },
@@ -16,7 +22,7 @@ const navigationLeft = [
   { name: 'Processes', href: '/admin/processes' },
 ]
 
-const navigationRight = [
+const navigationRight: NavigationItem[] = [
   { name: 'Questions', href: '/admin/questions' },
   { name: 'Rules', href: '/admin/rules' },
   { name: 'Sessions', href: '/admin/sessions' },
@@ -41,7 +47,7 @@ export const AdminHeader = () => {
     return () => window.removeEventListener('resize', checkIsMobile)
   }, [])
 
-  const NavLink = ({ item }: { item: typeof allNavigation[0] }) => (
+  const NavLink = ({ item }: { item: NavigationItem }) => (
     <Link
       key={item.name}
       href={item.href}
