@@ -32,11 +32,11 @@ export const queries = {
     }
   },
 
-  // Memberships
-  memberships: {
+  // User Teams (previously Memberships)
+  user_teams: {
     getAll: async () => {
       const { data, error } = await supabase
-        .from('memberships')
+        .from('user_teams')
         .select('*, users(*), teams(*)')
       if (error) throw error
       return data
