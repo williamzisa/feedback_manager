@@ -48,7 +48,7 @@ export default function ClustersPage() {
         </div>
 
         {/* Clusters View */}
-        <ClustersView clusters={clusters} />
+        <ClustersView />
       </main>
     </div>
   )

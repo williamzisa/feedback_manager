@@ -71,7 +71,7 @@ export const queries = {
       }))
     },
 
-    create: async (cluster: { name: string; level: number | null; leaderId?: string }) => {
+    create: async (cluster: { name: string; level: number | null; leaderId: string | null }) => {
       const { data, error } = await supabase
         .from('clusters')
         .insert([{
@@ -100,7 +100,7 @@ export const queries = {
       return data
     },
 
-    update: async (id: string, cluster: { name: string; level: number | null; leaderId?: string }) => {
+    update: async (id: string, cluster: { name: string; level: number | null; leaderId: string | null }) => {
       const { data, error } = await supabase
         .from('clusters')
         .update({

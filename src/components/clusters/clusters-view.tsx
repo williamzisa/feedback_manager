@@ -7,7 +7,6 @@ import { ClustersTable } from './clusters-table'
 import { CreateClusterDialog } from './dialogs/create-cluster-dialog'
 import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/supabase/queries'
-import type { Cluster } from '@/lib/types/clusters'
 
 const getLevelBadgeColor = (level: number | null) => {
   switch (level) {
