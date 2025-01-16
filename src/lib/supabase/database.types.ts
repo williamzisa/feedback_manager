@@ -15,7 +15,7 @@ export type Database = {
           created_at: string | null
           id: string
           leader: string | null
-          level: string | null
+          level: number | null
           name: string
         }
         Insert: {
@@ -23,7 +23,7 @@ export type Database = {
           created_at?: string | null
           id: string
           leader?: string | null
-          level?: string | null
+          level?: number | null
           name: string
         }
         Update: {
@@ -31,7 +31,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           leader?: string | null
-          level?: string | null
+          level?: number | null
           name?: string
         }
         Relationships: [
@@ -47,13 +47,6 @@ export type Database = {
             columns: ["leader"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clusters_level_fkey"
-            columns: ["level"]
-            isOneToOne: false
-            referencedRelation: "levels"
             referencedColumns: ["id"]
           },
         ]
@@ -554,7 +547,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
-          level: string | null
+          level: number | null
           mentor: string | null
           name: string
           surname: string
@@ -565,7 +558,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id: string
-          level?: string | null
+          level?: number | null
           mentor?: string | null
           name: string
           surname: string
@@ -576,7 +569,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
-          level?: string | null
+          level?: number | null
           mentor?: string | null
           name?: string
           surname?: string
@@ -640,8 +633,7 @@ export type Tables<
     : never
   : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
         PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+    ? (PublicSchema["Tables"] & PublicSchema["Views"])[PublicTableNameOrOptions] extends {
         Row: infer R
       }
       ? R

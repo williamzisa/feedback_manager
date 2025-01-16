@@ -3,43 +3,66 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ClusterForm } from "../forms/cluster-form"
-import type { ClusterFormValues } from "../forms/cluster-schema"
+import type { ClusterFormData } from "@/lib/types/clusters"
+import { queries } from "@/lib/supabase/queries"
 
 interface CreateClusterDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  onCreate: (data: ClusterFormValues) => Promise<void>
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
 }
 
 export function CreateClusterDialog({
-  isOpen,
-  onClose,
-  onCreate
+  open,
+  onOpenChange,
+  onSuccess
 }: CreateClusterDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (data: ClusterFormValues) => {
+  const handleSubmit = async (data: ClusterFormData) => {
     try {
       setIsLoading(true)
-      await onCreate(data)
-      onClose()
-    } catch (error) {
-      console.error(error)
+      setError(null)
+      
+      if (!data.name.trim()) {
+        throw new Error('Il nome del cluster è obbligatorio')
+      }
+
+      await queries.clusters.create({
+        name: data.name.trim(),
+        level: data.level,
+        leaderId: data.leaderId
+      })
+      
+      onOpenChange(false)
+      onSuccess?.()
+    } catch (err) {
+      console.error('Error creating cluster:', err)
+      setError(err instanceof Error ? err.message : 'Errore durante la creazione del cluster')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Crea Cluster</DialogTitle>
+          <DialogTitle className="text-2xl font-semibold">Crea Cluster</DialogTitle>
         </DialogHeader>
-        <ClusterForm
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-        />
+        <div className="mt-6">
+          {error && (
+            <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-md">
+              {error}
+            </div>
+          )}
+          <ClusterForm
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+            mode="create"
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )

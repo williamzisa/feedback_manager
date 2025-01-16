@@ -1,51 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import { AdminHeader } from '@/components/layout/admin-header'
+import { useQuery } from "@tanstack/react-query"
+import { queries } from "@/lib/supabase/queries"
 import { StatCard } from '@/components/stats/stat-card'
-import { ClustersTable } from '@/components/clusters/clusters-table'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { CreateClusterDialog } from '@/components/clusters/dialogs/create-cluster-dialog'
-import { EditClusterDialog } from '@/components/clusters/dialogs/edit-cluster-dialog'
-import type { ClusterFormValues } from '@/components/clusters/forms/cluster-schema'
-
-const mockClusters = [
-  { name: 'Marketing', leader: 'Paolo Solazzo', level: '1', teamCount: 21 },
-  { name: 'Finance', leader: 'Paolo Solazzo', level: '1', teamCount: 14 },
-  { name: 'Operations', leader: 'Paolo Solazzo', level: '2', teamCount: 8 },
-  { name: 'Development', leader: 'Paolo Solazzo', level: '2', teamCount: 4 },
-]
+import { ClustersView } from "@/components/clusters/clusters-view"
 
 export default function ClustersPage() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [selectedCluster, setSelectedCluster] = useState<(typeof mockClusters)[0] | null>(null)
+  const { data: clusters = [] } = useQuery({
+    queryKey: ['clusters'],
+    queryFn: queries.clusters.getAll
+  })
 
-  const handleCreate = async (data: ClusterFormValues) => {
-    console.log('Creating cluster:', data)
-    // TODO: Implement cluster creation
-  }
-
-  const handleUpdate = async (data: ClusterFormValues) => {
-    console.log('Updating cluster:', data)
-    // TODO: Implement cluster update
-  }
-
-  const handleDelete = async () => {
-    console.log('Deleting cluster:', selectedCluster?.name)
-    // TODO: Implement cluster deletion
-  }
-
-  const handleEdit = (cluster: (typeof mockClusters)[0]) => {
-    setSelectedCluster(cluster)
-    setIsEditOpen(true)
-  }
+  // Calcola le statistiche
+  const totalClusters = clusters.length
+  const level1Clusters = clusters.filter(c => c.level === 1).length
+  const level2Clusters = clusters.filter(c => c.level === 2).length
+  const level3Clusters = clusters.filter(c => c.level === 3).length
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader />
-      
       <main className="mx-auto max-w-full px-4 sm:px-8 py-8">
         {/* Header Section */}
         <div className="mb-6 flex items-center">
@@ -59,95 +32,24 @@ export default function ClustersPage() {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-            <polyline points="10 9 9 9 8 9" />
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="6"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
           </svg>
-          <h1 className="text-2xl font-semibold text-gray-900">Clusters</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Gestione Clusters</h1>
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <StatCard title="STAT1" value={18} className="bg-white shadow-sm" />
-          <StatCard title="STAT2" value={113} className="bg-red-100" />
-          <StatCard title="STAT3" value={33} className="bg-red-100" />
-          <StatCard title="STAT4" value={6} className="bg-green-100" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+          <StatCard title="N.CLUSTERS" value={totalClusters} />
+          <StatCard title="LIVELLO 1" value={level1Clusters} className="bg-blue-100" />
+          <StatCard title="LIVELLO 2" value={level2Clusters} className="bg-green-100" />
+          <StatCard title="LIVELLO 3" value={level3Clusters} className="bg-yellow-100" />
         </div>
 
-        {/* Clusters Section */}
-        <div className="mt-6">
-          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="w-full sm:w-96">
-              <Input
-                type="text"
-                placeholder="Cerca Cluster"
-                className="bg-white"
-              />
-            </div>
-            <Button 
-              onClick={() => setIsCreateOpen(true)}
-              className="w-full sm:w-auto whitespace-nowrap"
-            >
-              Nuovo Cluster
-            </Button>
-          </div>
-
-          <div className="rounded-lg bg-white shadow-sm">
-            <div className="px-4 py-3 border-b">
-              <p className="text-sm text-gray-500">111 risultati</p>
-            </div>
-            <div className="p-4 overflow-x-auto">
-              <div className="block sm:hidden">
-                {mockClusters.map((cluster, index) => (
-                  <div key={index} className="mb-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-lg">{cluster.name}</h3>
-                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        Livello {cluster.level}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <p>Leader: {cluster.leader}</p>
-                      <p>Teams: {cluster.teamCount}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="hidden sm:block">
-                <ClustersTable 
-                  clusters={mockClusters} 
-                  onEdit={handleEdit}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Clusters View */}
+        <ClustersView clusters={clusters} />
       </main>
-
-      <CreateClusterDialog
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onCreate={handleCreate}
-      />
-
-      {selectedCluster && (
-        <EditClusterDialog
-          isOpen={isEditOpen}
-          onClose={() => {
-            setIsEditOpen(false)
-            setSelectedCluster(null)
-          }}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-          initialData={{
-            name: selectedCluster.name,
-            cluster_leader: selectedCluster.leader,
-            level: selectedCluster.level,
-          }}
-        />
-      )}
     </div>
   )
 }

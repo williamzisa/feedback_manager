@@ -1,15 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
-import { Database } from './database.types'
+import type { Database } from './database.types'
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error('Manca NEXT_PUBLIC_SUPABASE_URL')
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  throw new Error('Manca NEXT_PUBLIC_SUPABASE_ANON_KEY')
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Mancano le variabili ambientali necessarie per Supabase. ' +
+    'Assicurati di avere NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY nel tuo .env.local'
+  )
 }
 
 export const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    auth: {
+      persistSession: false
+    }
+  }
 )

@@ -1,59 +1,69 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+'use client'
 
-interface Cluster {
-  name: string
-  leader: string
-  level: string
-  teamCount: number
-}
+import { useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { Edit } from 'lucide-react'
+import { EditClusterDialog } from './dialogs/edit-cluster-dialog'
+import type { Cluster } from '@/lib/types/clusters'
 
 interface ClustersTableProps {
   clusters: Cluster[]
-  onEdit: (cluster: Cluster) => void
+  onSuccess?: () => void
 }
 
-export const ClustersTable = ({ clusters, onEdit }: ClustersTableProps) => {
+export function ClustersTable({ clusters, onSuccess }: ClustersTableProps) {
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null)
+
+  const handleEdit = (cluster: Cluster) => {
+    setSelectedCluster(cluster)
+    setIsEditOpen(true)
+  }
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>CLUSTER</TableHead>
-          <TableHead>CLUSTER LEADER</TableHead>
-          <TableHead>LIVELLO</TableHead>
-          <TableHead>N.TEAM</TableHead>
-          <TableHead></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {clusters.map((cluster) => (
-          <TableRow key={cluster.name}>
-            <TableCell className="font-medium">{cluster.name}</TableCell>
-            <TableCell>{cluster.leader}</TableCell>
-            <TableCell>{cluster.level}</TableCell>
-            <TableCell>{cluster.teamCount}</TableCell>
-            <TableCell>
-              <button 
-                onClick={() => onEdit(cluster)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                </svg>
-              </button>
-            </TableCell>
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>CLUSTER</TableHead>
+            <TableHead>CLUSTER LEADER</TableHead>
+            <TableHead>LIVELLO</TableHead>
+            <TableHead>N.TEAM</TableHead>
+            <TableHead className="w-[100px]"></TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {clusters.map((cluster) => (
+            <TableRow key={cluster.id}>
+              <TableCell className="font-medium">{cluster.name}</TableCell>
+              <TableCell>
+                {cluster.leader 
+                  ? `${cluster.leader.name} ${cluster.leader.surname}`
+                  : '-'}
+              </TableCell>
+              <TableCell>{cluster.level ?? '-'}</TableCell>
+              <TableCell>{cluster.team_count}</TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleEdit(cluster)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <EditClusterDialog
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        cluster={selectedCluster}
+        onSuccess={onSuccess}
+      />
+    </>
   )
 }
