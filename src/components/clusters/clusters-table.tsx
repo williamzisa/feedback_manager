@@ -3,15 +3,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 interface Cluster {
   name: string
   leader: string
-  level: number
+  level: string
   teamCount: number
 }
 
 interface ClustersTableProps {
   clusters: Cluster[]
+  onEdit: (cluster: Cluster) => void
 }
 
-export const ClustersTable = ({ clusters }: ClustersTableProps) => {
+export const ClustersTable = ({ clusters, onEdit }: ClustersTableProps) => {
   return (
     <Table>
       <TableHeader>
@@ -31,7 +32,10 @@ export const ClustersTable = ({ clusters }: ClustersTableProps) => {
             <TableCell>{cluster.level}</TableCell>
             <TableCell>{cluster.teamCount}</TableCell>
             <TableCell>
-              <button className="text-gray-400 hover:text-gray-600">
+              <button 
+                onClick={() => onEdit(cluster)}
+                className="text-gray-400 hover:text-gray-600"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -43,9 +47,7 @@ export const ClustersTable = ({ clusters }: ClustersTableProps) => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  <polyline points="15 3 21 3 21 9" />
-                  <line x1="10" y1="14" x2="21" y2="3" />
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
                 </svg>
               </button>
             </TableCell>

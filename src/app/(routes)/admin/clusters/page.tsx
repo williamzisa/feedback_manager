@@ -1,17 +1,47 @@
+'use client'
+
+import { useState } from 'react'
 import { AdminHeader } from '@/components/layout/admin-header'
 import { StatCard } from '@/components/stats/stat-card'
 import { ClustersTable } from '@/components/clusters/clusters-table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { CreateClusterDialog } from '@/components/clusters/dialogs/create-cluster-dialog'
+import { EditClusterDialog } from '@/components/clusters/dialogs/edit-cluster-dialog'
+import type { ClusterFormValues } from '@/components/clusters/forms/cluster-schema'
 
 const mockClusters = [
-  { name: 'Marketing', leader: 'Paolo Solazzo', level: 1, teamCount: 21 },
-  { name: 'Finance', leader: 'Paolo Solazzo', level: 1, teamCount: 14 },
-  { name: 'Operations', leader: 'Paolo Solazzo', level: 2, teamCount: 8 },
-  { name: 'Development', leader: 'Paolo Solazzo', level: 2, teamCount: 4 },
+  { name: 'Marketing', leader: 'Paolo Solazzo', level: '1', teamCount: 21 },
+  { name: 'Finance', leader: 'Paolo Solazzo', level: '1', teamCount: 14 },
+  { name: 'Operations', leader: 'Paolo Solazzo', level: '2', teamCount: 8 },
+  { name: 'Development', leader: 'Paolo Solazzo', level: '2', teamCount: 4 },
 ]
 
 export default function ClustersPage() {
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [selectedCluster, setSelectedCluster] = useState<(typeof mockClusters)[0] | null>(null)
+
+  const handleCreate = async (data: ClusterFormValues) => {
+    console.log('Creating cluster:', data)
+    // TODO: Implement cluster creation
+  }
+
+  const handleUpdate = async (data: ClusterFormValues) => {
+    console.log('Updating cluster:', data)
+    // TODO: Implement cluster update
+  }
+
+  const handleDelete = async () => {
+    console.log('Deleting cluster:', selectedCluster?.name)
+    // TODO: Implement cluster deletion
+  }
+
+  const handleEdit = (cluster: (typeof mockClusters)[0]) => {
+    setSelectedCluster(cluster)
+    setIsEditOpen(true)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminHeader />
@@ -56,7 +86,10 @@ export default function ClustersPage() {
                 className="bg-white"
               />
             </div>
-            <Button className="w-full sm:w-auto whitespace-nowrap">
+            <Button 
+              onClick={() => setIsCreateOpen(true)}
+              className="w-full sm:w-auto whitespace-nowrap"
+            >
               Nuovo Cluster
             </Button>
           </div>
@@ -83,12 +116,38 @@ export default function ClustersPage() {
                 ))}
               </div>
               <div className="hidden sm:block">
-                <ClustersTable clusters={mockClusters} />
+                <ClustersTable 
+                  clusters={mockClusters} 
+                  onEdit={handleEdit}
+                />
               </div>
             </div>
           </div>
         </div>
       </main>
+
+      <CreateClusterDialog
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreate={handleCreate}
+      />
+
+      {selectedCluster && (
+        <EditClusterDialog
+          isOpen={isEditOpen}
+          onClose={() => {
+            setIsEditOpen(false)
+            setSelectedCluster(null)
+          }}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          initialData={{
+            name: selectedCluster.name,
+            cluster_leader: selectedCluster.leader,
+            level: selectedCluster.level,
+          }}
+        />
+      )}
     </div>
   )
 }

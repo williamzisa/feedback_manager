@@ -19,8 +19,9 @@ rules/{rules-table.tsx}, sessions/{sessions-table.tsx}, stats/{stat-card.tsx}
 teams/{teams-table.tsx, teams-view.tsx}
 ui/{button.tsx, input.tsx, sheet.tsx, table.tsx, tabs.tsx}
 users/{users-table.tsx}}
-lib/{utils.ts}}
-.gitignore, .windsurfrules, components.json, eslint.config.mjs, next-env.d.ts
-next.config.ts, package-lock.json, package.json, postcss.config.mjs, README.md
-tailwind.config.ts, tsconfig.json, update_directory.ps1
+lib/{supabase/{config.ts, database.types.ts, queries.ts}, utils.ts}}
+.env.local, .gitignore, .windsurfrules, comandi_utili.txt, components.json
+eslint.config.mjs, next-env.d.ts, next.config.ts, package-lock.json
+package.json, postcss.config.mjs, README.md, tailwind.config.ts, tsconfig.json
+update_directory.ps1
 \\\
