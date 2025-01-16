@@ -17,6 +17,7 @@ interface NavigationItem {
 const navigationLeft: NavigationItem[] = [
   { name: 'Clusters', href: '/admin/clusters' },
   { name: 'Teams', href: '/admin/teams' },
+  { name: 'Memberships', href: '/admin/memberships' },
   { name: 'Users', href: '/admin/users' },
   { name: 'Levels', href: '/admin/levels' },
   { name: 'Processes', href: '/admin/processes' },

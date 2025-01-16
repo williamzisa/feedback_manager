@@ -1,3 +1,4 @@
+// Copiamo il contenuto dal file originale
 import {
   Table,
   TableBody,
@@ -5,26 +6,35 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from "../ui/table"
 
 interface Membership {
   user: string
   team: string
-  cluster: string
+  role: string
+  joinedAt: string
 }
 
 interface MembershipsTableProps {
   memberships: Membership[]
 }
 
-export const MembershipsTable = ({ memberships }: MembershipsTableProps) => {
+const mockMemberships = [
+  { user: 'Mario Rossi', team: 'Team 1', role: 'Developer', joinedAt: '2024-01-01' },
+  { user: 'Luigi Verdi', team: 'Team 2', role: 'Designer', joinedAt: '2024-01-02' },
+  { user: 'Anna Bianchi', team: 'Team 1', role: 'Manager', joinedAt: '2024-01-03' },
+  { user: 'Giovanni Neri', team: 'Team 3', role: 'Developer', joinedAt: '2024-01-04' },
+]
+
+export const MembershipsTable = ({ memberships = mockMemberships }: MembershipsTableProps) => {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>USER</TableHead>
+          <TableHead>UTENTE</TableHead>
           <TableHead>TEAM</TableHead>
-          <TableHead>CLUSTER</TableHead>
+          <TableHead>RUOLO</TableHead>
+          <TableHead>DATA INGRESSO</TableHead>
           <TableHead></TableHead>
         </TableRow>
       </TableHeader>
@@ -33,7 +43,8 @@ export const MembershipsTable = ({ memberships }: MembershipsTableProps) => {
           <TableRow key={index}>
             <TableCell>{membership.user}</TableCell>
             <TableCell>{membership.team}</TableCell>
-            <TableCell>{membership.cluster}</TableCell>
+            <TableCell>{membership.role}</TableCell>
+            <TableCell>{membership.joinedAt}</TableCell>
             <TableCell>
               <button className="text-gray-400 hover:text-gray-500">
                 <svg

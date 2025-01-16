@@ -1,7 +1,6 @@
-import { StatCard } from '@/components/stats/stat-card'
-import { TeamsView } from '@/components/teams/teams-view'
+import { MembershipsView } from '@/components/memberships/memberships-view'
 
-export default function TeamsPage() {
+export default function MembershipsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="mx-auto max-w-full px-4 sm:px-8 py-8">
@@ -22,18 +21,10 @@ export default function TeamsPage() {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
-          <h1 className="text-2xl font-semibold text-gray-900">Gestione Teams</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Gestione Memberships</h1>
         </div>
 
-        {/* Stats Section */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          <StatCard title="N.TEAMS" value={124} className="bg-white shadow-sm" />
-          <StatCard title="MARKETING" value={29} className="bg-blue-100" />
-          <StatCard title="OPERATIONS" value={110} className="bg-green-100" />
-          <StatCard title="DEVELOPMENT" value={51} className="bg-yellow-100" />
-        </div>
-
-        <TeamsView />
+        <MembershipsView />
       </main>
     </div>
   )

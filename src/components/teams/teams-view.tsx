@@ -12,15 +12,25 @@ const mockTeams = [
 export const TeamsView = () => {
   return (
     <div>
-      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="w-full sm:w-96">
-          <Input
-            type="text"
-            placeholder="Cerca Teams"
-            className="bg-white"
-          />
-        </div>
-        <Button className="w-full sm:w-auto bg-[#1E2A4A] text-white hover:bg-[#2A3B66]">
+      <div className="mb-6 flex flex-col sm:flex-row items-start justify-between gap-4">
+        <Input
+          type="text"
+          placeholder="Cerca Teams"
+          className="bg-white w-full sm:w-96"
+        />
+        <Button className="bg-[#1E2A4A] text-white hover:bg-[#2A3B66] w-full sm:w-auto">
+          <svg
+            className="mr-2 h-5 w-5"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
           AGGIUNGI TEAM
         </Button>
       </div>
