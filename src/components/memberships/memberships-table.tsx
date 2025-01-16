@@ -1,4 +1,3 @@
-// Copiamo il contenuto dal file originale
 import {
   Table,
   TableBody,
@@ -7,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table"
+import { Button } from "../ui/button"
 
 interface Membership {
   user: string
@@ -28,43 +28,82 @@ const mockMemberships = [
 
 export const MembershipsTable = ({ memberships = mockMemberships }: MembershipsTableProps) => {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>UTENTE</TableHead>
-          <TableHead>TEAM</TableHead>
-          <TableHead>RUOLO</TableHead>
-          <TableHead>DATA INGRESSO</TableHead>
-          <TableHead></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <>
+      {/* Versione Mobile */}
+      <div className="grid grid-cols-1 gap-4 sm:hidden">
         {memberships.map((membership, index) => (
-          <TableRow key={index}>
-            <TableCell>{membership.user}</TableCell>
-            <TableCell>{membership.team}</TableCell>
-            <TableCell>{membership.role}</TableCell>
-            <TableCell>{membership.joinedAt}</TableCell>
-            <TableCell>
-              <button className="text-gray-400 hover:text-gray-500">
-                <svg
-                  className="h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="19" cy="12" r="1" />
-                  <circle cx="5" cy="12" r="1" />
-                </svg>
-              </button>
-            </TableCell>
-          </TableRow>
+          <div key={index} className="bg-white space-y-3 p-4 rounded-lg shadow">
+            <div className="flex items-center space-x-2 text-sm">
+              <div className="text-gray-900 font-bold">{membership.user}</div>
+              <div className="text-gray-500">{membership.team}</div>
+            </div>
+            <div className="text-sm text-gray-700">
+              <span className="font-medium">Ruolo:</span> {membership.role}
+            </div>
+            <div className="text-sm text-gray-700">
+              <span className="font-medium">Data Ingresso:</span> {membership.joinedAt}
+            </div>
+            <Button variant="ghost" size="sm" className="w-full justify-center">
+              <svg
+                className="h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              <span className="ml-2">Modifica</span>
+            </Button>
+          </div>
         ))}
-      </TableBody>
-    </Table>
+      </div>
+
+      {/* Versione Desktop */}
+      <div className="hidden sm:block rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Utente</TableHead>
+              <TableHead>Team</TableHead>
+              <TableHead>Ruolo</TableHead>
+              <TableHead>Data Ingresso</TableHead>
+              <TableHead className="text-right">Azioni</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {memberships.map((membership, index) => (
+              <TableRow key={index}>
+                <TableCell className="font-medium">{membership.user}</TableCell>
+                <TableCell>{membership.team}</TableCell>
+                <TableCell>{membership.role}</TableCell>
+                <TableCell>{membership.joinedAt}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon">
+                    <svg
+                      className="h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   )
 }

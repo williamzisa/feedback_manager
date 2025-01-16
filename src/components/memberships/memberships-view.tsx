@@ -13,8 +13,8 @@ export const MembershipsView = () => {
             className="bg-white"
           />
         </div>
-        <Button className="w-full sm:w-auto bg-[#1E2A4A] text-white hover:bg-[#2A3B66]">
-          AGGIUNGI MEMBERSHIP
+        <Button className="w-full sm:w-auto whitespace-nowrap">
+          Nuova Membership
         </Button>
       </div>
 

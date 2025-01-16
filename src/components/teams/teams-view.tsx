@@ -18,7 +18,7 @@ export const TeamsView = () => {
           placeholder="Cerca Teams"
           className="bg-white w-full sm:w-96"
         />
-        <Button className="bg-[#1E2A4A] text-white hover:bg-[#2A3B66] w-full sm:w-auto">
+        <Button className="w-full sm:w-auto whitespace-nowrap">
           <svg
             className="mr-2 h-5 w-5"
             xmlns="http://www.w3.org/2000/svg"
@@ -29,9 +29,10 @@ export const TeamsView = () => {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M12 5v14M5 12h14" />
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          AGGIUNGI TEAM
+          Nuovo Team
         </Button>
       </div>
 
