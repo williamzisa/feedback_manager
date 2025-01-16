@@ -23,7 +23,7 @@ export default function LevelsPage() {
             >
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
-            <h2 className="text-xl font-semibold">Livelli</h2>
+            <h1 className="text-2xl font-semibold text-gray-900">Livelli</h1>
           </div>
         </div>
 

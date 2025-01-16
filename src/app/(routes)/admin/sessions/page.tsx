@@ -34,7 +34,7 @@ export default function SessionsPage() {
             <line x1="8" y1="2" x2="8" y2="6" />
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
-          <h2 className="text-xl font-semibold">Sessioni</h2>
+          <h1 className="text-2xl font-semibold text-gray-900">Sessioni</h1>
         </div>
 
         {/* Stats Card */}

@@ -34,7 +34,7 @@ export default function QuestionsPage() {
             <line x1="12" y1="16" x2="12" y2="12" />
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
-          <h2 className="text-xl font-semibold">Domande</h2>
+          <h1 className="text-2xl font-semibold text-gray-900">Domande</h1>
         </div>
 
         {/* Stats Section */}
