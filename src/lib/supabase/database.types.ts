@@ -434,22 +434,28 @@ export type Database = {
           company: string | null
           created_at: string | null
           id: string
+          isclusterleader: boolean | null
           leader: string | null
           name: string
+          project: boolean | null
         }
         Insert: {
           company?: string | null
           created_at?: string | null
           id: string
+          isclusterleader?: boolean | null
           leader?: string | null
           name: string
+          project?: boolean | null
         }
         Update: {
           company?: string | null
           created_at?: string | null
           id?: string
+          isclusterleader?: boolean | null
           leader?: string | null
           name?: string
+          project?: boolean | null
         }
         Relationships: [
           {
@@ -547,7 +553,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
-          level: number | null
+          level: string | null
           mentor: string | null
           name: string
           surname: string
@@ -558,7 +564,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id: string
-          level?: number | null
+          level?: string | null
           mentor?: string | null
           name: string
           surname: string
@@ -569,7 +575,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
-          level?: number | null
+          level?: string | null
           mentor?: string | null
           name?: string
           surname?: string
@@ -633,7 +639,8 @@ export type Tables<
     : never
   : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
         PublicSchema["Views"])
-    ? (PublicSchema["Tables"] & PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+    ? (PublicSchema["Tables"] &
+        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
         Row: infer R
       }
       ? R

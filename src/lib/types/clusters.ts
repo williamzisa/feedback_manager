@@ -1,13 +1,26 @@
-export type Cluster = {
+export interface Cluster {
   id: string
   name: string
   level: number | null
-  leader: {
+  company: string | null
+  created_at: string | null
+  leader?: {
     id: string
     name: string
     surname: string
   } | null
-  team_clusters?: { id: string }[]
+  team_clusters?: {
+    id: string
+    team?: {
+      id: string
+      name: string
+      leader?: {
+        id: string
+        name: string
+        surname: string
+      } | null
+    } | null
+  }[]
   team_count: number
 }
 

@@ -1,7 +1,22 @@
+'use client'
+
+import { useQuery } from "@tanstack/react-query"
+import { queries } from "@/lib/supabase/queries"
 import { StatCard } from '@/components/stats/stat-card'
-import { TeamsView } from '@/components/teams/teams-view'
+import { TeamsView } from "@/components/teams/teams-view"
 
 export default function TeamsPage() {
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: queries.teams.getAll
+  })
+
+  // Calcola le statistiche
+  const totalTeams = teams.length
+  const marketingTeams = 0 // teams.filter(t => t.type === 'MARKETING').length
+  const operationsTeams = 0 // teams.filter(t => t.type === 'OPERATIONS').length
+  const developmentTeams = 0 // teams.filter(t => t.type === 'DEVELOPMENT').length
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="mx-auto max-w-full px-4 sm:px-8 py-8">
@@ -27,12 +42,13 @@ export default function TeamsPage() {
 
         {/* Stats Section */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          <StatCard title="N.TEAMS" value={124} className="bg-white shadow-sm" />
-          <StatCard title="MARKETING" value={29} className="bg-blue-100" />
-          <StatCard title="OPERATIONS" value={110} className="bg-green-100" />
-          <StatCard title="DEVELOPMENT" value={51} className="bg-yellow-100" />
+          <StatCard title="N.TEAMS" value={totalTeams} />
+          <StatCard title="MARKETING" value={marketingTeams} className="bg-blue-100" />
+          <StatCard title="OPERATIONS" value={operationsTeams} className="bg-green-100" />
+          <StatCard title="DEVELOPMENT" value={developmentTeams} className="bg-yellow-100" />
         </div>
 
+        {/* Teams View */}
         <TeamsView />
       </main>
     </div>

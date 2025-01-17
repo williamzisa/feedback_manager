@@ -1,62 +1,103 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+'use client'
 
-interface Team {
-  name: string
-  cluster: string
-  leader: string
-  members: number
-}
+import { useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { Edit } from 'lucide-react'
+import { EditTeamDialog } from './dialogs/edit-team-dialog'
+import type { Team } from '@/lib/types/teams'
 
 interface TeamsTableProps {
   teams: Team[]
+  onSuccess?: () => void
 }
 
-export const TeamsTable = ({ teams }: TeamsTableProps) => {
+export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
+
+  const handleEdit = (team: Team) => {
+    setSelectedTeam(team)
+    setIsEditOpen(true)
+  }
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>TEAM</TableHead>
-          <TableHead>CLUSTER</TableHead>
-          <TableHead>TEAM LEADER</TableHead>
-          <TableHead>MEMBERS</TableHead>
-          <TableHead></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <>
+      <div className="block sm:hidden">
         {teams.map((team) => (
-          <TableRow key={team.name}>
-            <TableCell>{team.name}</TableCell>
-            <TableCell>{team.cluster}</TableCell>
-            <TableCell>{team.leader}</TableCell>
-            <TableCell>{team.members}</TableCell>
-            <TableCell>
-              <button className="text-gray-400 hover:text-gray-500">
-                <svg
-                  className="h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="19" cy="12" r="1" />
-                  <circle cx="5" cy="12" r="1" />
-                </svg>
-              </button>
-            </TableCell>
-          </TableRow>
+          <div key={team.id} className="mb-4 bg-white p-4 rounded-lg shadow">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-medium">{team.name}</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleEdit(team)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div>
+                <span className="font-medium">Cluster:</span> {team.team_clusters?.[0]?.cluster?.name || '-'}
+              </div>
+              <div>
+                <span className="font-medium">Team Leader:</span> {`${team.leader?.name || ''} ${team.leader?.surname || ''}`}
+              </div>
+              <div>
+                <span className="font-medium">Members:</span> {team.user_teams?.length || 0}
+              </div>
+            </div>
+          </div>
         ))}
-      </TableBody>
-    </Table>
+      </div>
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>TEAM</TableHead>
+              <TableHead>CLUSTER</TableHead>
+              <TableHead>TEAM LEADER</TableHead>
+              <TableHead>MEMBERS</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {teams.map((team) => (
+              <TableRow key={team.id}>
+                <TableCell>{team.name}</TableCell>
+                <TableCell>{team.team_clusters?.[0]?.cluster?.name || '-'}</TableCell>
+                <TableCell>{`${team.leader?.name || ''} ${team.leader?.surname || ''}`}</TableCell>
+                <TableCell>{team.user_teams?.length || 0}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(team)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {teams.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4">
+                  Nessun team trovato
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {selectedTeam && (
+        <EditTeamDialog
+          team={selectedTeam}
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          onSuccess={onSuccess}
+        />
+      )}
+    </>
   )
 }
