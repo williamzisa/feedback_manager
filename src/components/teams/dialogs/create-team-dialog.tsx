@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TeamForm } from "../forms/team-form"
 import type { TeamFormData } from "@/lib/types/teams"
+import type { CreateMembershipData } from "@/lib/types/memberships"
 import { queries } from "@/lib/supabase/queries"
 
 interface CreateTeamDialogProps {
@@ -24,12 +25,10 @@ export function CreateTeamDialog({
     try {
       setIsLoading(true)
       setError(null)
-      
-      if (!data.name.trim()) {
+
+      if (!data.name?.trim()) {
         throw new Error('Il nome del team è obbligatorio')
       }
-
-      console.log('Form data:', data)
 
       const teamData = {
         name: data.name.trim(),
@@ -38,13 +37,17 @@ export function CreateTeamDialog({
         project: data.project || null
       }
 
-      console.log('Team data to create:', teamData)
-
-      // 1. Create team
       const createdTeam = await queries.teams.create(teamData)
-      console.log('Created team:', createdTeam)
 
-      // 2. If cluster is selected, create team_clusters relation
+      if (data.leaderId && data.leaderId !== 'none') {
+        const membershipData: CreateMembershipData = {
+          id: crypto.randomUUID(),
+          team_id: createdTeam.id,
+          user_id: data.leaderId
+        }
+        await queries.user_teams.create(membershipData)
+      }
+
       if (data.clusterId && data.clusterId !== 'none') {
         await queries.team_clusters.create({
           team_id: createdTeam.id,
@@ -52,26 +55,11 @@ export function CreateTeamDialog({
         })
       }
 
-      // 3. If leader is selected, create user_teams relation
-      if (data.leaderId && data.leaderId !== 'none') {
-        await queries.user_teams.create({
-          team_id: createdTeam.id,
-          user_id: data.leaderId
-        })
-      }
-      
       onOpenChange(false)
       onSuccess?.()
     } catch (err) {
       console.error('Error creating team:', err)
-      if (err instanceof Error) {
-        setError(err.message)
-      } else if (typeof err === 'object' && err !== null) {
-        console.log('Detailed error:', JSON.stringify(err))
-        setError('Errore durante la creazione del team: ' + JSON.stringify(err))
-      } else {
-        setError('Errore sconosciuto durante la creazione del team')
-      }
+      setError(err instanceof Error ? err.message : 'Errore durante la creazione del team')
     } finally {
       setIsLoading(false)
     }
@@ -84,11 +72,11 @@ export function CreateTeamDialog({
           <DialogTitle>Nuovo Team</DialogTitle>
         </DialogHeader>
         {error && (
-          <div className="text-red-500 text-sm mb-4">
+          <div className="text-sm text-red-500 mb-4">
             {error}
           </div>
         )}
-        <TeamForm 
+        <TeamForm
           onSubmit={handleSubmit}
           isLoading={isLoading}
           mode="create"

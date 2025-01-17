@@ -190,28 +190,41 @@ export const queries = {
     getAll: async () => {
       const { data, error } = await supabase
         .from('user_teams')
-        .select('id, user_id, team_id, created_at')
+        .select(`
+          id,
+          user_id,
+          team_id,
+          created_at,
+          user:users(id, name, surname, email),
+          team:teams(
+            id,
+            name,
+            leader:users(id, name, surname),
+            team_clusters(
+              cluster:clusters(
+                id,
+                name
+              )
+            )
+          )
+        `)
+        .order('created_at', { ascending: false })
       if (error) throw error
       return data
     },
-    create: async (userTeam: { team_id: string; user_id: string }) => {
+    create: async (membership: { id: string; user_id: string; team_id: string }) => {
       const { data, error } = await supabase
         .from('user_teams')
-        .insert([{
-          id: crypto.randomUUID(),
-          ...userTeam
-        }])
-        .select('id, user_id, team_id, created_at')
-        .single()
+        .insert([membership])
+        .select()
       if (error) throw error
-      return data
+      return data[0]
     },
-    deleteByUserAndTeam: async (userId: string, teamId: string) => {
+    delete: async (id: string) => {
       const { error } = await supabase
         .from('user_teams')
         .delete()
-        .eq('user_id', userId)
-        .eq('team_id', teamId)
+        .eq('id', id)
       if (error) throw error
     }
   },

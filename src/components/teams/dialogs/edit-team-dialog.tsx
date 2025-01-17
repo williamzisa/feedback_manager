@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TeamForm } from "../forms/team-form"
-import type { Team, TeamFormData } from "@/lib/types/teams"
+import type { Team, TeamFormData, TeamUpdate } from "@/lib/types/teams"
+import type { CreateMembershipData } from "@/lib/types/memberships"
 import { queries } from "@/lib/supabase/queries"
 
 interface EditTeamDialogProps {
@@ -26,34 +27,53 @@ export function EditTeamDialog({
     try {
       setIsLoading(true)
       setError(null)
-      
-      if (!data.name.trim()) {
+
+      if (!data.name?.trim()) {
         throw new Error('Il nome del team è obbligatorio')
       }
 
-      const teamData = {
+      const updateData: TeamUpdate = {
         name: data.name.trim(),
         leader: data.leaderId === 'none' ? null : data.leaderId,
         isclusterleader: data.isclusterleader || null,
         project: data.project || null
       }
 
-      console.log('Team data to update:', teamData)
+      await queries.teams.update(team.id, updateData)
 
-      // 1. Update team
-      const updatedTeam = await queries.teams.update(team.id, teamData)
-      console.log('Updated team:', updatedTeam)
+      const currentLeaderId = team.leader?.id
+      const newLeaderId = data.leaderId === 'none' ? null : data.leaderId
 
-      // 2. Update team_clusters relation
-      const currentClusterId = team.team_clusters?.[0]?.cluster?.id
+      if (currentLeaderId !== newLeaderId) {
+        if (currentLeaderId) {
+          const oldMembership = team.user_teams?.find(ut => ut.user_id === currentLeaderId)
+          if (oldMembership?.id) {
+            await queries.user_teams.delete(oldMembership.id)
+          }
+        }
+
+        if (newLeaderId) {
+          const membershipData: CreateMembershipData = {
+            id: crypto.randomUUID(),
+            team_id: team.id,
+            user_id: newLeaderId
+          }
+          await queries.user_teams.create(membershipData)
+        }
+      }
+
+      // Gestione cluster
+      const currentTeamCluster = team.team_clusters?.[0]
+      const currentClusterId = currentTeamCluster?.cluster?.id
       const newClusterId = data.clusterId === 'none' ? null : data.clusterId
 
       if (currentClusterId !== newClusterId) {
-        // Remove old relation if exists
-        if (currentClusterId) {
+        // Rimuovi il cluster esistente
+        if (currentTeamCluster) {
           await queries.team_clusters.deleteByTeamId(team.id)
         }
-        // Create new relation if cluster selected
+
+        // Aggiungi il nuovo cluster
         if (newClusterId) {
           await queries.team_clusters.create({
             team_id: team.id,
@@ -62,41 +82,21 @@ export function EditTeamDialog({
         }
       }
 
-      // 3. Update user_teams relation for leader
-      const currentLeaderId = team.leader?.id
-      const newLeaderId = data.leaderId === 'none' ? null : data.leaderId
-
-      if (currentLeaderId !== newLeaderId) {
-        // Remove old leader if exists
-        if (currentLeaderId) {
-          await queries.user_teams.deleteByUserAndTeam(currentLeaderId, team.id)
-        }
-        // Add new leader if selected
-        if (newLeaderId) {
-          await queries.user_teams.create({
-            team_id: team.id,
-            user_id: newLeaderId
-          })
-        }
-      }
-      
       onOpenChange(false)
       onSuccess?.()
     } catch (err) {
       console.error('Error updating team:', err)
-      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento del team')
+      setError(err instanceof Error ? err.message : 'Errore durante la modifica del team')
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleDelete = async () => {
-    if (!window.confirm('Sei sicuro di voler eliminare questo team?')) return
-    
     try {
       setIsLoading(true)
       setError(null)
-      
+
       await queries.teams.delete(team.id)
       
       onOpenChange(false)
@@ -116,11 +116,15 @@ export function EditTeamDialog({
           <DialogTitle>Modifica Team</DialogTitle>
         </DialogHeader>
         {error && (
-          <div className="text-red-500 text-sm mb-4">
+          <div className="text-sm text-red-500 mb-4">
             {error}
           </div>
         )}
-        <TeamForm 
+        <TeamForm
+          onSubmit={handleSubmit}
+          onDelete={handleDelete}
+          isLoading={isLoading}
+          mode="edit"
           initialData={{
             name: team.name,
             leaderId: team.leader?.id || 'none',
@@ -128,10 +132,6 @@ export function EditTeamDialog({
             isclusterleader: team.isclusterleader || false,
             project: team.project || false
           }}
-          onSubmit={handleSubmit}
-          onDelete={handleDelete}
-          isLoading={isLoading}
-          mode="edit"
         />
       </DialogContent>
     </Dialog>
