@@ -23,9 +23,10 @@ interface QuestionFormProps {
   defaultValues?: QuestionFormData
   onSubmit: (data: QuestionFormData) => void
   onDelete?: () => void
+  isLoading?: boolean
 }
 
-export default function QuestionForm({ defaultValues, onSubmit }: QuestionFormProps) {
+export default function QuestionForm({ defaultValues, onSubmit, onDelete, isLoading }: QuestionFormProps) {
   const form = useForm<QuestionFormData>({
     resolver: zodResolver(questionSchema),
     defaultValues: defaultValues || {
@@ -73,9 +74,25 @@ export default function QuestionForm({ defaultValues, onSubmit }: QuestionFormPr
             </FormItem>
           )}
         />
-
-        <Button type="submit">Salva</Button>
-      </form>
-    </Form>
+<div className="flex justify-end gap-2">
+  {onDelete && (
+    <Button
+      type="button"
+      variant="destructive"
+      onClick={onDelete}
+      disabled={isLoading}
+    >
+      Elimina
+    </Button>
+  )}
+  <Button
+    type="submit"
+    disabled={isLoading}
+  >
+    {isLoading ? 'Salvataggio...' : 'Salva'}
+  </Button>
+</div>
+</form>
+</Form>
   )
 }

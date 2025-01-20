@@ -32,7 +32,7 @@ export function QuestionsTable({ questions, onEdit, onDelete }: QuestionsTablePr
             <TableHead>TYPE</TableHead>
             <TableHead>Company</TableHead>
             <TableHead>Created At</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="text-right"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -53,7 +53,7 @@ export function QuestionsTable({ questions, onEdit, onDelete }: QuestionsTablePr
               <TableCell>
                 {new Date(question.created_at).toLocaleDateString()}
               </TableCell>
-              <TableCell className="text-right space-x-2">
+              <TableCell className="text-right">
                 <EditQuestionDialog
                   question={question}
                   onEdit={(data) => onEdit(question.id, data)}

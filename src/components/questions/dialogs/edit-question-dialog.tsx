@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
+import { Edit } from 'lucide-react'
 import QuestionForm from '../forms/question-form'
 import { Question } from '@/lib/types/questions'
 
@@ -18,9 +19,13 @@ interface EditQuestionDialogProps {
 
 export function EditQuestionDialog({ question, onEdit, onDelete }: EditQuestionDialogProps) {
   const [open, setOpen] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleEdit = async (data: { text: string; type: 'SOFT' | 'STRATEGY' | 'EXECUTION' }) => {
     try {
+      setIsLoading(true)
+      setError(null)
       await onEdit({
         ...data,
         id: question.id,
@@ -30,40 +35,47 @@ export function EditQuestionDialog({ question, onEdit, onDelete }: EditQuestionD
       setOpen(false)
     } catch (error) {
       console.error('Error editing question:', error)
+      setError(error instanceof Error ? error.message : 'Errore durante la modifica della domanda')
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleDelete = () => {
-    onDelete()
-    setOpen(false)
+  const handleDelete = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      await onDelete()
+      setOpen(false)
+    } catch (error) {
+      console.error('Error deleting question:', error)
+      setError(error instanceof Error ? error.message : 'Errore durante l\'eliminazione della domanda')
+    } finally {
+      setIsLoading(false)
+    }
   }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <svg
-            className="h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-          </svg>
+        <Button variant="ghost" size="sm">
+          <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Modifica Domanda</DialogTitle>
         </DialogHeader>
+        {error && (
+          <div className="text-sm text-red-500 mb-4">
+            {error}
+          </div>
+        )}
         <QuestionForm
           defaultValues={question}
           onSubmit={handleEdit}
           onDelete={handleDelete}
+          isLoading={isLoading}
         />
       </DialogContent>
     </Dialog>
