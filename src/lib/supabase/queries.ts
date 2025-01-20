@@ -1,4 +1,5 @@
 import { supabase } from './config'
+import type { QuestionInsert, QuestionUpdate } from '../types/questions'
 
 export const queries = {
   // Users
@@ -321,6 +322,51 @@ export const queries = {
     delete: async (id: string) => {
       const { error } = await supabase
         .from('clusters')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    }
+  }
+  ,
+
+  // Questions
+  questions: {
+    getAll: async () => {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('id, text, type, created_at, company')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data
+    },
+
+    create: async (question: Omit<QuestionInsert, 'id'>) => {
+      const { data, error } = await supabase
+        .from('questions')
+        .insert([{
+          id: crypto.randomUUID(),
+          ...question
+        }])
+        .select('id, text, type, created_at, company')
+        .single()
+      if (error) throw error
+      return data
+    },
+
+    update: async (id: string, question: QuestionUpdate) => {
+      const { data, error } = await supabase
+        .from('questions')
+        .update(question)
+        .eq('id', id)
+        .select('id, text, type, created_at, company')
+        .single()
+      if (error) throw error
+      return data
+    },
+
+    delete: async (id: string) => {
+      const { error } = await supabase
+        .from('questions')
         .delete()
         .eq('id', id)
       if (error) throw error
