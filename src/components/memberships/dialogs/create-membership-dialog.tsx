@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MembershipForm } from "../forms/membership-form"
-import type { MembershipFormData, CreateMembershipData } from "@/lib/types/memberships"
-import { queries } from "@/lib/supabase/queries"
+import type { MembershipFormData } from "@/lib/types/memberships"
+import { mockMembershipsApi } from "@/lib/data/mock-memberships"
 
 interface CreateMembershipDialogProps {
   open: boolean
@@ -29,13 +29,10 @@ export function CreateMembershipDialog({
         throw new Error('Tutti i campi sono obbligatori')
       }
 
-      const createData: CreateMembershipData = {
-        id: crypto.randomUUID(),
+      mockMembershipsApi.create({
         user_id: data.userId,
         team_id: data.teamId
-      }
-
-      await queries.user_teams.create(createData)
+      })
       
       onOpenChange(false)
       onSuccess?.()

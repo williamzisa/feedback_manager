@@ -1,21 +1,22 @@
 'use client'
 
-import { useQuery } from "@tanstack/react-query"
-import { queries } from "@/lib/supabase/queries"
 import { StatCard } from '@/components/stats/stat-card'
 import { MembershipsView } from "@/components/memberships/memberships-view"
+import { useState } from 'react'
+import { mockMembershipsApi } from '@/lib/data/mock-memberships'
 import type { Membership } from "@/lib/types/memberships"
 
 export default function MembershipsPage() {
-  const { data: memberships = [] } = useQuery<Membership[]>({
-    queryKey: ['memberships'],
-    queryFn: queries.user_teams.getAll
-  })
+  const [memberships, setMemberships] = useState<Membership[]>(mockMembershipsApi.getAll())
 
   // Calcola le statistiche
   const totalMemberships = memberships.length
   const activeTeams = new Set(memberships.map(m => m.team_id)).size
   const activeUsers = new Set(memberships.map(m => m.user_id)).size
+
+  const handleSuccess = () => {
+    setMemberships(mockMembershipsApi.getAll())
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -47,7 +48,10 @@ export default function MembershipsPage() {
           <StatCard title="UTENTI ATTIVI" value={activeUsers} className="bg-green-100" />
         </div>
 
-        <MembershipsView memberships={memberships} />
+        <MembershipsView 
+          memberships={memberships} 
+          onSuccess={handleSuccess}
+        />
       </main>
     </div>
   )

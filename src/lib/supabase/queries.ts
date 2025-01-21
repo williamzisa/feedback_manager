@@ -1,5 +1,6 @@
 import { supabase } from './config'
 import type { QuestionInsert, QuestionUpdate } from '../types/questions'
+import type { Level } from '../types/levels'
 
 export const queries = {
   // Users
@@ -326,8 +327,93 @@ export const queries = {
         .eq('id', id)
       if (error) throw error
     }
-  }
-  ,
+  },
+
+  // Levels
+  levels: {
+    getAll: async () => {
+      const { data, error } = await supabase
+        .from('levels')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Errore nel recupero dei livelli:', error)
+        throw error
+      }
+      return data
+    },
+
+    create: async (level: Omit<Level, 'id' | 'created_at'>) => {
+      try {
+        console.log('Tentativo di creazione livello:', level)
+
+        // Prima facciamo una query di select per verificare che la tabella esista
+        const { error: checkError } = await supabase
+          .from('levels')
+          .select('id')
+          .limit(1)
+
+        if (checkError) {
+          console.error('Errore verifica tabella:', checkError)
+          throw new Error('Errore di accesso alla tabella: ' + checkError.message)
+        }
+
+        // Aspettiamo un momento per dare tempo alla cache di aggiornarsi
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        // Creiamo il nuovo livello con una query più semplice
+        const { data, error: insertError } = await supabase
+          .from('levels')
+          .insert({
+            ruolo: level.ruolo,
+            step: level.step,
+            execution: level.execution,
+            soft: level.soft,
+            strategy: level.strategy,
+            standard: level.standard
+          })
+          .select('id, ruolo, step, execution, soft, strategy, standard, created_at')
+          .single()
+
+        if (insertError) {
+          console.error('Errore inserimento:', insertError)
+          throw new Error('Errore durante l\'inserimento: ' + insertError.message)
+        }
+        
+        if (!data) {
+          throw new Error('Nessun dato restituito dopo la creazione')
+        }
+
+        console.log('Livello creato con successo:', data)
+        return data
+      } catch (err) {
+        console.error('Errore completo nella creazione del livello:', err)
+        throw err
+      }
+    },
+
+    update: async (level: Omit<Level, 'created_at'>) => {
+      const { data, error } = await supabase
+        .from('levels')
+        .update(level)
+        .eq('id', level.id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    },
+
+    delete: async (id: string) => {
+      const { error } = await supabase
+        .from('levels')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+    }
+  },
 
   // Questions
   questions: {

@@ -55,8 +55,8 @@ export const AdminHeader = () => {
         pathname === item.href
           ? 'text-blue-600'
           : 'text-gray-500 hover:text-gray-700',
-        'text-base font-medium transition-colors',
-        isMobile ? 'block py-2' : ''
+        'text-base font-medium transition-colors duration-200',
+        isMobile ? 'block py-1.5 hover:translate-x-1 transition-transform' : ''
       )}
       onClick={() => setIsOpen(false)}
     >
@@ -76,30 +76,34 @@ export const AdminHeader = () => {
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden">
-                  <Menu className="h-8 w-8" />
+                  <Menu className="h-6 w-6" />
                   <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                <SheetTitle className="text-xl font-bold text-gray-900 mb-6">
+              <SheetContent side="left" className="w-[300px] sm:w-[400px] p-6">
+                <SheetTitle className="text-xl font-bold text-gray-900 mb-4">
                   Admin Menu
                 </SheetTitle>
-                <div className="flex flex-col space-y-6 mt-6">
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                <div className="flex flex-col space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
                       Gestione Team
                     </h3>
-                    {navigationLeft.map((item) => (
-                      <NavLink key={item.name} item={item} />
-                    ))}
+                    <div className="space-y-1">
+                      {navigationLeft.map((item) => (
+                        <NavLink key={item.name} item={item} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                  <div className="pt-2 space-y-2">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
                       Gestione Feedback
                     </h3>
-                    {navigationRight.map((item) => (
-                      <NavLink key={item.name} item={item} />
-                    ))}
+                    <div className="space-y-1">
+                      {navigationRight.map((item) => (
+                        <NavLink key={item.name} item={item} />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </SheetContent>

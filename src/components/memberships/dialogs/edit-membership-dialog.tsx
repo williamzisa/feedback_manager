@@ -3,19 +3,17 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MembershipForm } from "../forms/membership-form"
-import type { Membership, MembershipFormData, CreateMembershipData } from "@/lib/types/memberships"
-import { queries } from "@/lib/supabase/queries"
+import type { Membership, MembershipFormData } from "@/lib/types/memberships"
+import { mockMembershipsApi } from "@/lib/data/mock-memberships"
 
 interface EditMembershipDialogProps {
-  membership: Membership
-  open: boolean
+  membership: Membership | null
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
 }
 
 export function EditMembershipDialog({
   membership,
-  open,
   onOpenChange,
   onSuccess
 }: EditMembershipDialogProps) {
@@ -31,21 +29,14 @@ export function EditMembershipDialog({
         throw new Error('Tutti i campi sono obbligatori')
       }
 
-      if (!membership.id) {
+      if (!membership?.id) {
         throw new Error('ID membership non valido')
       }
 
-      // Prima eliminiamo la vecchia membership
-      await queries.user_teams.delete(membership.id)
-
-      // Poi creiamo la nuova con i dati aggiornati
-      const createData: CreateMembershipData = {
-        id: crypto.randomUUID(),
+      mockMembershipsApi.update(membership.id, {
         user_id: data.userId,
         team_id: data.teamId
-      }
-
-      await queries.user_teams.create(createData)
+      })
       
       onOpenChange(false)
       onSuccess?.()
@@ -62,11 +53,11 @@ export function EditMembershipDialog({
       setIsLoading(true)
       setError(null)
 
-      if (!membership.id) {
+      if (!membership?.id) {
         throw new Error('ID membership non valido')
       }
 
-      await queries.user_teams.delete(membership.id)
+      mockMembershipsApi.delete(membership.id)
       
       onOpenChange(false)
       onSuccess?.()
@@ -79,7 +70,7 @@ export function EditMembershipDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={!!membership} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Modifica Membership</DialogTitle>
@@ -89,16 +80,18 @@ export function EditMembershipDialog({
             {error}
           </div>
         )}
-        <MembershipForm
-          onSubmit={handleSubmit}
-          onDelete={handleDelete}
-          isLoading={isLoading}
-          mode="edit"
-          initialData={{
-            userId: membership.user_id || '',
-            teamId: membership.team_id || ''
-          }}
-        />
+        {membership && (
+          <MembershipForm
+            onSubmit={handleSubmit}
+            onDelete={handleDelete}
+            isLoading={isLoading}
+            mode="edit"
+            initialData={{
+              userId: membership.user_id,
+              teamId: membership.team_id
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )

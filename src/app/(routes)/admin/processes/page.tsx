@@ -1,15 +1,6 @@
 import { AdminHeader } from '@/components/layout/admin-header'
 import { StatCard } from '@/components/stats/stat-card'
-import { ProcessesTable } from '@/components/processes/processes-table'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-
-const mockProcesses = [
-  { processo: 'Safety specialist', nUser: 2, idDomandaCollegata: 21 },
-  { processo: 'Facility manager', nUser: 4, idDomandaCollegata: 91 },
-  { processo: 'Legal specialist', nUser: 4, idDomandaCollegata: 89 },
-  { processo: 'Compliance specialist', nUser: 6, idDomandaCollegata: 83 },
-]
+import { ProcessesView } from '@/components/processes/processes-view'
 
 export default function ProcessesPage() {
   return (
@@ -45,47 +36,7 @@ export default function ProcessesPage() {
 
         {/* Processes Section */}
         <div className="mt-6">
-          <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="w-full sm:w-96">
-              <Input
-                type="search"
-                placeholder="Cerca Processo"
-                className="w-full"
-              />
-            </div>
-            <Button className="w-full sm:w-auto whitespace-nowrap">
-              Nuovo Processo
-            </Button>
-          </div>
-
-          <div className="rounded-lg bg-white shadow-sm">
-            <div className="px-4 py-3 border-b">
-              <p className="text-sm text-gray-500">111 risultati</p>
-            </div>
-            <div className="p-4 overflow-x-auto">
-              <div className="block sm:hidden space-y-4">
-                {mockProcesses.map((process, index) => (
-                  <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-lg">{process.processo}</h3>
-                      <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        {process.nUser} utenti
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <span className="w-32">ID Domanda:</span>
-                        <span>{process.idDomandaCollegata}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="hidden sm:block">
-                <ProcessesTable processes={mockProcesses} />
-              </div>
-            </div>
-          </div>
+          <ProcessesView />
         </div>
       </main>
     </div>

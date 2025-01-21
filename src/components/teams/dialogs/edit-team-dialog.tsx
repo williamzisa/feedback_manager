@@ -3,12 +3,13 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TeamForm } from "../forms/team-form"
-import type { Team, TeamFormData, TeamUpdate } from "@/lib/types/teams"
-import type { CreateMembershipData } from "@/lib/types/memberships"
-import { queries } from "@/lib/supabase/queries"
+import type { Team } from "@/lib/data/mock-teams"
+import type { TeamFormData } from "@/lib/types/teams"
+import { mockTeamsApi } from "@/lib/data/mock-teams"
+import { mockUsers } from "@/lib/data/mock-users"
 
 interface EditTeamDialogProps {
-  team: Team
+  team: Team | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
@@ -25,67 +26,50 @@ export function EditTeamDialog({
 
   const handleSubmit = async (data: TeamFormData) => {
     try {
+      if (!team) return
+      
       setIsLoading(true)
       setError(null)
 
-      if (!data.name?.trim()) {
-        throw new Error('Il nome del team è obbligatorio')
-      }
+      console.log('Form data:', data)
 
-      const updateData: TeamUpdate = {
+      // Troviamo il leader tra gli utenti
+      const leader = data.leaderId ? mockUsers.find(u => u.id === data.leaderId) : null
+
+      const updateData: Partial<Team> = {
         name: data.name.trim(),
-        leader: data.leaderId === 'none' ? null : data.leaderId,
-        isclusterleader: data.isclusterleader || null,
-        project: data.project || null
+        leader,
+        isclusterleader: data.isclusterleader,
+        project: data.project,
       }
 
-      await queries.teams.update(team.id, updateData)
-
-      const currentLeaderId = team.leader?.id
-      const newLeaderId = data.leaderId === 'none' ? null : data.leaderId
-
-      if (currentLeaderId !== newLeaderId) {
-        if (currentLeaderId) {
-          const oldMembership = team.user_teams?.find(ut => ut.user_id === currentLeaderId)
-          if (oldMembership?.id) {
-            await queries.user_teams.delete(oldMembership.id)
+      // Aggiorniamo il cluster solo se è stato selezionato
+      if (data.clusterId) {
+        const clusterName = data.clusterId === 'cluster1' ? 'Cluster Marketing' :
+                          data.clusterId === 'cluster2' ? 'Cluster Operations' :
+                          'Cluster Development'
+        
+        updateData.team_clusters = [{
+          id: team.team_clusters?.[0]?.id || crypto.randomUUID(),
+          cluster: {
+            id: data.clusterId,
+            name: clusterName
           }
-        }
-
-        if (newLeaderId) {
-          const membershipData: CreateMembershipData = {
-            id: crypto.randomUUID(),
-            team_id: team.id,
-            user_id: newLeaderId
-          }
-          await queries.user_teams.create(membershipData)
-        }
+        }]
       }
 
-      // Gestione cluster
-      const currentTeamCluster = team.team_clusters?.[0]
-      const currentClusterId = currentTeamCluster?.cluster?.id
-      const newClusterId = data.clusterId === 'none' ? null : data.clusterId
-
-      if (currentClusterId !== newClusterId) {
-        // Rimuovi il cluster esistente
-        if (currentTeamCluster) {
-          await queries.team_clusters.deleteByTeamId(team.id)
-        }
-
-        // Aggiungi il nuovo cluster
-        if (newClusterId) {
-          await queries.team_clusters.create({
-            team_id: team.id,
-            cluster_id: newClusterId
-          })
-        }
-      }
-
+      console.log('Update data:', updateData)
+      
+      const updatedTeam = mockTeamsApi.update(team.id, updateData)
+      console.log('Team updated:', updatedTeam)
+      
       onOpenChange(false)
-      onSuccess?.()
+      if (onSuccess) {
+        console.log('Calling onSuccess from EditTeamDialog')
+        onSuccess()
+      }
     } catch (err) {
-      console.error('Error updating team:', err)
+      console.error('Errore:', err)
       setError(err instanceof Error ? err.message : 'Errore durante la modifica del team')
     } finally {
       setIsLoading(false)
@@ -94,20 +78,29 @@ export function EditTeamDialog({
 
   const handleDelete = async () => {
     try {
+      if (!team) return
+      
       setIsLoading(true)
       setError(null)
 
-      await queries.teams.delete(team.id)
+      console.log('Deleting team:', team.id)
+      mockTeamsApi.delete(team.id)
+      console.log('Team deleted')
       
       onOpenChange(false)
-      onSuccess?.()
+      if (onSuccess) {
+        console.log('Calling onSuccess from EditTeamDialog after delete')
+        onSuccess()
+      }
     } catch (err) {
-      console.error('Error deleting team:', err)
+      console.error('Errore:', err)
       setError(err instanceof Error ? err.message : 'Errore durante l\'eliminazione del team')
     } finally {
       setIsLoading(false)
     }
   }
+
+  if (!team) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,24 +108,26 @@ export function EditTeamDialog({
         <DialogHeader>
           <DialogTitle>Modifica Team</DialogTitle>
         </DialogHeader>
-        {error && (
-          <div className="text-sm text-red-500 mb-4">
-            {error}
-          </div>
-        )}
-        <TeamForm
-          onSubmit={handleSubmit}
-          onDelete={handleDelete}
-          isLoading={isLoading}
-          mode="edit"
-          initialData={{
-            name: team.name,
-            leaderId: team.leader?.id || 'none',
-            clusterId: team.team_clusters?.[0]?.cluster?.id || 'none',
-            isclusterleader: team.isclusterleader || false,
-            project: team.project || false
-          }}
-        />
+        <div className="mt-6">
+          {error && (
+            <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-md">
+              {error}
+            </div>
+          )}
+          <TeamForm
+            initialData={{
+              name: team.name,
+              clusterId: team.team_clusters?.[0]?.cluster?.id || null,
+              leaderId: team.leader?.id || null,
+              isclusterleader: team.isclusterleader,
+              project: team.project
+            }}
+            onSubmit={handleSubmit}
+            onDelete={handleDelete}
+            isLoading={isLoading}
+            mode="edit"
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )

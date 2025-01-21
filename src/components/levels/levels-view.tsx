@@ -1,15 +1,34 @@
+'use client'
+
+import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LevelsTable } from './levels-table'
-
-const mockLevels = [
-  { categoria: 'CEO', numero: 1, lettera: 'A', pesoExecution: '30%', pesoSoft: '30%', pesoStrategy: '40%', standard: 4.2, nUser: 2 },
-  { categoria: 'Chief', numero: 2, lettera: 'A', pesoExecution: '30%', pesoSoft: '40%', pesoStrategy: '30%', standard: 4, nUser: 4 },
-  { categoria: 'Director', numero: 1, lettera: 'A', pesoExecution: '40%', pesoSoft: '30%', pesoStrategy: '30%', standard: 4, nUser: 4 },
-  { categoria: 'Director', numero: 3, lettera: 'B', pesoExecution: '30%', pesoSoft: '50%', pesoStrategy: '20%', standard: 3.8, nUser: 6 },
-]
+import { CreateLevelDialog } from './dialogs/create-level-dialog'
+import { EditLevelDialog } from './dialogs/edit-level-dialog'
+import type { Level } from '@/lib/types/levels'
+import { mockLevels } from '@/lib/data/mock-levels'
 
 export const LevelsView = () => {
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [selectedLevel, setSelectedLevel] = useState<Level | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [levels, setLevels] = useState<Level[]>(mockLevels)
+
+  const filteredLevels = levels.filter(level => 
+    level.ruolo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    level.step.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const handleEdit = (level: Level) => {
+    setSelectedLevel(level)
+  }
+
+  const handleSuccess = () => {
+    // Aggiorna la lista dei livelli dopo una modifica
+    setLevels([...mockLevels])
+  }
+
   return (
     <div>
       <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -18,45 +37,51 @@ export const LevelsView = () => {
             type="search"
             placeholder="Cerca Livello"
             className="w-full bg-white"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button className="w-full sm:w-auto whitespace-nowrap">
+        <Button 
+          className="w-full sm:w-auto whitespace-nowrap"
+          onClick={() => setIsCreateOpen(true)}
+        >
           Nuovo Livello
         </Button>
       </div>
 
       <div className="rounded-lg bg-white shadow-sm">
         <div className="px-4 py-3 border-b">
-          <p className="text-sm text-gray-500">4 risultati</p>
+          <p className="text-sm text-gray-500">{filteredLevels.length} risultati</p>
         </div>
         <div className="p-4">
           <div className="block sm:hidden space-y-4">
-            {mockLevels.map((level, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-lg">
+            {filteredLevels.map((level) => (
+              <div key={level.id} className="p-4 bg-gray-50 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-lg">{level.categoria}</h3>
+                  <h3 className="font-semibold text-lg">{level.ruolo}</h3>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      {level.numero}
-                    </span>
-                    <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                      {level.lettera}
-                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEdit(level)}
+                    >
+                      Modifica
+                    </Button>
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 space-y-2">
                   <div className="grid grid-cols-3 gap-2">
                     <div className="bg-gray-100 p-2 rounded">
                       <p className="text-xs text-gray-500">Execution</p>
-                      <p className="font-medium">{level.pesoExecution}</p>
+                      <p className="font-medium">{level.execution}%</p>
                     </div>
                     <div className="bg-gray-100 p-2 rounded">
                       <p className="text-xs text-gray-500">Soft</p>
-                      <p className="font-medium">{level.pesoSoft}</p>
+                      <p className="font-medium">{level.soft}%</p>
                     </div>
                     <div className="bg-gray-100 p-2 rounded">
                       <p className="text-xs text-gray-500">Strategy</p>
-                      <p className="font-medium">{level.pesoStrategy}</p>
+                      <p className="font-medium">{level.strategy}%</p>
                     </div>
                   </div>
                   <div className="flex justify-between items-center pt-2">
@@ -65,8 +90,8 @@ export const LevelsView = () => {
                       <span className="ml-2 font-medium">{level.standard}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Utenti:</span>
-                      <span className="ml-2 font-medium">{level.nUser}</span>
+                      <span className="text-gray-500">Step:</span>
+                      <span className="ml-2 font-medium">{level.step}</span>
                     </div>
                   </div>
                 </div>
@@ -74,10 +99,26 @@ export const LevelsView = () => {
             ))}
           </div>
           <div className="hidden sm:block">
-            <LevelsTable levels={mockLevels} />
+            <LevelsTable 
+              levels={filteredLevels} 
+              onEdit={handleEdit}
+            />
           </div>
         </div>
       </div>
+
+      <CreateLevelDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={handleSuccess}
+      />
+
+      <EditLevelDialog
+        level={selectedLevel}
+        open={!!selectedLevel}
+        onOpenChange={(open) => !open && setSelectedLevel(null)}
+        onSuccess={handleSuccess}
+      />
     </div>
   )
 }

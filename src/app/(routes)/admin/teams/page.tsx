@@ -1,21 +1,22 @@
 'use client'
 
-import { useQuery } from "@tanstack/react-query"
-import { queries } from "@/lib/supabase/queries"
-import { StatCard } from '@/components/stats/stat-card'
 import { TeamsView } from "@/components/teams/teams-view"
+import { StatCard } from "@/components/stats/stat-card"
+import { useState } from "react"
+import { mockTeamsApi } from "@/lib/data/mock-teams"
+import type { Team } from "@/lib/types/teams"
 
 export default function TeamsPage() {
-  const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
-    queryFn: queries.teams.getAll
-  })
+  const [teams, setTeams] = useState<Team[]>(mockTeamsApi.getAll())
 
   // Calcola le statistiche
   const totalTeams = teams.length
-  const marketingTeams = 0 // teams.filter(t => t.type === 'MARKETING').length
-  const operationsTeams = 0 // teams.filter(t => t.type === 'OPERATIONS').length
-  const developmentTeams = 0 // teams.filter(t => t.type === 'DEVELOPMENT').length
+  const projectTeams = teams.filter(t => t.project).length
+  const leaderTeams = teams.filter(t => t.isclusterleader).length
+
+  const handleSuccess = () => {
+    setTeams(mockTeamsApi.getAll())
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,15 +42,16 @@ export default function TeamsPage() {
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          <StatCard title="N.TEAMS" value={totalTeams} />
-          <StatCard title="MARKETING" value={marketingTeams} className="bg-blue-100" />
-          <StatCard title="OPERATIONS" value={operationsTeams} className="bg-green-100" />
-          <StatCard title="DEVELOPMENT" value={developmentTeams} className="bg-yellow-100" />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+          <StatCard title="TOTALE TEAMS" value={totalTeams} />
+          <StatCard title="TEAMS PROGETTO" value={projectTeams} className="bg-blue-100" />
+          <StatCard title="TEAMS LEADER" value={leaderTeams} className="bg-green-100" />
         </div>
 
-        {/* Teams View */}
-        <TeamsView />
+        <TeamsView 
+          teams={teams}
+          onSuccess={handleSuccess}
+        />
       </main>
     </div>
   )

@@ -5,7 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Edit } from 'lucide-react'
 import { EditTeamDialog } from './dialogs/edit-team-dialog'
-import type { Team } from '@/lib/types/teams'
+import type { Team } from '@/lib/data/mock-teams'
+import { Badge } from '@/components/ui/badge'
 
 interface TeamsTableProps {
   teams: Team[]
@@ -46,6 +47,14 @@ export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
               <div>
                 <span className="font-medium">Members:</span> {team.user_teams?.length || 0}
               </div>
+              <div className="flex flex-wrap gap-2">
+                {team.isclusterleader && (
+                  <Badge variant="outline">Cluster Leader</Badge>
+                )}
+                {team.project && (
+                  <Badge variant="outline">Progetto</Badge>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -58,6 +67,8 @@ export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
               <TableHead>CLUSTER</TableHead>
               <TableHead>TEAM LEADER</TableHead>
               <TableHead>MEMBERS</TableHead>
+              <TableHead>CLUSTER LEADER</TableHead>
+              <TableHead>PROGETTO</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -68,6 +79,16 @@ export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
                 <TableCell>{team.team_clusters?.[0]?.cluster?.name || '-'}</TableCell>
                 <TableCell>{`${team.leader?.name || ''} ${team.leader?.surname || ''}`}</TableCell>
                 <TableCell>{team.user_teams?.length || 0}</TableCell>
+                <TableCell>
+                  <Badge variant={team.isclusterleader ? "success" : "secondary"}>
+                    {team.isclusterleader ? 'Sì' : 'No'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={team.project ? "success" : "secondary"}>
+                    {team.project ? 'Sì' : 'No'}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   <Button
                     variant="ghost"
@@ -81,7 +102,7 @@ export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
             ))}
             {teams.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   Nessun team trovato
                 </TableCell>
               </TableRow>

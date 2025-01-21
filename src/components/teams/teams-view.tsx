@@ -1,90 +1,80 @@
 'use client'
 
-import { useState } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { queries } from "@/lib/supabase/queries"
-import { Button } from "@/components/ui/button"
-import { TeamsTable } from "./teams-table"
-import { CreateTeamDialog } from "./dialogs/create-team-dialog"
-import { Input } from "@/components/ui/input"
+import { useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { TeamsTable } from './teams-table'
+import { CreateTeamDialog } from './dialogs/create-team-dialog'
+import { EditTeamDialog } from './dialogs/edit-team-dialog'
+import type { Team } from '@/lib/data/mock-teams'
 
-export function TeamsView() {
-  const queryClient = useQueryClient()
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [searchTeam, setSearchTeam] = useState('')
-  const [searchCluster, setSearchCluster] = useState('')
+interface TeamsViewProps {
+  teams: Team[]
+  onSuccess: () => void
+}
 
-  const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
-    queryFn: queries.teams.getAll
-  })
+export function TeamsView({ teams, onSuccess }: TeamsViewProps) {
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  const handleSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['teams'] })
+  const filteredTeams = teams.filter(team => 
+    team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    team.leader?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    team.leader?.surname?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const handleEdit = (team: Team) => {
+    setSelectedTeam(team)
   }
 
-  // Filtra i team in base ai criteri di ricerca
-  const filteredTeams = teams.filter(team => {
-    const matchesTeamName = team.name.toLowerCase().includes(searchTeam.toLowerCase())
-    const matchesCluster = searchCluster === '' || 
-      team.team_clusters?.some(tc => tc.cluster?.name.toLowerCase().includes(searchCluster.toLowerCase()))
-    return matchesTeamName && matchesCluster
-  })
+  const handleSuccess = () => {
+    console.log('Operation successful, calling onSuccess')
+    onSuccess()
+  }
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="w-full sm:w-96">
           <Input
-            type="text"
-            placeholder="Cerca Teams"
-            className="bg-white w-full sm:w-96"
-            value={searchTeam}
-            onChange={(e) => setSearchTeam(e.target.value)}
-          />
-          <Input
-            type="text"
-            placeholder="Cerca Cluster"
-            className="bg-white w-full sm:w-96"
-            value={searchCluster}
-            onChange={(e) => setSearchCluster(e.target.value)}
+            type="search"
+            placeholder="Cerca Team"
+            className="w-full bg-white"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button
-          onClick={() => setCreateDialogOpen(true)}
+        <Button 
           className="w-full sm:w-auto whitespace-nowrap"
+          onClick={() => setIsCreateOpen(true)}
         >
-          <svg
-            className="mr-2 h-5 w-5"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
           Nuovo Team
         </Button>
       </div>
 
       <div className="rounded-lg bg-white shadow-sm">
         <div className="px-4 py-3 border-b">
-          <p className="text-sm text-gray-500">
-            {filteredTeams.length} {filteredTeams.length === 1 ? 'risultato' : 'risultati'}
-          </p>
+          <p className="text-sm text-gray-500">{filteredTeams.length} risultati</p>
         </div>
         <div className="p-4">
-          <TeamsTable teams={filteredTeams} onSuccess={handleSuccess} />
+          <TeamsTable 
+            teams={filteredTeams} 
+            onEdit={handleEdit}
+          />
         </div>
       </div>
 
       <CreateTeamDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSuccess={handleSuccess}
+      />
+
+      <EditTeamDialog
+        team={selectedTeam}
+        open={!!selectedTeam}
+        onOpenChange={(open) => !open && setSelectedTeam(null)}
         onSuccess={handleSuccess}
       />
     </div>

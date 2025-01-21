@@ -3,7 +3,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Edit } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface UserSessionResult {
   id: string
@@ -18,6 +18,8 @@ interface UserSessionResult {
 }
 
 export const SessionResultsTable = () => {
+  const router = useRouter()
+  
   // Mock data - da sostituire con dati reali dal backend
   const results: UserSessionResult[] = [
     {
@@ -42,12 +44,52 @@ export const SessionResultsTable = () => {
       strategy: 3.5,
       soft: 3.8
     },
-    // ... altri risultati
+    {
+      id: '3',
+      session_name: 'Sessione Q4 2023',
+      level_name: 'Livello 3',
+      user_name: 'Marco Rossi',
+      overall: 3.9,
+      gap: 0.22,
+      execution: 3.8,
+      strategy: 4.0,
+      soft: 3.9
+    },
+    {
+      id: '4',
+      session_name: 'Sessione Q3 2023',
+      level_name: 'Livello 2',
+      user_name: 'William Zisa',
+      overall: 3.8,
+      gap: 0.18,
+      execution: 3.9,
+      strategy: 3.7,
+      soft: 3.8
+    },
+    {
+      id: '5',
+      session_name: 'Sessione Q3 2023',
+      level_name: 'Livello 1',
+      user_name: 'Laura Bianchi',
+      overall: 4.3,
+      gap: 0.12,
+      execution: 4.4,
+      strategy: 4.2,
+      soft: 4.3
+    }
   ]
 
   // Funzione per formattare il gap in percentuale
   const formatGap = (gap: number) => {
     return `${(gap * 100).toFixed(1)}%`
+  }
+
+  const handleDetailClick = (sessionName: string, userName: string) => {
+    const params = new URLSearchParams({
+      session: sessionName,
+      receiver: userName
+    })
+    router.push(`/admin/pre-session-analysis?${params.toString()}`)
   }
 
   return (
@@ -99,8 +141,11 @@ export const SessionResultsTable = () => {
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="icon">
-                <Edit className="h-4 w-4" />
+              <Button 
+                variant="default"
+                onClick={() => handleDetailClick(result.session_name, result.user_name)}
+              >
+                Dettaglio
               </Button>
             </div>
           </div>
@@ -136,8 +181,11 @@ export const SessionResultsTable = () => {
                   <TableCell>{result.strategy}</TableCell>
                   <TableCell>{result.soft}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon">
-                      <Edit className="h-4 w-4" />
+                    <Button 
+                      variant="default"
+                      onClick={() => handleDetailClick(result.session_name, result.user_name)}
+                    >
+                      Dettaglio
                     </Button>
                   </TableCell>
                 </TableRow>

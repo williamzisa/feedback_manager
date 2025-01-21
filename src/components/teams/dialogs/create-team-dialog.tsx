@@ -4,8 +4,8 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TeamForm } from "../forms/team-form"
 import type { TeamFormData } from "@/lib/types/teams"
-import type { CreateMembershipData } from "@/lib/types/memberships"
-import { queries } from "@/lib/supabase/queries"
+import { mockTeamsApi } from "@/lib/data/mock-teams"
+import { mockUsers } from "@/lib/data/mock-users"
 
 interface CreateTeamDialogProps {
   open: boolean
@@ -25,40 +25,32 @@ export function CreateTeamDialog({
     try {
       setIsLoading(true)
       setError(null)
-
+      
       if (!data.name?.trim()) {
         throw new Error('Il nome del team è obbligatorio')
       }
 
-      const teamData = {
+      mockTeamsApi.create({
         name: data.name.trim(),
-        leader: data.leaderId === 'none' ? null : data.leaderId,
-        isclusterleader: data.isclusterleader || null,
-        project: data.project || null
-      }
-
-      const createdTeam = await queries.teams.create(teamData)
-
-      if (data.leaderId && data.leaderId !== 'none') {
-        const membershipData: CreateMembershipData = {
+        leader: data.leaderId ? mockUsers.find(u => u.id === data.leaderId) || null : null,
+        isclusterleader: data.isclusterleader || false,
+        project: data.project || false,
+        team_clusters: data.clusterId ? [{
           id: crypto.randomUUID(),
-          team_id: createdTeam.id,
-          user_id: data.leaderId
-        }
-        await queries.user_teams.create(membershipData)
-      }
-
-      if (data.clusterId && data.clusterId !== 'none') {
-        await queries.team_clusters.create({
-          team_id: createdTeam.id,
-          cluster_id: data.clusterId
-        })
-      }
-
+          cluster: {
+            id: data.clusterId,
+            name: data.clusterId === 'cluster1' ? 'Cluster Marketing' :
+                  data.clusterId === 'cluster2' ? 'Cluster Operations' :
+                  'Cluster Development'
+          }
+        }] : [],
+        user_teams: []
+      })
+      
       onOpenChange(false)
       onSuccess?.()
     } catch (err) {
-      console.error('Error creating team:', err)
+      console.error('Errore:', err)
       setError(err instanceof Error ? err.message : 'Errore durante la creazione del team')
     } finally {
       setIsLoading(false)
@@ -69,18 +61,20 @@ export function CreateTeamDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Nuovo Team</DialogTitle>
+          <DialogTitle>Crea Team</DialogTitle>
         </DialogHeader>
-        {error && (
-          <div className="text-sm text-red-500 mb-4">
-            {error}
-          </div>
-        )}
-        <TeamForm
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-          mode="create"
-        />
+        <div className="mt-6">
+          {error && (
+            <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-md">
+              {error}
+            </div>
+          )}
+          <TeamForm
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+            mode="create"
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )

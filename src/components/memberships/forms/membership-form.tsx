@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { membershipSchema } from "./membership-schema"
 import type { MembershipFormData } from "@/lib/types/memberships"
-import { useQuery } from "@tanstack/react-query"
-import { queries } from "@/lib/supabase/queries"
+import { mockUsers } from "@/lib/data/mock-users"
+import { mockMembershipsApi } from '@/lib/data/mock-memberships'
 
 interface MembershipFormProps {
   onSubmit: (data: MembershipFormData) => void
@@ -33,15 +33,13 @@ export function MembershipForm({
     }
   })
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: queries.users.getAll
-  })
+  // Ottieni la lista degli utenti disponibili
+  const users = mockUsers
 
-  const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
-    queryFn: queries.teams.getAll
-  })
+  // Ottieni la lista dei team disponibili (senza duplicati)
+  const teams = Array.from(
+    new Map(mockMembershipsApi.getAll().map(m => [m.team_id, { id: m.team_id, name: m.team.name }])).values()
+  ).sort((a, b) => a.name.localeCompare(b.name))
 
   return (
     <Form {...form}>
@@ -52,10 +50,9 @@ export function MembershipForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Utente</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-                disabled={isLoading}
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -81,10 +78,9 @@ export function MembershipForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Team</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-                disabled={isLoading}
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -104,7 +100,7 @@ export function MembershipForm({
           )}
         />
 
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-4 pt-4">
           {mode === 'edit' && onDelete && (
             <Button
               type="button"
@@ -116,7 +112,7 @@ export function MembershipForm({
             </Button>
           )}
           <Button type="submit" disabled={isLoading}>
-            {mode === 'create' ? 'Crea' : 'Salva'}
+            {mode === 'create' ? 'Crea Membership' : 'Salva'}
           </Button>
         </div>
       </form>

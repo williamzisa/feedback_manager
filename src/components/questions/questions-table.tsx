@@ -27,33 +27,42 @@ export function QuestionsTable({ questions, onEdit, onDelete }: QuestionsTablePr
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
+            <TableHead className="hidden sm:table-cell">ID</TableHead>
             <TableHead>Question</TableHead>
-            <TableHead>TYPE</TableHead>
-            <TableHead>Company</TableHead>
-            <TableHead>Created At</TableHead>
-            <TableHead className="text-right"></TableHead>
+            <TableHead className="hidden md:table-cell">TYPE</TableHead>
+            <TableHead className="hidden lg:table-cell">Created At</TableHead>
+            <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {questions.map((question) => (
             <TableRow key={question.id}>
-              <TableCell>{question.id}</TableCell>
-              <TableCell className="font-medium max-w-2xl">
-                {question.text}
-              </TableCell>
+              <TableCell className="hidden sm:table-cell">{question.id}</TableCell>
               <TableCell>
+                <div className="space-y-1">
+                  <div className="font-medium max-w-2xl">{question.text}</div>
+                  {/* Info aggiuntive visibili solo su mobile */}
+                  <div className="md:hidden space-y-1 text-sm text-gray-500">
+                    <div>
+                      <span className={`font-medium ${getTypeColor(question.type)}`}>
+                        {question.type}
+                      </span>
+                    </div>
+                    <div>
+                      {new Date(question.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
                 <span className={`font-medium ${getTypeColor(question.type)}`}>
                   {question.type}
                 </span>
               </TableCell>
-              <TableCell>
-                {question.company || '-'}
-              </TableCell>
-              <TableCell>
+              <TableCell className="hidden lg:table-cell">
                 {new Date(question.created_at).toLocaleDateString()}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell>
                 <EditQuestionDialog
                   question={question}
                   onEdit={(data) => onEdit(question.id, data)}
@@ -62,6 +71,13 @@ export function QuestionsTable({ questions, onEdit, onDelete }: QuestionsTablePr
               </TableCell>
             </TableRow>
           ))}
+          {(!questions || questions.length === 0) && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                Nessuna domanda trovata
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

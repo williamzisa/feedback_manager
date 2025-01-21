@@ -11,77 +11,85 @@ import {
 import { Button } from "@/components/ui/button"
 import { Edit } from 'lucide-react'
 import type { Membership } from '@/lib/types/memberships'
+import { Badge } from '@/components/ui/badge'
 
 interface MembershipsTableProps {
   memberships: Membership[]
-  onEdit?: (membership: Membership) => void
+  onEdit: (membership: Membership) => void
 }
 
 export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps) {
   return (
-    <>
-      {/* Versione Mobile */}
-      <div className="grid grid-cols-1 gap-4 sm:hidden">
-        {memberships.map((membership) => (
-          <div key={membership.id} className="bg-white space-y-3 p-4 rounded-lg shadow">
-            <div className="flex items-center space-x-2 text-sm">
-              <div className="text-gray-900 font-bold">
-                {membership.user?.name} {membership.user?.surname}
-              </div>
-              <div className="text-gray-500">{membership.team?.name}</div>
-            </div>
-            <div className="text-sm text-gray-700">
-              <span className="font-medium">Cluster:</span>{' '}
-              {membership.team?.team_clusters?.[0]?.cluster?.name || '-'}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit?.(membership)}
-              className="w-full justify-center"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              <span>Modifica</span>
-            </Button>
-          </div>
-        ))}
-      </div>
-
-      {/* Versione Desktop */}
-      <div className="hidden sm:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Utente</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead>Cluster</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="min-w-[200px]">User</TableHead>
+            <TableHead className="hidden md:table-cell">Team</TableHead>
+            <TableHead className="hidden lg:table-cell">Progetto</TableHead>
+            <TableHead className="hidden lg:table-cell">Cluster Leader</TableHead>
+            <TableHead className="w-[100px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {memberships?.map((membership) => (
+            <TableRow key={membership.id}>
+              <TableCell>
+                <div className="space-y-1">
+                  <div className="font-medium">
+                    {membership.user.name} {membership.user.surname}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {membership.user.email}
+                  </div>
+                  {/* Info aggiuntive visibili solo su mobile */}
+                  <div className="md:hidden space-y-1 text-sm text-gray-500">
+                    <div>Team: {membership.team.name}</div>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span>Progetto: {membership.team.project ? 'Sì' : 'No'}</span>
+                      <span className="hidden xs:inline">•</span>
+                      <span>Cluster Leader: {membership.team.isclusterleader ? 'Sì' : 'No'}</span>
+                    </div>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {membership.team.name}
+              </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                {membership.team.project ? (
+                  <Badge variant="success">Sì</Badge>
+                ) : (
+                  <Badge variant="secondary">No</Badge>
+                )}
+              </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                {membership.team.isclusterleader ? (
+                  <Badge variant="success">Sì</Badge>
+                ) : (
+                  <Badge variant="secondary">No</Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => onEdit(membership)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {memberships.map((membership) => (
-              <TableRow key={membership.id}>
-                <TableCell className="font-medium">
-                  {membership.user?.name} {membership.user?.surname}
-                </TableCell>
-                <TableCell>{membership.team?.name}</TableCell>
-                <TableCell>
-                  {membership.team?.team_clusters?.[0]?.cluster?.name || '-'}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEdit?.(membership)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </>
+          ))}
+          {(!memberships || memberships.length === 0) && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                Nessuna membership trovata
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

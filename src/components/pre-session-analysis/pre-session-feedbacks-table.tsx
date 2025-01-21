@@ -10,6 +10,7 @@ import type { SessionStatus } from '@/app/(routes)/admin/pre-session-analysis/pa
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { useSearchParams } from 'next/navigation'
 
 interface PreSessionFeedbacksTableProps {
   sessionStatus: SessionStatus
@@ -17,6 +18,8 @@ interface PreSessionFeedbacksTableProps {
 
 export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksTableProps) => {
   const [filterDuplicates, setFilterDuplicates] = useState(false)
+  const searchParams = useSearchParams()
+  const receiverFilter = searchParams.get('receiver')
 
   // Mock data - da sostituire con dati reali dal backend
   const feedbacks: Feedback[] = [
@@ -24,20 +27,68 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
       id: '1',
       sender: 'William Zisa',
       receiver: 'Nicola Violante',
-      question: 'Aliquip nisi qui excepteur esse commodo incididunt et nisi id cillum',
-      tags: ['New tag'],
+      question: 'Come valuti la capacità di problem solving?',
+      tags: ['Problem Solving', 'Execution'],
       rule: 1,
     },
     {
       id: '2',
       sender: 'Alessandro Cinus',
       receiver: 'Nicola Violante',
-      question: 'Id aute do incididunt ea duis magna enim pariatur mollit adipisicing',
-      tags: ['New tag', 'New tag'],
+      question: 'Quanto è efficace nella comunicazione con il team?',
+      tags: ['Comunicazione', 'Soft Skills'],
       rule: 2,
     },
-    // ... altri feedback
+    {
+      id: '3',
+      sender: 'Marco Rossi',
+      receiver: 'William Zisa',
+      question: 'Come valuti la capacità di pianificazione strategica?',
+      tags: ['Strategia', 'Planning'],
+      rule: 1,
+    },
+    {
+      id: '4',
+      sender: 'Laura Bianchi',
+      receiver: 'William Zisa',
+      question: 'Quanto è efficace nel guidare il team verso gli obiettivi?',
+      tags: ['Leadership', 'Soft Skills'],
+      rule: 2,
+    },
+    {
+      id: '5',
+      sender: 'Nicola Violante',
+      receiver: 'Marco Rossi',
+      question: 'Come valuti la qualità delle soluzioni tecniche proposte?',
+      tags: ['Technical Skills', 'Execution'],
+      rule: 1,
+    },
+    {
+      id: '6',
+      sender: 'William Zisa',
+      receiver: 'Laura Bianchi',
+      question: 'Quanto è efficace nella gestione delle priorità?',
+      tags: ['Time Management', 'Execution'],
+      rule: 3,
+    },
+    {
+      id: '7',
+      sender: 'Alessandro Cinus',
+      receiver: 'William Zisa',
+      question: 'Come valuti la capacità di mentoring verso i colleghi junior?',
+      tags: ['Mentoring', 'Soft Skills'],
+      rule: 2,
+    }
   ]
+
+  // Filtra i feedback in base ai parametri URL
+  const filteredFeedbacks = feedbacks.filter(feedback => {
+    if (receiverFilter && feedback.receiver !== receiverFilter) {
+      return false
+    }
+    // Qui andrebbe aggiunto il filtro per sessione quando avremo il campo session nei feedback
+    return true
+  })
 
   return (
     <>
@@ -50,6 +101,7 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
           <Input
             placeholder="Cerca Destinatario"
             className="w-full sm:w-auto bg-white"
+            defaultValue={receiverFilter || ''}
           />
           <Input
             placeholder="Cerca Domanda"
@@ -92,12 +144,12 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
       </div>
 
       <div className="text-sm text-gray-500 mt-6 mb-2">
-        {feedbacks.length} risultati
+        {filteredFeedbacks.length} risultati
       </div>
 
       {/* Vista Mobile */}
       <div className="block sm:hidden space-y-4">
-        {feedbacks.map((feedback) => (
+        {filteredFeedbacks.map((feedback) => (
           <div key={feedback.id} className="mb-4 bg-white p-4 rounded-lg shadow">
             <div className="flex justify-between items-start">
               <div className="space-y-2">
@@ -155,7 +207,7 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
               </TableRow>
             </TableHeader>
             <TableBody>
-              {feedbacks.map((feedback) => (
+              {filteredFeedbacks.map((feedback) => (
                 <TableRow key={feedback.id}>
                   <TableCell>{feedback.id}</TableCell>
                   <TableCell>{feedback.sender}</TableCell>
@@ -181,7 +233,7 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
                   </TableCell>
                 </TableRow>
               ))}
-              {feedbacks.length === 0 && (
+              {filteredFeedbacks.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-4">
                     Nessun feedback trovato

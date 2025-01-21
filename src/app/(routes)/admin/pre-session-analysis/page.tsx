@@ -1,17 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { StatCard } from '@/components/stats/stat-card'
 import { PreSessionAnalysisView } from "@/components/pre-session-analysis/pre-session-analysis-view"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PreSessionStats } from '@/lib/types/feedbacks'
-import { Button } from '@/components/ui/button'
+import { mockSessionsApi } from '@/lib/data/mock-sessions'
+import { Badge } from '@/components/ui/badge'
 
-export type SessionStatus = 'preparation' | 'in_progress' | 'completed'
+export type SessionStatus = 'preparation' | 'in-progress' | 'completed'
 
 export default function PreSessionAnalysisPage() {
-  const [selectedSession, setSelectedSession] = useState<string>('')
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('')
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('preparation')
+  const sessions = mockSessionsApi.getAll()
+
+  // Seleziona la prima sessione all'avvio
+  useEffect(() => {
+    if (sessions.length > 0 && !selectedSessionId) {
+      const firstSession = sessions[0]
+      setSelectedSessionId(firstSession.id)
+      setSessionStatus(mapSessionStatus(firstSession.stato))
+    }
+  }, [sessions, selectedSessionId])
 
   // Statistiche statiche (da implementare con i dati reali)
   const stats: PreSessionStats = {
@@ -21,13 +32,50 @@ export default function PreSessionAnalysisPage() {
     totalUsers: 61
   }
 
-  const handleSessionChange = (value: string) => {
-    setSelectedSession(value)
-    // Per test: imposta lo stato in base alla sessione selezionata
-    if (value === '1') {
-      setSessionStatus('in_progress')
-    } else if (value === '2') {
-      setSessionStatus('preparation')
+  const handleSessionChange = (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId)
+    if (session) {
+      setSelectedSessionId(sessionId)
+      setSessionStatus(mapSessionStatus(session.stato))
+    }
+  }
+
+  const mapSessionStatus = (stato: string): SessionStatus => {
+    switch (stato) {
+      case 'In preparazione':
+        return 'preparation'
+      case 'In corso':
+        return 'in-progress'
+      case 'Conclusa':
+        return 'completed'
+      default:
+        return 'preparation'
+    }
+  }
+
+  const getStatusBadgeVariant = (status: SessionStatus) => {
+    switch (status) {
+      case 'preparation':
+        return 'default'
+      case 'in-progress':
+        return 'secondary'
+      case 'completed':
+        return 'outline'
+      default:
+        return 'default'
+    }
+  }
+
+  const getStatusLabel = (status: SessionStatus) => {
+    switch (status) {
+      case 'preparation':
+        return 'In Preparazione'
+      case 'in-progress':
+        return 'In Corso'
+      case 'completed':
+        return 'Conclusa'
+      default:
+        return 'In Preparazione'
     }
   }
 
@@ -54,35 +102,44 @@ export default function PreSessionAnalysisPage() {
         {/* Session Selector */}
         <div className="mb-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <div className="w-full sm:w-96">
-            <Select value={selectedSession} onValueChange={handleSessionChange}>
+            <Select value={selectedSessionId} onValueChange={handleSessionChange}>
               <SelectTrigger className="bg-white">
                 <SelectValue placeholder="Seleziona una sessione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Sessione in corso</SelectItem>
-                <SelectItem value="2">Sessione in preparazione</SelectItem>
+                {sessions.map((session) => (
+                  <SelectItem key={session.id} value={session.id}>
+                    {session.nomeSessione}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex justify-end flex-1">
-            {selectedSession && sessionStatus === 'preparation' && (
-              <Button className="bg-blue-500 hover:bg-blue-600">
-                GENERA
-              </Button>
+            {selectedSessionId && (
+              <div className="mt-2">
+                <Badge variant={getStatusBadgeVariant(sessionStatus)}>
+                  {getStatusLabel(sessionStatus)}
+                </Badge>
+              </div>
             )}
           </div>
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          <StatCard title="FEEDBACK GENERATI" value={stats.totalFeedbacks} />
-          <StatCard title="AVG FEEDBACKS PER UTENTE" value={stats.avgFeedbacksPerUser} className="bg-green-100" />
-          <StatCard title="UTENTI CON 0 FEEDBACKS" value={stats.usersWithNoFeedbacks} className="bg-gray-100" />
-          <StatCard title="UTENTI TOTALI SESSIONE" value={stats.totalUsers} className="bg-green-100" />
-        </div>
+        {selectedSessionId && (
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+              <StatCard title="FEEDBACK TOTALI" value={stats.totalFeedbacks} />
+              <StatCard title="MEDIA PER UTENTE" value={stats.avgFeedbacksPerUser} className="bg-blue-100" />
+              <StatCard title="UTENTI SENZA FEEDBACK" value={stats.usersWithNoFeedbacks} className="bg-yellow-100" />
+              <StatCard title="UTENTI TOTALI" value={stats.totalUsers} className="bg-green-100" />
+            </div>
 
-        {/* Pre Session Analysis View */}
-        <PreSessionAnalysisView sessionStatus={sessionStatus} />
+            <PreSessionAnalysisView 
+              sessionId={selectedSessionId}
+              sessionStatus={sessionStatus}
+            />
+          </>
+        )}
       </main>
     </div>
   )
