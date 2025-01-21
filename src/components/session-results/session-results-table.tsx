@@ -89,7 +89,7 @@ export const SessionResultsTable = () => {
       session: sessionName,
       receiver: userName
     })
-    router.push(`/admin/pre-session-analysis?${params.toString()}`)
+    router.push(`/admin/feedback-management?${params.toString()}`)
   }
 
   return (

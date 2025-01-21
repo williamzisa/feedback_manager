@@ -8,21 +8,17 @@ import { PreSessionStats } from '@/lib/types/feedbacks'
 import { mockSessionsApi } from '@/lib/data/mock-sessions'
 import { Badge } from '@/components/ui/badge'
 
-export type SessionStatus = 'preparation' | 'in-progress' | 'completed'
-
 export default function PreSessionAnalysisPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus>('preparation')
-  const sessions = mockSessionsApi.getAll()
+  const allSessions = mockSessionsApi.getAll()
+  const preparationSessions = allSessions.filter(s => s.stato === 'In preparazione')
 
-  // Seleziona la prima sessione all'avvio
+  // Seleziona la prima sessione in preparazione all'avvio
   useEffect(() => {
-    if (sessions.length > 0 && !selectedSessionId) {
-      const firstSession = sessions[0]
-      setSelectedSessionId(firstSession.id)
-      setSessionStatus(mapSessionStatus(firstSession.stato))
+    if (preparationSessions.length > 0 && !selectedSessionId) {
+      setSelectedSessionId(preparationSessions[0].id)
     }
-  }, [sessions, selectedSessionId])
+  }, [preparationSessions, selectedSessionId])
 
   // Statistiche statiche (da implementare con i dati reali)
   const stats: PreSessionStats = {
@@ -33,50 +29,7 @@ export default function PreSessionAnalysisPage() {
   }
 
   const handleSessionChange = (sessionId: string) => {
-    const session = sessions.find(s => s.id === sessionId)
-    if (session) {
-      setSelectedSessionId(sessionId)
-      setSessionStatus(mapSessionStatus(session.stato))
-    }
-  }
-
-  const mapSessionStatus = (stato: string): SessionStatus => {
-    switch (stato) {
-      case 'In preparazione':
-        return 'preparation'
-      case 'In corso':
-        return 'in-progress'
-      case 'Conclusa':
-        return 'completed'
-      default:
-        return 'preparation'
-    }
-  }
-
-  const getStatusBadgeVariant = (status: SessionStatus) => {
-    switch (status) {
-      case 'preparation':
-        return 'default'
-      case 'in-progress':
-        return 'secondary'
-      case 'completed':
-        return 'outline'
-      default:
-        return 'default'
-    }
-  }
-
-  const getStatusLabel = (status: SessionStatus) => {
-    switch (status) {
-      case 'preparation':
-        return 'In Preparazione'
-      case 'in-progress':
-        return 'In Corso'
-      case 'completed':
-        return 'Conclusa'
-      default:
-        return 'In Preparazione'
-    }
+    setSelectedSessionId(sessionId)
   }
 
   return (
@@ -104,10 +57,10 @@ export default function PreSessionAnalysisPage() {
           <div className="w-full sm:w-96">
             <Select value={selectedSessionId} onValueChange={handleSessionChange}>
               <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Seleziona una sessione" />
+                <SelectValue placeholder="Seleziona una sessione in preparazione" />
               </SelectTrigger>
               <SelectContent>
-                {sessions.map((session) => (
+                {preparationSessions.map((session) => (
                   <SelectItem key={session.id} value={session.id}>
                     {session.nomeSessione}
                   </SelectItem>
@@ -116,30 +69,28 @@ export default function PreSessionAnalysisPage() {
             </Select>
             {selectedSessionId && (
               <div className="mt-2">
-                <Badge variant={getStatusBadgeVariant(sessionStatus)}>
-                  {getStatusLabel(sessionStatus)}
-                </Badge>
+                <Badge variant="default">In Preparazione</Badge>
               </div>
             )}
           </div>
         </div>
 
         {/* Stats Section */}
-        {selectedSessionId && (
-          <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-              <StatCard title="FEEDBACK TOTALI" value={stats.totalFeedbacks} />
-              <StatCard title="MEDIA PER UTENTE" value={stats.avgFeedbacksPerUser} className="bg-blue-100" />
-              <StatCard title="UTENTI SENZA FEEDBACK" value={stats.usersWithNoFeedbacks} className="bg-yellow-100" />
-              <StatCard title="UTENTI TOTALI" value={stats.totalUsers} className="bg-green-100" />
-            </div>
+        <div className="space-y-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <StatCard title="FEEDBACK TOTALI" value={stats.totalFeedbacks} />
+            <StatCard title="MEDIA PER UTENTE" value={stats.avgFeedbacksPerUser} className="bg-blue-100" />
+            <StatCard title="UTENTI SENZA FEEDBACK" value={stats.usersWithNoFeedbacks} className="bg-yellow-100" />
+            <StatCard title="UTENTI TOTALI" value={stats.totalUsers} className="bg-green-100" />
+          </div>
 
+          {selectedSessionId && (
             <PreSessionAnalysisView 
               sessionId={selectedSessionId}
-              sessionStatus={sessionStatus}
+              sessionStatus="preparation"
             />
-          </>
-        )}
+          )}
+        </div>
       </main>
     </div>
   )

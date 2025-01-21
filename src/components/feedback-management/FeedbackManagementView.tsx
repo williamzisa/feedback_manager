@@ -1,25 +1,37 @@
 'use client'
 
-import { useState } from 'react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useState } from "react"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
 import { Edit } from 'lucide-react'
-import { Feedback } from '@/lib/types/feedbacks'
-import type { SessionStatus } from '@/lib/types/sessions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
+import { SessionStatus } from "@/app/(routes)/admin/feedback-management/page"
 import { useSearchParams } from 'next/navigation'
 
-interface PreSessionFeedbacksTableProps {
+interface FeedbackManagementViewProps {
+  sessionId: string
   sessionStatus: SessionStatus
 }
 
-export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksTableProps) => {
-  const [filterDuplicates, setFilterDuplicates] = useState(false)
+interface Feedback {
+  id: string
+  sender: string
+  receiver: string
+  question: string
+  tags: string[]
+  vote: number | null
+}
+
+export default function FeedbackManagementView({ sessionId, sessionStatus }: FeedbackManagementViewProps) {
   const searchParams = useSearchParams()
   const receiverFilter = searchParams.get('receiver')
+  
+  // Stati per i filtri
+  const [senderSearch, setSenderSearch] = useState("")
+  const [receiverSearch, setReceiverSearch] = useState(receiverFilter || "")
+  const [questionSearch, setQuestionSearch] = useState("")
+  const [selectedType, setSelectedType] = useState<string>("")
 
   // Mock data - da sostituire con dati reali dal backend
   const feedbacks: Feedback[] = [
@@ -29,7 +41,7 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
       receiver: 'Nicola Violante',
       question: 'Come valuti la capacità di problem solving?',
       tags: ['Problem Solving', 'Execution'],
-      rule: 1,
+      vote: 4,
     },
     {
       id: '2',
@@ -37,77 +49,51 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
       receiver: 'Nicola Violante',
       question: 'Quanto è efficace nella comunicazione con il team?',
       tags: ['Comunicazione', 'Soft Skills'],
-      rule: 2,
+      vote: null,
     },
-    {
-      id: '3',
-      sender: 'Marco Rossi',
-      receiver: 'William Zisa',
-      question: 'Come valuti la capacità di pianificazione strategica?',
-      tags: ['Strategia', 'Planning'],
-      rule: 1,
-    },
-    {
-      id: '4',
-      sender: 'Laura Bianchi',
-      receiver: 'William Zisa',
-      question: 'Quanto è efficace nel guidare il team verso gli obiettivi?',
-      tags: ['Leadership', 'Soft Skills'],
-      rule: 2,
-    },
-    {
-      id: '5',
-      sender: 'Nicola Violante',
-      receiver: 'Marco Rossi',
-      question: 'Come valuti la qualità delle soluzioni tecniche proposte?',
-      tags: ['Technical Skills', 'Execution'],
-      rule: 1,
-    },
-    {
-      id: '6',
-      sender: 'William Zisa',
-      receiver: 'Laura Bianchi',
-      question: 'Quanto è efficace nella gestione delle priorità?',
-      tags: ['Time Management', 'Execution'],
-      rule: 3,
-    },
-    {
-      id: '7',
-      sender: 'Alessandro Cinus',
-      receiver: 'William Zisa',
-      question: 'Come valuti la capacità di mentoring verso i colleghi junior?',
-      tags: ['Mentoring', 'Soft Skills'],
-      rule: 2,
-    }
+    // Altri feedback simulati...
   ]
 
-  // Filtra i feedback in base ai parametri URL
+  // Filtra i feedback in base ai filtri
   const filteredFeedbacks = feedbacks.filter(feedback => {
-    if (receiverFilter && feedback.receiver !== receiverFilter) {
-      return false
-    }
-    // Qui andrebbe aggiunto il filtro per sessione quando avremo il campo session nei feedback
-    return true
+    const matchesSender = feedback.sender.toLowerCase().includes(senderSearch.toLowerCase())
+    const matchesReceiver = feedback.receiver.toLowerCase().includes(receiverSearch.toLowerCase())
+    const matchesQuestion = feedback.question.toLowerCase().includes(questionSearch.toLowerCase())
+    const matchesType = !selectedType || feedback.tags.some(tag => tag.toLowerCase().includes(selectedType.toLowerCase()))
+
+    return matchesSender && matchesReceiver && matchesQuestion && matchesType
   })
 
+  // Funzione per esportare in CSV
+  const handleExportCsv = () => {
+    // Implementare l'esportazione CSV
+    console.log('Esportazione CSV per la sessione:', sessionId)
+  }
+
   return (
-    <>
+    <div className="space-y-4">
+      {/* Filtri */}
       <div className="flex flex-col lg:flex-row items-center gap-4">
         <div className="flex flex-col sm:flex-row items-center gap-4 flex-1">
           <Input
             placeholder="Cerca Mittente"
             className="w-full sm:w-auto bg-white"
+            value={senderSearch}
+            onChange={(e) => setSenderSearch(e.target.value)}
           />
           <Input
             placeholder="Cerca Destinatario"
             className="w-full sm:w-auto bg-white"
-            defaultValue={receiverFilter || ''}
+            value={receiverSearch}
+            onChange={(e) => setReceiverSearch(e.target.value)}
           />
           <Input
             placeholder="Cerca Domanda"
             className="w-full sm:w-auto bg-white"
+            value={questionSearch}
+            onChange={(e) => setQuestionSearch(e.target.value)}
           />
-          <Select>
+          <Select value={selectedType} onValueChange={setSelectedType}>
             <SelectTrigger className="w-full sm:w-[180px] bg-white">
               <SelectValue placeholder="Type domanda" />
             </SelectTrigger>
@@ -117,28 +103,13 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
               <SelectItem value="strategy">Strategy</SelectItem>
             </SelectContent>
           </Select>
-          <Select>
-            <SelectTrigger className="w-full sm:w-[180px] bg-white">
-              <SelectValue placeholder="Regola" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">Regola 1</SelectItem>
-              <SelectItem value="2">Regola 2</SelectItem>
-              <SelectItem value="3">Regola 3</SelectItem>
-            </SelectContent>
-          </Select>
-          {sessionStatus === 'preparation' && (
-            <div className="flex items-center h-10 space-x-2 whitespace-nowrap">
-              <Checkbox 
-                id="filterDuplicates" 
-                checked={filterDuplicates}
-                onCheckedChange={(checked) => setFilterDuplicates(checked as boolean)}
-              />
-              <Label htmlFor="filterDuplicates" className="leading-none">Filtra duplicati</Label>
-            </div>
-          )}
         </div>
-        <Button variant="outline" className="w-full sm:w-auto whitespace-nowrap">
+        <Button 
+          variant="outline" 
+          className="w-full sm:w-auto whitespace-nowrap"
+          onClick={handleExportCsv}
+          disabled={sessionStatus === 'completed'}
+        >
           Export .csv
         </Button>
       </div>
@@ -166,7 +137,14 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
                     <div className="mt-1">{feedback.question}</div>
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Regola:</span> {feedback.rule}
+                    <span className="font-medium">Voto:</span>
+                    {feedback.vote !== null ? (
+                      <span className="ml-2 px-2 py-1 rounded bg-blue-100 text-blue-800">
+                        {feedback.vote}/5
+                      </span>
+                    ) : (
+                      <span className="ml-2 text-gray-400">In attesa</span>
+                    )}
                   </div>
                   <div>
                     <span className="font-medium">Tags:</span>
@@ -201,7 +179,7 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
                 <TableHead>MITTENTE</TableHead>
                 <TableHead>DESTINATARIO</TableHead>
                 <TableHead>DOMANDA</TableHead>
-                <TableHead>REGOLA</TableHead>
+                <TableHead>VOTO</TableHead>
                 <TableHead>TAG</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -213,7 +191,15 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
                   <TableCell>{feedback.sender}</TableCell>
                   <TableCell>{feedback.receiver}</TableCell>
                   <TableCell className="max-w-md truncate">{feedback.question}</TableCell>
-                  <TableCell>{feedback.rule}</TableCell>
+                  <TableCell>
+                    {feedback.vote !== null ? (
+                      <span className="px-2 py-1 rounded bg-blue-100 text-blue-800">
+                        {feedback.vote}/5
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">In attesa</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       {feedback.tags.map((tag, index) => (
@@ -244,6 +230,6 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
           </Table>
         </div>
       </div>
-    </>
+    </div>
   )
 } 

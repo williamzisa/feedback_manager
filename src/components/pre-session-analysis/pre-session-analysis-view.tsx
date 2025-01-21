@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button'
 import { mockRules, mockSessionsApi } from '@/lib/data/mock-sessions'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import type { SessionStatus } from '@/app/(routes)/admin/pre-session-analysis/page'
-import type { Session } from '@/lib/types/sessions'
+import type { Session, SessionStatus } from '@/lib/types/sessions'
 
 interface PreSessionAnalysisViewProps {
   sessionId: string
@@ -53,14 +52,13 @@ export const PreSessionAnalysisView = ({ sessionId, sessionStatus }: PreSessionA
       <div className="px-4 py-3 border-b">
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">Feedback della sessione</p>
-          {canGenerateFeedback && (
-            <Button
-              onClick={() => setIsGenerateOpen(true)}
-              className="bg-blue-500 hover:bg-blue-600"
-            >
-              Genera
-            </Button>
-          )}
+          <Button
+            onClick={() => setIsGenerateOpen(true)}
+            className="bg-blue-500 hover:bg-blue-600"
+            disabled={!canGenerateFeedback}
+          >
+            Genera
+          </Button>
         </div>
         {session.generatedRules && session.generatedRules.length > 0 && (
           <div className="mt-4 space-y-2">

@@ -29,6 +29,7 @@ const navigationRight: NavigationItem[] = [
   { name: 'Sessions', href: '/admin/sessions' },
   { name: 'Analisi pre-sessione', href: '/admin/pre-session-analysis' },
   { name: 'Risultati sessioni', href: '/admin/session-results' },
+  { name: 'Gestione feedback', href: '/admin/feedback-management' },
 ]
 
 export const AdminHeader = () => {

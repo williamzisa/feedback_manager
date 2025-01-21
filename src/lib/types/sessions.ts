@@ -26,4 +26,6 @@ export interface SessionEditData {
   nomeSessione: string
   dataInizio?: string
   dataFine?: string
-} 
+}
+
+export type SessionStatus = 'preparation' | 'in_progress' | 'completed' 
