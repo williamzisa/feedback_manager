@@ -8,12 +8,14 @@ import { mockMembershipsApi } from "@/lib/data/mock-memberships"
 
 interface EditMembershipDialogProps {
   membership: Membership | null
+  open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
 }
 
 export function EditMembershipDialog({
   membership,
+  open,
   onOpenChange,
   onSuccess
 }: EditMembershipDialogProps) {
@@ -22,16 +24,10 @@ export function EditMembershipDialog({
 
   const handleSubmit = async (data: MembershipFormData) => {
     try {
+      if (!membership) return
+      
       setIsLoading(true)
       setError(null)
-
-      if (!data.userId || !data.teamId) {
-        throw new Error('Tutti i campi sono obbligatori')
-      }
-
-      if (!membership?.id) {
-        throw new Error('ID membership non valido')
-      }
 
       mockMembershipsApi.update(membership.id, {
         user_id: data.userId,
@@ -42,7 +38,7 @@ export function EditMembershipDialog({
       onSuccess?.()
     } catch (err) {
       console.error('Error updating membership:', err)
-      setError(err instanceof Error ? err.message : 'Errore durante la modifica della membership')
+      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento della membership')
     } finally {
       setIsLoading(false)
     }
@@ -50,12 +46,10 @@ export function EditMembershipDialog({
 
   const handleDelete = async () => {
     try {
+      if (!membership) return
+      
       setIsLoading(true)
       setError(null)
-
-      if (!membership?.id) {
-        throw new Error('ID membership non valido')
-      }
 
       mockMembershipsApi.delete(membership.id)
       
@@ -69,8 +63,10 @@ export function EditMembershipDialog({
     }
   }
 
+  if (!membership) return null
+
   return (
-    <Dialog open={!!membership} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Modifica Membership</DialogTitle>
@@ -80,18 +76,16 @@ export function EditMembershipDialog({
             {error}
           </div>
         )}
-        {membership && (
-          <MembershipForm
-            onSubmit={handleSubmit}
-            onDelete={handleDelete}
-            isLoading={isLoading}
-            mode="edit"
-            initialData={{
-              userId: membership.user_id,
-              teamId: membership.team_id
-            }}
-          />
-        )}
+        <MembershipForm
+          onSubmit={handleSubmit}
+          onDelete={handleDelete}
+          isLoading={isLoading}
+          mode="edit"
+          initialData={{
+            userId: membership.user_id,
+            teamId: membership.team_id
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

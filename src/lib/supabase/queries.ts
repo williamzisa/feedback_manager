@@ -366,14 +366,15 @@ export const queries = {
         const { data, error: insertError } = await supabase
           .from('levels')
           .insert({
-            ruolo: level.ruolo,
+            id: crypto.randomUUID(),
+            role: level.role,
             step: level.step,
-            execution: level.execution,
-            soft: level.soft,
-            strategy: level.strategy,
+            execution_weight: level.execution_weight,
+            soft_weight: level.soft_weight,
+            strategy_weight: level.strategy_weight,
             standard: level.standard
           })
-          .select('id, ruolo, step, execution, soft, strategy, standard, created_at')
+          .select('id, role, step, execution_weight, soft_weight, strategy_weight, standard, created_at')
           .single()
 
         if (insertError) {

@@ -1,4 +1,4 @@
-import { Session } from '../types/sessions'
+import { Session, SessionFormData } from '../types/sessions'
 
 // Mock data per clusters e regole
 export const mockClusters = [
@@ -66,7 +66,7 @@ let mockSessions: Session[] = [
 export const mockSessionsApi = {
   getAll: () => [...mockSessions],
   
-  create: (data: Omit<Session, 'id' | 'clusterPartecipanti' | 'teamPartecipanti' | 'utentiPartecipanti' | 'regoleApplicate' | 'feedbackGenerati' | 'stato'>) => {
+  create: (data: SessionFormData) => {
     const newSession: Session = {
       ...data,
       id: Math.random().toString(36).substr(2, 9),
@@ -76,6 +76,8 @@ export const mockSessionsApi = {
       regoleApplicate: data.regole?.length || 0,
       feedbackGenerati: Math.floor(Math.random() * 5000) + 1000,
       stato: 'In preparazione',
+      clusters: data.clusters || [],
+      regole: data.regole || [],
       generatedRules: []
     }
     mockSessions.push(newSession)

@@ -3,8 +3,7 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TeamForm } from "../forms/team-form"
-import type { Team } from "@/lib/data/mock-teams"
-import type { TeamFormData } from "@/lib/types/teams"
+import type { Team, TeamFormData } from "@/lib/types/teams"
 import { mockTeamsApi } from "@/lib/data/mock-teams"
 import { mockUsers } from "@/lib/data/mock-users"
 

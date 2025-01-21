@@ -5,22 +5,22 @@ import { mockUsers } from './mock-users'
 let mockMemberships: Membership[] = [
   {
     id: '1',
-    userId: '1',
-    teamId: '1',
+    user_id: '1',
+    team_id: '1',
     role: 'MEMBER',
     created_at: '2024-01-01T10:00:00Z'
   },
   {
     id: '2',
-    userId: '2',
-    teamId: '1',
+    user_id: '2',
+    team_id: '1',
     role: 'LEADER',
     created_at: '2024-01-01T10:00:00Z'
   },
   {
     id: '3',
-    userId: '3',
-    teamId: '2',
+    user_id: '3',
+    team_id: '2',
     role: 'MEMBER',
     created_at: '2024-01-01T10:00:00Z'
   }
@@ -31,10 +31,10 @@ export const mockMembershipsApi = {
   
   getByTeam: (teamId: string) => {
     return mockMemberships
-      .filter(m => m.teamId === teamId)
+      .filter(m => m.team_id === teamId)
       .map(m => {
-        const user = mockUsers.find(u => u.id === m.userId)
-        const team = mockTeams.find(t => t.id === m.teamId)
+        const user = mockUsers.find(u => u.id === m.user_id)
+        const team = mockTeams.find(t => t.id === m.team_id)
         return {
           ...m,
           user: user || null,
@@ -45,10 +45,10 @@ export const mockMembershipsApi = {
 
   getByUser: (userId: string) => {
     return mockMemberships
-      .filter(m => m.userId === userId)
+      .filter(m => m.user_id === userId)
       .map(m => {
-        const user = mockUsers.find(u => u.id === m.userId)
-        const team = mockTeams.find(t => t.id === m.teamId)
+        const user = mockUsers.find(u => u.id === m.user_id)
+        const team = mockTeams.find(t => t.id === m.team_id)
         return {
           ...m,
           user: user || null,

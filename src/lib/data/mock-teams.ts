@@ -13,19 +13,28 @@ export const mockTeams: Team[] = [
     id: '1',
     name: 'Team Alpha',
     project: true,
-    isclusterleader: false
+    isclusterleader: false,
+    leader: null,
+    team_clusters: [],
+    user_teams: []
   },
   {
     id: '2',
     name: 'Team Beta',
     project: false,
-    isclusterleader: true
+    isclusterleader: true,
+    leader: null,
+    team_clusters: [],
+    user_teams: []
   },
   {
     id: '3',
     name: 'Team Gamma',
     project: true,
-    isclusterleader: false
+    isclusterleader: false,
+    leader: null,
+    team_clusters: [],
+    user_teams: []
   }
 ]
 
@@ -75,7 +84,7 @@ export const mockTeamsApi = {
       console.log('Updating team with id:', id)
       console.log('Update data:', data)
       
-      const index = teamsInMemory.findIndex(t => t.id === id)
+      const index = teamsInMemory.findIndex((t: Team) => t.id === id)
       if (index === -1) throw new Error('Team non trovato')
       
       // Creiamo una copia profonda del team esistente
@@ -104,11 +113,11 @@ export const mockTeamsApi = {
   delete: (id: string) => {
     try {
       console.log('Deleting team with id:', id)
-      const index = teamsInMemory.findIndex(t => t.id === id)
+      const index = teamsInMemory.findIndex((t: Team) => t.id === id)
       
       if (index === -1) throw new Error('Team non trovato')
       
-      teamsInMemory = teamsInMemory.filter(t => t.id !== id)
+      teamsInMemory = teamsInMemory.filter((t: Team) => t.id !== id)
       localStorage.setItem('mockTeams', JSON.stringify(teamsInMemory))
       console.log('Teams after deletion:', teamsInMemory)
       emitTeamsChange()

@@ -13,7 +13,7 @@ import {
 import { SessionsTable } from './sessions-table'
 import { CreateSessionDialog } from './dialogs/create-session-dialog'
 import { EditSessionDialog } from './dialogs/edit-session-dialog'
-import type { Session } from '@/lib/types/sessions'
+import type { Session, SessionFormData } from '@/lib/types/sessions'
 import { mockSessionsApi, mockClusters } from '@/lib/data/mock-sessions'
 import { PlusCircle } from 'lucide-react'
 
@@ -34,7 +34,7 @@ export function SessionsView() {
     return matchesSearch && matchesStartDate && matchesEndDate && matchesCluster
   })
 
-  const handleCreate = (data: Omit<Session, 'id' | 'clusterPartecipanti' | 'teamPartecipanti' | 'utentiPartecipanti' | 'regoleApplicate' | 'feedbackGenerati' | 'stato'>) => {
+  const handleCreate = (data: SessionFormData) => {
     const newSession = mockSessionsApi.create(data)
     setSessions(prev => [...prev, newSession])
     setIsCreateDialogOpen(false)

@@ -26,24 +26,17 @@ export function LevelForm({
   const form = useForm<LevelFormData>({
     resolver: zodResolver(levelSchema),
     defaultValues: {
-      ruolo: initialData?.ruolo ?? '',
-      step: initialData?.step ?? '',
-      execution: initialData?.execution ?? 0,
-      soft: initialData?.soft ?? 0,
-      strategy: initialData?.strategy ?? 0,
-      standard: initialData?.standard ?? ''
+      role: initialData?.role ?? '',
+      step: initialData?.step ?? 0,
+      execution_weight: initialData?.execution_weight ?? 0,
+      soft_weight: initialData?.soft_weight ?? 0,
+      strategy_weight: initialData?.strategy_weight ?? 0,
+      standard: initialData?.standard ?? 0
     }
   })
 
   const handleSubmit = (data: LevelFormData) => {
-    // Converti i valori in numeri prima di inviarli
-    const formattedData = {
-      ...data,
-      execution: Number(data.execution),
-      soft: Number(data.soft),
-      strategy: Number(data.strategy)
-    }
-    onSubmit(formattedData)
+    onSubmit(data)
   }
 
   return (
@@ -51,7 +44,7 @@ export function LevelForm({
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="ruolo"
+          name="role"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Ruolo</FormLabel>
@@ -70,7 +63,7 @@ export function LevelForm({
             <FormItem>
               <FormLabel>Step</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Inserisci lo step" />
+                <Input {...field} type="number" min={0} placeholder="Inserisci lo step" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -80,7 +73,7 @@ export function LevelForm({
         <div className="grid grid-cols-3 gap-4">
           <FormField
             control={form.control}
-            name="execution"
+            name="execution_weight"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>% Execution</FormLabel>
@@ -102,7 +95,7 @@ export function LevelForm({
 
           <FormField
             control={form.control}
-            name="soft"
+            name="soft_weight"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>% Soft</FormLabel>
@@ -124,7 +117,7 @@ export function LevelForm({
 
           <FormField
             control={form.control}
-            name="strategy"
+            name="strategy_weight"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>% Strategy</FormLabel>
@@ -152,7 +145,7 @@ export function LevelForm({
             <FormItem>
               <FormLabel>Standard</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Inserisci lo standard" />
+                <Input {...field} type="number" min={0} placeholder="Inserisci lo standard" />
               </FormControl>
               <FormMessage />
             </FormItem>

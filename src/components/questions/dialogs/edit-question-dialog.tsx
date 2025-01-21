@@ -15,20 +15,18 @@ import { Question, QuestionFormData } from "@/lib/types/questions"
 import { Loader2 } from "lucide-react"
 
 interface EditQuestionDialogProps {
-  question: Question | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSubmit: (data: QuestionFormData) => Promise<boolean>
+  question: Question
+  onEdit: (data: QuestionFormData) => void
+  onDelete: () => void
 }
 
 export function EditQuestionDialog({
   question,
-  open,
-  onOpenChange,
-  onSubmit
+  onEdit,
+  onDelete
 }: EditQuestionDialogProps) {
-  const [text, setText] = useState("")
-  const [type, setType] = useState<"SOFT" | "STRATEGY" | "EXECUTION">("SOFT")
+  const [text, setText] = useState(question.text)
+  const [type, setType] = useState(question.type)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,18 +39,14 @@ export function EditQuestionDialog({
 
   const handleSubmit = async () => {
     if (!text.trim()) {
-      setError("Inserisci il testo della domanda")
+      setError("Il testo della domanda è obbligatorio")
       return
     }
 
     try {
       setIsLoading(true)
       setError(null)
-
-      const success = await onSubmit({ text, type })
-      if (success) {
-        onOpenChange(false)
-      }
+      onEdit({ text, type })
     } catch {
       setError("Errore durante la modifica della domanda")
     } finally {
@@ -61,7 +55,7 @@ export function EditQuestionDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={true} onOpenChange={onDelete}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Modifica Domanda</DialogTitle>
@@ -102,7 +96,7 @@ export function EditQuestionDialog({
           <div className="flex justify-end gap-4">
             <Button
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={onDelete}
               disabled={isLoading}
             >
               Annulla

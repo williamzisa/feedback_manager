@@ -11,6 +11,6 @@ export const userSchema = z.object({
   isMentor: z.boolean().default(false),
   isActive: z.boolean().default(true),
   processes: z.array(z.string()).default([]),
-  level: z.enum(levelEnum).default('Junior'),
+  level: z.enum(levelEnum as [string, ...string[]]).default('Junior'),
   mentorId: z.string().nullable().default(null)
 }) 

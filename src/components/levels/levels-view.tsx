@@ -16,8 +16,8 @@ export const LevelsView = () => {
   const [levels, setLevels] = useState<Level[]>(mockLevels)
 
   const filteredLevels = levels.filter(level => 
-    level.ruolo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    level.step.toLowerCase().includes(searchQuery.toLowerCase())
+    level.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(level.step).includes(searchQuery)
   )
 
   const handleEdit = (level: Level) => {
@@ -58,7 +58,7 @@ export const LevelsView = () => {
             {filteredLevels.map((level) => (
               <div key={level.id} className="p-4 bg-gray-50 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-lg">{level.ruolo}</h3>
+                  <h3 className="font-semibold text-lg">{level.role}</h3>
                   <div className="flex items-center space-x-2">
                     <Button 
                       variant="ghost" 
@@ -73,15 +73,15 @@ export const LevelsView = () => {
                   <div className="grid grid-cols-3 gap-2">
                     <div className="bg-gray-100 p-2 rounded">
                       <p className="text-xs text-gray-500">Execution</p>
-                      <p className="font-medium">{level.execution}%</p>
+                      <p className="font-medium">{level.execution_weight}%</p>
                     </div>
                     <div className="bg-gray-100 p-2 rounded">
                       <p className="text-xs text-gray-500">Soft</p>
-                      <p className="font-medium">{level.soft}%</p>
+                      <p className="font-medium">{level.soft_weight}%</p>
                     </div>
                     <div className="bg-gray-100 p-2 rounded">
                       <p className="text-xs text-gray-500">Strategy</p>
-                      <p className="font-medium">{level.strategy}%</p>
+                      <p className="font-medium">{level.strategy_weight}%</p>
                     </div>
                   </div>
                   <div className="flex justify-between items-center pt-2">

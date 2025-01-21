@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { TeamsTable } from './teams-table'
 import { CreateTeamDialog } from './dialogs/create-team-dialog'
 import { EditTeamDialog } from './dialogs/edit-team-dialog'
-import type { Team } from '@/lib/data/mock-teams'
+import type { Team } from '@/lib/types/teams'
 
 interface TeamsViewProps {
   teams: Team[]
@@ -23,10 +23,6 @@ export function TeamsView({ teams, onSuccess }: TeamsViewProps) {
     team.leader?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     team.leader?.surname?.toLowerCase().includes(searchQuery.toLowerCase())
   )
-
-  const handleEdit = (team: Team) => {
-    setSelectedTeam(team)
-  }
 
   const handleSuccess = () => {
     console.log('Operation successful, calling onSuccess')
@@ -60,7 +56,7 @@ export function TeamsView({ teams, onSuccess }: TeamsViewProps) {
         <div className="p-4">
           <TeamsTable 
             teams={filteredTeams} 
-            onEdit={handleEdit}
+            onSuccess={handleSuccess}
           />
         </div>
       </div>

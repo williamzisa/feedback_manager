@@ -1,10 +1,10 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { EditQuestionDialog } from './dialogs/edit-question-dialog'
-import { Question } from '@/lib/types/questions'
+import { Question, QuestionFormData } from '@/lib/types/questions'
 
 interface QuestionsTableProps {
   questions: Question[]
-  onEdit: (id: string, data: { text: string; type: 'SOFT' | 'STRATEGY' | 'EXECUTION' }) => void
+  onEdit: (id: string, data: QuestionFormData) => void
   onDelete: (id: string) => void
 }
 

@@ -55,7 +55,6 @@ export function CreateUserDialog({
         <UserForm
           onSubmit={handleSubmit}
           isLoading={isLoading}
-          error={error}
         />
       </DialogContent>
     </Dialog>

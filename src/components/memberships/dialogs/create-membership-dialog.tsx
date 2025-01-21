@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MembershipForm } from "../forms/membership-form"
-import type { MembershipFormData } from "@/lib/types/memberships"
+import type { MembershipFormData, MembershipCreate } from "@/lib/types/memberships"
 import { mockMembershipsApi } from "@/lib/data/mock-memberships"
 
 interface CreateMembershipDialogProps {
@@ -24,15 +24,14 @@ export function CreateMembershipDialog({
     try {
       setIsLoading(true)
       setError(null)
-      
-      if (!data.userId || !data.teamId) {
-        throw new Error('Tutti i campi sono obbligatori')
+
+      const newMembership: MembershipCreate = {
+        user_id: data.userId,
+        team_id: data.teamId,
+        role: 'MEMBER'
       }
 
-      mockMembershipsApi.create({
-        user_id: data.userId,
-        team_id: data.teamId
-      })
+      mockMembershipsApi.create(newMembership)
       
       onOpenChange(false)
       onSuccess?.()
@@ -48,7 +47,7 @@ export function CreateMembershipDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Nuova Membership</DialogTitle>
+          <DialogTitle>Crea Membership</DialogTitle>
         </DialogHeader>
         {error && (
           <div className="text-sm text-red-500 mb-4">

@@ -23,8 +23,8 @@ export function MembershipsView({ memberships, onSuccess }: MembershipsViewProps
 
   // Filtra le membership in base ai criteri di ricerca
   const filteredMemberships = memberships.filter(membership => {
-    const userName = `${membership.user.name} ${membership.user.surname}`.toLowerCase()
-    const teamName = membership.team.name.toLowerCase()
+    const userName = membership.user ? `${membership.user.name} ${membership.user.surname}`.toLowerCase() : ''
+    const teamName = membership.team?.name?.toLowerCase() ?? ''
     const searchUser = userFilter.toLowerCase()
     const searchTeam = teamFilter.toLowerCase()
 
@@ -92,6 +92,7 @@ export function MembershipsView({ memberships, onSuccess }: MembershipsViewProps
 
       <EditMembershipDialog
         membership={editingMembership}
+        open={editingMembership !== null}
         onOpenChange={(open) => !open && setEditingMembership(null)}
         onSuccess={handleSuccess}
       />

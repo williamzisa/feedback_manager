@@ -82,7 +82,6 @@ export const PreSessionAnalysisView = ({ sessionId, sessionStatus }: PreSessionA
       <div className="p-4">
         <PreSessionFeedbacksTable 
           sessionStatus={sessionStatus}
-          generatedRules={session.generatedRules || []}
         />
       </div>
 

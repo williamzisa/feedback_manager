@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Edit } from 'lucide-react'
 import { EditTeamDialog } from './dialogs/edit-team-dialog'
-import type { Team } from '@/lib/data/mock-teams'
+import type { Team } from '@/lib/types/teams'
 import { Badge } from '@/components/ui/badge'
 
 interface TeamsTableProps {
@@ -80,12 +80,12 @@ export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
                 <TableCell>{`${team.leader?.name || ''} ${team.leader?.surname || ''}`}</TableCell>
                 <TableCell>{team.user_teams?.length || 0}</TableCell>
                 <TableCell>
-                  <Badge variant={team.isclusterleader ? "success" : "secondary"}>
+                  <Badge variant={team.isclusterleader ? "default" : "secondary"}>
                     {team.isclusterleader ? 'Sì' : 'No'}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={team.project ? "success" : "secondary"}>
+                  <Badge variant={team.project ? "default" : "secondary"}>
                     {team.project ? 'Sì' : 'No'}
                   </Badge>
                 </TableCell>

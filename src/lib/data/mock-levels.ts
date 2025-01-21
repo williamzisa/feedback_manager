@@ -3,39 +3,39 @@ import { Level } from "../types/levels"
 export const mockLevels: Level[] = [
   {
     id: '1',
-    ruolo: 'CEO',
-    step: '1',
-    execution: 30,
-    soft: 30,
-    strategy: 40,
-    standard: '4.2'
+    role: 'CEO',
+    step: 1,
+    execution_weight: 30,
+    soft_weight: 30,
+    strategy_weight: 40,
+    standard: 4.2
   },
   {
     id: '2',
-    ruolo: 'Chief',
-    step: '2',
-    execution: 30,
-    soft: 40,
-    strategy: 30,
-    standard: '4.0'
+    role: 'Chief',
+    step: 2,
+    execution_weight: 30,
+    soft_weight: 40,
+    strategy_weight: 30,
+    standard: 4.0
   },
   {
     id: '3',
-    ruolo: 'Director',
-    step: '1',
-    execution: 40,
-    soft: 30,
-    strategy: 30,
-    standard: '4.0'
+    role: 'Director',
+    step: 1,
+    execution_weight: 40,
+    soft_weight: 30,
+    strategy_weight: 30,
+    standard: 4.0
   },
   {
     id: '4',
-    ruolo: 'Director',
-    step: '3',
-    execution: 30,
-    soft: 50,
-    strategy: 20,
-    standard: '3.8'
+    role: 'Director',
+    step: 3,
+    execution_weight: 30,
+    soft_weight: 50,
+    strategy_weight: 20,
+    standard: 3.8
   }
 ]
 

@@ -1,4 +1,4 @@
-export type Level = 'Junior' | 'Mid' | 'Senior'
+export type Level = 'Junior' | 'Mid' | 'Senior' | null
 
 export interface User {
   id: string

@@ -26,29 +26,29 @@ export function CreateLevelDialog({
       setError(null)
       
       // Validazione dei dati
-      if (!data.ruolo?.trim()) {
+      if (!data.role?.trim()) {
         throw new Error('Il ruolo è obbligatorio')
       }
-      if (!data.step?.trim()) {
-        throw new Error('Lo step è obbligatorio')
+      if (typeof data.step !== 'number') {
+        throw new Error('Lo step deve essere un numero')
       }
-      if (!data.standard?.trim()) {
-        throw new Error('Lo standard è obbligatorio')
+      if (typeof data.standard !== 'number') {
+        throw new Error('Lo standard deve essere un numero')
       }
 
       // Validazione delle percentuali
-      const total = Number(data.execution) + Number(data.soft) + Number(data.strategy)
+      const total = Number(data.execution_weight) + Number(data.soft_weight) + Number(data.strategy_weight)
       if (total !== 100) {
         throw new Error('La somma delle percentuali deve essere 100%')
       }
 
       const levelData = {
-        ruolo: data.ruolo.trim(),
-        step: data.step.trim(),
-        execution: Number(data.execution),
-        soft: Number(data.soft),
-        strategy: Number(data.strategy),
-        standard: data.standard.trim()
+        role: data.role.trim(),
+        step: data.step,
+        execution_weight: Number(data.execution_weight),
+        soft_weight: Number(data.soft_weight),
+        strategy_weight: Number(data.strategy_weight),
+        standard: data.standard
       }
 
       mockLevelsApi.create(levelData)

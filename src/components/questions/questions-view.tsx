@@ -81,8 +81,18 @@ export function QuestionsView({ questions, onCreate, onEdit, onDelete }: Questio
         <div className="p-4">
           <QuestionsTable 
             questions={filteredQuestions}
-            onEdit={setEditQuestion}
-            onDelete={setDeleteQuestion}
+            onEdit={(id) => {
+              const question = questions.find(q => q.id === id)
+              if (question) {
+                setEditQuestion(question)
+              }
+            }}
+            onDelete={(id) => {
+              const question = questions.find(q => q.id === id)
+              if (question) {
+                setDeleteQuestion(question)
+              }
+            }}
           />
         </div>
       </div>
@@ -93,33 +103,33 @@ export function QuestionsView({ questions, onCreate, onEdit, onDelete }: Questio
         onSubmit={onCreate}
       />
 
-      <EditQuestionDialog
-        question={editQuestion}
-        open={!!editQuestion}
-        onOpenChange={(open) => !open && setEditQuestion(null)}
-        onSubmit={async (data) => {
-          if (editQuestion) {
+      {editQuestion && (
+        <EditQuestionDialog
+          question={editQuestion}
+          onEdit={async (data) => {
             const success = await onEdit(editQuestion.id, data)
-            if (success) setEditQuestion(null)
-            return success
-          }
-          return false
-        }}
-      />
+            if (success) {
+              setEditQuestion(null)
+            }
+          }}
+          onDelete={() => setEditQuestion(null)}
+        />
+      )}
 
-      <DeleteQuestionDialog
-        question={deleteQuestion}
-        open={!!deleteQuestion}
-        onOpenChange={(open) => !open && setDeleteQuestion(null)}
-        onConfirm={async () => {
-          if (deleteQuestion) {
+      {deleteQuestion && (
+        <DeleteQuestionDialog
+          question={deleteQuestion}
+          open={true}
+          onOpenChange={(open) => !open && setDeleteQuestion(null)}
+          onConfirm={async () => {
             const success = await onDelete(deleteQuestion.id)
-            if (success) setDeleteQuestion(null)
+            if (success) {
+              setDeleteQuestion(null)
+            }
             return success
-          }
-          return false
-        }}
-      />
+          }}
+        />
+      )}
     </>
   )
 }

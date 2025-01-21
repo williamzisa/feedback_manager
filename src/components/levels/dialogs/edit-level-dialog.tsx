@@ -30,12 +30,12 @@ export function EditLevelDialog({
       setError(null)
 
       const levelData = {
-        ruolo: data.ruolo.trim(),
-        step: data.step.trim(),
-        execution: Number(data.execution),
-        soft: Number(data.soft),
-        strategy: Number(data.strategy),
-        standard: data.standard.trim()
+        role: data.role.trim(),
+        step: data.step,
+        execution_weight: Number(data.execution_weight),
+        soft_weight: Number(data.soft_weight),
+        strategy_weight: Number(data.strategy_weight),
+        standard: data.standard
       }
 
       mockLevelsApi.update(level.id, levelData)

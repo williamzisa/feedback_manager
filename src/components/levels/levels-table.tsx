@@ -7,7 +7,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Edit } from 'lucide-react'
 import type { Level } from "@/lib/types/levels"
 
 interface LevelsTableProps {
@@ -32,19 +31,19 @@ export function LevelsTable({ levels, onEdit }: LevelsTableProps) {
       <TableBody>
         {levels.map((level) => (
           <TableRow key={level.id}>
-            <TableCell className="font-medium">{level.ruolo}</TableCell>
+            <TableCell className="font-medium">{level.role}</TableCell>
             <TableCell>{level.step}</TableCell>
-            <TableCell className="text-center">{level.execution}%</TableCell>
-            <TableCell className="text-center">{level.soft}%</TableCell>
-            <TableCell className="text-center">{level.strategy}%</TableCell>
-            <TableCell className="text-center">{level.standard}</TableCell>
-            <TableCell>
+            <TableCell className="text-center">{level.execution_weight}%</TableCell>
+            <TableCell className="text-center">{level.soft_weight}%</TableCell>
+            <TableCell className="text-center">{level.strategy_weight}%</TableCell>
+            <TableCell>{level.standard}</TableCell>
+            <TableCell className="text-right">
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={() => onEdit(level)}
               >
-                <Edit className="h-4 w-4" />
+                Modifica
               </Button>
             </TableCell>
           </TableRow>
