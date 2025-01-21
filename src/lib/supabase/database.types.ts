@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -509,6 +509,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          level_name: string | null
+          level_standard: number | null
+          peso_execution: number | null
+          peso_soft: number | null
+          peso_strategy: number | null
+          self_execution: number | null
+          self_overall: number | null
+          self_soft: number | null
+          self_strategy: number | null
+          session_id: string
+          user_id: string
+          val_execution: number | null
+          val_gap: number | null
+          val_overall: number | null
+          val_soft: number | null
+          val_strategy: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          level_name?: string | null
+          level_standard?: number | null
+          peso_execution?: number | null
+          peso_soft?: number | null
+          peso_strategy?: number | null
+          self_execution?: number | null
+          self_overall?: number | null
+          self_soft?: number | null
+          self_strategy?: number | null
+          session_id: string
+          user_id: string
+          val_execution?: number | null
+          val_gap?: number | null
+          val_overall?: number | null
+          val_soft?: number | null
+          val_strategy?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          level_name?: string | null
+          level_standard?: number | null
+          peso_execution?: number | null
+          peso_soft?: number | null
+          peso_strategy?: number | null
+          self_execution?: number | null
+          self_overall?: number | null
+          self_soft?: number | null
+          self_strategy?: number | null
+          session_id?: string
+          user_id?: string
+          val_execution?: number | null
+          val_gap?: number | null
+          val_overall?: number | null
+          val_soft?: number | null
+          val_strategy?: number | null
+        }
+        Relationships: []
       }
       user_teams: {
         Row: {
