@@ -246,16 +246,23 @@ export const queries = {
             team:teams(
               id,
               name,
-              leader:users(id, name, surname)
+              leader:users(
+                id, name, surname
+              )
             )
           )
         `)
         .order('name', { ascending: true })
+      
       if (error) throw error
-      return data.map(cluster => ({
+
+      // Aggiungo il conteggio dei team
+      const clustersWithCount = data.map(cluster => ({
         ...cluster,
         team_count: cluster.team_clusters?.length || 0
       }))
+
+      return clustersWithCount
     },
 
     create: async (cluster: { name: string; level: number | null; leaderId: string | null }) => {

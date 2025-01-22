@@ -4,22 +4,22 @@ export interface Cluster {
   level: number | null
   company: string | null
   created_at: string | null
-  leader?: {
+  leader: {
     id: string
     name: string
     surname: string
-  } | null
-  team_clusters?: {
+  }[] | null
+  team_clusters: {
     id: string
-    team?: {
+    team: {
       id: string
       name: string
-      leader?: {
+      leader: {
         id: string
         name: string
         surname: string
       } | null
-    } | null
+    }[]
   }[]
   team_count: number
 }
