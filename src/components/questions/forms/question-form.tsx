@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
 import {
   Form,
   FormField,
@@ -21,12 +22,19 @@ import { questionSchema, QuestionFormData } from './question-schema'
 
 interface QuestionFormProps {
   defaultValues?: QuestionFormData
-  onSubmit: (data: QuestionFormData) => void
-  onDelete?: () => void
+  onSubmit: (data: QuestionFormData) => Promise<void>
+  mode?: 'create' | 'edit'
+  onDelete?: () => Promise<void>
   isLoading?: boolean
 }
 
-export default function QuestionForm({ defaultValues, onSubmit, onDelete, isLoading }: QuestionFormProps) {
+export default function QuestionForm({ 
+  defaultValues, 
+  onSubmit, 
+  mode = 'create',
+  onDelete, 
+  isLoading 
+}: QuestionFormProps) {
   const form = useForm<QuestionFormData>({
     resolver: zodResolver(questionSchema),
     defaultValues: defaultValues || {
@@ -74,25 +82,37 @@ export default function QuestionForm({ defaultValues, onSubmit, onDelete, isLoad
             </FormItem>
           )}
         />
-<div className="flex justify-end gap-2">
-  {onDelete && (
-    <Button
-      type="button"
-      variant="destructive"
-      onClick={onDelete}
-      disabled={isLoading}
-    >
-      Elimina
-    </Button>
-  )}
-  <Button
-    type="submit"
-    disabled={isLoading}
-  >
-    {isLoading ? 'Salvataggio...' : 'Salva'}
-  </Button>
-</div>
-</form>
-</Form>
+
+        <div className="flex justify-end gap-4">
+          {mode === 'edit' && onDelete && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onDelete}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminazione...
+                </>
+              ) : (
+                'Elimina'
+              )}
+            </Button>
+          )}
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvataggio...
+              </>
+            ) : (
+              'Salva'
+            )}
+          </Button>
+        </div>
+      </form>
+    </Form>
   )
 }

@@ -1,14 +1,14 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { EditQuestionDialog } from './dialogs/edit-question-dialog'
-import { Question, QuestionFormData } from '@/lib/types/questions'
+import { Button } from '@/components/ui/button'
+import { Pencil } from 'lucide-react'
+import { Question } from '@/lib/types/questions'
 
 interface QuestionsTableProps {
   questions: Question[]
-  onEdit: (id: string, data: QuestionFormData) => void
-  onDelete: (id: string) => void
+  onEdit: (id: string) => Promise<void>
 }
 
-export function QuestionsTable({ questions, onEdit, onDelete }: QuestionsTableProps) {
+export function QuestionsTable({ questions, onEdit }: QuestionsTableProps) {
   const getTypeColor = (type: Question['type']) => {
     switch (type) {
       case 'SOFT':
@@ -63,11 +63,13 @@ export function QuestionsTable({ questions, onEdit, onDelete }: QuestionsTablePr
                 {new Date(question.created_at).toLocaleDateString()}
               </TableCell>
               <TableCell>
-                <EditQuestionDialog
-                  question={question}
-                  onEdit={(data) => onEdit(question.id, data)}
-                  onDelete={() => onDelete(question.id)}
-                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit(question.id)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}
