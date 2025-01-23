@@ -23,14 +23,21 @@ export function CreateUserDialog({
 
   const handleSubmit = async (data: UserFormData) => {
     try {
+      console.log('Creating user with data:', data) // Debug
       setIsLoading(true)
       setError(null)
-      const success = await onSubmit(data)
+      const success = await onSubmit({
+        ...data,
+        role: data.role || 'user',
+        isMentor: false,
+        isActive: true
+      })
       if (success) {
         onSuccess()
         onOpenChange(false)
       }
     } catch (error) {
+      console.error('Error creating user:', error) // Debug
       if (error instanceof Error) {
         setError(error.message)
       } else {

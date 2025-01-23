@@ -8,7 +8,7 @@ export interface Cluster {
     id: string
     name: string
     surname: string
-  }[] | null
+  } | null
   team_clusters: {
     id: string
     team: {

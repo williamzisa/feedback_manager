@@ -9,7 +9,7 @@ import { CreateUserDialog } from '@/components/users/dialogs/create-user-dialog'
 import { EditUserDialog } from '@/components/users/dialogs/edit-user-dialog'
 import { useState, useMemo } from 'react'
 import { mockUsers, mockUsersApi } from '@/lib/data/mock-users'
-import type { User, Level } from '@/lib/types/users'
+import type { User } from '@/lib/types/users'
 
 export default function UsersPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -134,11 +134,8 @@ export default function UsersPage() {
         onOpenChange={setIsCreateOpen}
         onSubmit={async (data) => {
           try {
-            const userData: Omit<User, 'id'> = {
-              ...data,
-              level: data.level as Level
-            }
-            await mockUsersApi.create(userData)
+            await mockUsersApi.create(data)
+            handleSuccess()
             return true
           } catch (error) {
             console.error('Error creating user:', error)

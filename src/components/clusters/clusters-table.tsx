@@ -38,8 +38,8 @@ export function ClustersTable({ clusters, onSuccess }: ClustersTableProps) {
             <TableRow key={cluster.id}>
               <TableCell className="font-medium">{cluster.name}</TableCell>
               <TableCell>
-                {cluster.leader && cluster.leader.length > 0
-                  ? `${cluster.leader[0].name} ${cluster.leader[0].surname}`
+                {cluster.leader
+                  ? `${cluster.leader.name} ${cluster.leader.surname}`
                   : '-'}
               </TableCell>
               <TableCell>{cluster.level ?? '-'}</TableCell>

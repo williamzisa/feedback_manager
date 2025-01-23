@@ -31,14 +31,14 @@ export function ClustersView() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: clusters = [], refetch } = useQuery<Cluster[]>({
+  const { data: clusters = [], refetch } = useQuery({
     queryKey: ['clusters'],
     queryFn: queries.clusters.getAll
-  })
+  }) as { data: Cluster[], refetch: () => void }
 
   const filteredClusters = clusters.filter(cluster =>
     cluster.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (cluster.leader && cluster.leader.length > 0 && `${cluster.leader[0].name} ${cluster.leader[0].surname}`.toLowerCase().includes(searchQuery.toLowerCase()))
+    (cluster.leader && `${cluster.leader.name} ${cluster.leader.surname}`.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   return (
@@ -90,8 +90,8 @@ export function ClustersView() {
                 <div className="text-sm text-gray-600 space-y-1">
                   <p className="flex items-center">
                     <span className="w-24">Leader:</span>
-                    {cluster.leader 
-                      ? `${cluster.leader[0].name} ${cluster.leader[0].surname}`
+                    {cluster.leader
+                      ? `${cluster.leader.name} ${cluster.leader.surname}`
                       : '-'}
                   </p>
                   <p className="flex items-center">

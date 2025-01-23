@@ -238,7 +238,7 @@ export const queries = {
         .from('clusters')
         .select(`
           id, name, level, created_at, company,
-          leader:users!clusters_leader_fkey(
+          leader:users(
             id, name, surname
           ),
           team_clusters(
@@ -246,9 +246,7 @@ export const queries = {
             team:teams(
               id,
               name,
-              leader:users(
-                id, name, surname
-              )
+              leader:users(id, name, surname)
             )
           )
         `)
@@ -256,9 +254,9 @@ export const queries = {
       
       if (error) throw error
 
-      // Aggiungo il conteggio dei team
       const clustersWithCount = data.map(cluster => ({
         ...cluster,
+        leader: cluster.leader || null,
         team_count: cluster.team_clusters?.length || 0
       }))
 

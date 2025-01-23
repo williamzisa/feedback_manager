@@ -78,7 +78,7 @@ export function EditClusterDialog({
   const initialData: ClusterFormData = {
     name: cluster.name,
     level: cluster.level,
-    leaderId: cluster.leader && cluster.leader.length > 0 ? cluster.leader[0].id : null
+    leaderId: Array.isArray(cluster.leader) && cluster.leader.length > 0 ? cluster.leader[0].id : null
   }
 
   return (

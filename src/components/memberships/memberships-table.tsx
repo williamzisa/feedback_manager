@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Edit } from 'lucide-react'
 import type { Membership } from '@/lib/types/memberships'
-import { Badge } from '@/components/ui/badge'
 
 interface MembershipsTableProps {
   memberships: Membership[]
@@ -24,17 +23,15 @@ export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps)
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="min-w-[200px]">User</TableHead>
-            <TableHead className="hidden md:table-cell">Team</TableHead>
-            <TableHead className="hidden lg:table-cell">Progetto</TableHead>
-            <TableHead className="hidden lg:table-cell">Cluster Leader</TableHead>
-            <TableHead className="w-[100px]"></TableHead>
+            <TableHead className="w-[45%]">User</TableHead>
+            <TableHead className="hidden md:table-cell w-[45%]">Team</TableHead>
+            <TableHead className="w-[10%]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {memberships?.map((membership) => (
             <TableRow key={membership.id}>
-              <TableCell>
+              <TableCell className="w-[45%]">
                 <div className="space-y-1">
                   <div className="font-medium">
                     {membership.user?.name} {membership.user?.surname}
@@ -45,32 +42,13 @@ export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps)
                   {/* Info aggiuntive visibili solo su mobile */}
                   <div className="md:hidden space-y-1 text-sm text-gray-500">
                     <div>Team: {membership.team?.name}</div>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span>Progetto: {membership.team?.project ? 'Sì' : 'No'}</span>
-                      <span className="hidden xs:inline">•</span>
-                      <span>Cluster Leader: {membership.team?.isclusterleader ? 'Sì' : 'No'}</span>
-                    </div>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell className="hidden md:table-cell w-[45%]">
                 {membership.team?.name}
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {membership.team?.project ? (
-                  <Badge variant="secondary">Sì</Badge>
-                ) : (
-                  <Badge variant="default">No</Badge>
-                )}
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {membership.team?.isclusterleader ? (
-                  <Badge variant="secondary">Sì</Badge>
-                ) : (
-                  <Badge variant="default">No</Badge>
-                )}
-              </TableCell>
-              <TableCell>
+              <TableCell className="w-[10%]">
                 <Button 
                   variant="ghost" 
                   size="icon"
@@ -83,7 +61,7 @@ export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps)
           ))}
           {(!memberships || memberships.length === 0) && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+              <TableCell colSpan={3} className="text-center py-4 text-gray-500">
                 Nessuna membership trovata
               </TableCell>
             </TableRow>

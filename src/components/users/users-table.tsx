@@ -17,6 +17,11 @@ export function UsersTable({ users, onEdit }: UsersTableProps) {
     return mentor ? `${mentor.name} ${mentor.surname}` : null
   }
 
+  const getLevelWithStep = (user: User) => {
+    if (!user.level) return <span className="text-gray-400">Non specificato</span>
+    return user.level
+  }
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -45,7 +50,7 @@ export function UsersTable({ users, onEdit }: UsersTableProps) {
                       <span className="hidden xs:inline">•</span>
                       <span>Team: <Badge variant="outline" className="ml-1">3 team</Badge></span>
                     </div>
-                    <div>Livello: {user.level || 'Non specificato'}</div>
+                    <div>Livello: {getLevelWithStep(user)}</div>
                   </div>
                 </div>
               </TableCell>
@@ -58,20 +63,16 @@ export function UsersTable({ users, onEdit }: UsersTableProps) {
                   <span className="text-gray-400">Nessun mentor</span>
                 )}
               </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                <div className="flex flex-wrap gap-1">
-                  {user.processes?.map((process) => (
-                    <Badge key={process} variant="secondary">
-                      {process}
-                    </Badge>
-                  ))}
-                  {(!user.processes || user.processes.length === 0) && (
-                    <span className="text-gray-400">Nessun processo</span>
-                  )}
-                </div>
+              <TableCell className="hidden sm:table-cell w-32">
+                <span 
+                  className="cursor-help" 
+                  title={user.processes?.join(', ') || 'Nessun processo'}
+                >
+                  {user.processes?.length || 0}
+                </span>
               </TableCell>
               <TableCell className="hidden lg:table-cell">
-                {user.level || <span className="text-gray-400">Non specificato</span>}
+                {getLevelWithStep(user)}
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 <Badge variant="outline">3 team</Badge>

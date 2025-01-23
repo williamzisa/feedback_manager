@@ -35,7 +35,10 @@ export function UserForm({
       email: initialData?.email ?? '',
       mentorId: initialData?.mentorId ?? null,
       processes: initialData?.processes ?? [],
-      level: initialData?.level ?? null
+      level: initialData?.level ?? null,
+      role: initialData?.role ?? '',
+      isMentor: initialData?.isMentor ?? false,
+      isActive: initialData?.isActive ?? true
     }
   })
 
@@ -49,15 +52,23 @@ export function UserForm({
   ]
 
   const availableLevels = [
-    'Manager (F) 1',
-    'PCG Manager 1',
-    'PCG Starter 1',
-    'Senior 1'
-  ]
+    'Junior 1', 'Junior 2', 'Junior 3',
+    'Mid 1', 'Mid 2', 'Mid 3',
+    'Senior 1', 'Senior 2', 'Senior 3',
+    'Manager (F) 1', 'PCG Manager 1'
+  ] as const
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => {
+        const formData = {
+          ...data,
+          role: data.role || 'user',
+          isMentor: false,
+          isActive: true
+        }
+        onSubmit(formData)
+      })} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -183,7 +194,7 @@ export function UserForm({
             <FormItem>
               <FormLabel>Livello</FormLabel>
               <Select
-                value={field.value ?? "none"}
+                value={field.value || "none"}
                 onValueChange={(value) => field.onChange(value === "none" ? null : value)}
               >
                 <FormControl>

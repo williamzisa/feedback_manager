@@ -10,7 +10,7 @@ export const mockUsers: User[] = [
     isMentor: true,
     isActive: true,
     processes: ['Process A', 'Process B'],
-    level: 'Junior',
+    level: 'Junior 1',
     mentorId: '4'  // Laura Neri
   },
   {
@@ -22,7 +22,7 @@ export const mockUsers: User[] = [
     isMentor: false,
     isActive: true,
     processes: ['Process C'],
-    level: 'Senior',
+    level: 'Senior 1',
     mentorId: '6'  // Marco Bianchi
   },
   {
@@ -34,7 +34,7 @@ export const mockUsers: User[] = [
     isMentor: true,
     isActive: false,
     processes: [],
-    level: 'Mid',
+    level: 'Mid 1',
     mentorId: '2'  // Giuseppe Verdi
   },
   {
@@ -46,7 +46,7 @@ export const mockUsers: User[] = [
     isMentor: true,
     isActive: true,
     processes: ['Process A', 'Process D'],
-    level: 'Senior',
+    level: 'Senior 2',
     mentorId: '6'  // Marco Bianchi
   },
   {
@@ -58,7 +58,7 @@ export const mockUsers: User[] = [
     isMentor: true,
     isActive: true,
     processes: ['Process B', 'Process C'],
-    level: 'Senior',
+    level: 'Manager (F) 1',
     mentorId: '2'  // Giuseppe Verdi
   },
   {
@@ -70,7 +70,7 @@ export const mockUsers: User[] = [
     isMentor: true,
     isActive: true,
     processes: ['Process A', 'Process B', 'Process C', 'Process D'],
-    level: 'Senior',
+    level: 'PCG Manager 1',
     mentorId: '5'  // Paolo Ferrari
   }
 ]

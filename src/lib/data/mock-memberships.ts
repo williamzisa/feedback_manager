@@ -23,11 +23,43 @@ let mockMemberships: Membership[] = [
     team_id: '2',
     role: 'MEMBER',
     created_at: '2024-01-01T10:00:00Z'
+  },
+  {
+    id: '4',
+    user_id: '4',
+    team_id: '2',
+    role: 'LEADER',
+    created_at: '2024-01-01T10:00:00Z'
+  },
+  {
+    id: '5',
+    user_id: '5',
+    team_id: '3',
+    role: 'LEADER',
+    created_at: '2024-01-01T10:00:00Z'
   }
 ]
 
 export const mockMembershipsApi = {
-  getAll: () => [...mockMemberships],
+  getAll: () => {
+    return mockMemberships.map(membership => {
+      const user = mockUsers.find(u => u.id === membership.user_id)
+      const team = mockTeams.find(t => t.id === membership.team_id)
+      return {
+        ...membership,
+        user: user ? {
+          name: user.name,
+          surname: user.surname,
+          email: user.email
+        } : null,
+        team: team ? {
+          name: team.name,
+          project: team.project,
+          isclusterleader: team.isclusterleader
+        } : null
+      }
+    })
+  },
   
   getByTeam: (teamId: string) => {
     return mockMemberships
@@ -37,8 +69,16 @@ export const mockMembershipsApi = {
         const team = mockTeams.find(t => t.id === m.team_id)
         return {
           ...m,
-          user: user || null,
-          team: team || null
+          user: user ? {
+            name: user.name,
+            surname: user.surname,
+            email: user.email
+          } : null,
+          team: team ? {
+            name: team.name,
+            project: team.project,
+            isclusterleader: team.isclusterleader
+          } : null
         }
       })
   },
@@ -51,8 +91,16 @@ export const mockMembershipsApi = {
         const team = mockTeams.find(t => t.id === m.team_id)
         return {
           ...m,
-          user: user || null,
-          team: team || null
+          user: user ? {
+            name: user.name,
+            surname: user.surname,
+            email: user.email
+          } : null,
+          team: team ? {
+            name: team.name,
+            project: team.project,
+            isclusterleader: team.isclusterleader
+          } : null
         }
       })
   },
