@@ -170,15 +170,13 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
                   </div>
                   <div>
                     <span className="font-medium">Tags:</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {feedback.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                    <div className="mt-1">
+                      <div 
+                        className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                        title={feedback.tags.join(', ')}
+                      >
+                        {feedback.tags.length} tag{feedback.tags.length !== 1 ? 's' : ''}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -215,15 +213,11 @@ export const PreSessionFeedbacksTable = ({ sessionStatus }: PreSessionFeedbacksT
                   <TableCell className="max-w-md truncate">{feedback.question}</TableCell>
                   <TableCell>{feedback.rule}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      {feedback.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                    <div 
+                      className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                      title={feedback.tags.join(', ')}
+                    >
+                      {feedback.tags.length} tag{feedback.tags.length !== 1 ? 's' : ''}
                     </div>
                   </TableCell>
                   <TableCell>

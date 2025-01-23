@@ -140,7 +140,7 @@ export default function FeedbackManagementView({ sessionId, sessionStatus }: Fee
                     <span className="font-medium">Voto:</span>
                     {feedback.vote !== null ? (
                       <span className="ml-2 px-2 py-1 rounded bg-blue-100 text-blue-800">
-                        {feedback.vote}/5
+                        {feedback.vote}
                       </span>
                     ) : (
                       <span className="ml-2 text-gray-400">In attesa</span>
@@ -148,15 +148,13 @@ export default function FeedbackManagementView({ sessionId, sessionStatus }: Fee
                   </div>
                   <div>
                     <span className="font-medium">Tags:</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {feedback.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                    <div className="mt-1">
+                      <div 
+                        className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                        title={feedback.tags.join(', ')}
+                      >
+                        {feedback.tags.length} tag{feedback.tags.length !== 1 ? 's' : ''}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -194,22 +192,18 @@ export default function FeedbackManagementView({ sessionId, sessionStatus }: Fee
                   <TableCell>
                     {feedback.vote !== null ? (
                       <span className="px-2 py-1 rounded bg-blue-100 text-blue-800">
-                        {feedback.vote}/5
+                        {feedback.vote}
                       </span>
                     ) : (
                       <span className="text-gray-400">In attesa</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      {feedback.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                    <div 
+                      className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                      title={feedback.tags.join(', ')}
+                    >
+                      {feedback.tags.length} tag{feedback.tags.length !== 1 ? 's' : ''}
                     </div>
                   </TableCell>
                   <TableCell>

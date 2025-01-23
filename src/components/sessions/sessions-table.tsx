@@ -51,8 +51,9 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
             <TableHead className="min-w-[200px]">Sessione</TableHead>
             <TableHead className="hidden md:table-cell">Date</TableHead>
             <TableHead className="hidden sm:table-cell">Cluster</TableHead>
+            <TableHead className="hidden sm:table-cell">Team</TableHead>
+            <TableHead className="hidden sm:table-cell">Utenti</TableHead>
             <TableHead className="hidden lg:table-cell">Regole</TableHead>
-            <TableHead className="hidden xl:table-cell">Partecipanti</TableHead>
             <TableHead className="hidden md:table-cell">Feedback</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
@@ -76,34 +77,51 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
                     </div>
                     <div>
                       <span className="font-medium">Cluster:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {getClusterNames(session.clusters).map((name) => (
-                          <Badge key={name} variant="secondary" className="text-xs">
-                            {name}
-                          </Badge>
-                        ))}
+                      <div className="mt-1">
+                        <div 
+                          className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                          title={getClusterNames(session.clusters).join(', ')}
+                        >
+                          {session.clusters?.length || 0} cluster{(session.clusters?.length || 0) !== 1 ? 's' : ''}
+                        </div>
                       </div>
                     </div>
                     <div>
                       <span className="font-medium">Regole:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {getRuleNames(session.regole).map((name) => (
-                          <Badge key={name} variant="outline" className="text-xs">
-                            {name}
-                          </Badge>
-                        ))}
+                      <div className="mt-1">
+                        <div 
+                          className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                          title={getRuleNames(session.regole).join(', ')}
+                        >
+                          {session.regole?.length || 0} regol{(session.regole?.length || 0) !== 1 ? 'e' : 'a'}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span>
-                        <span className="font-medium">Partecipanti:</span>{' '}
-                        {session.utentiPartecipanti}
-                      </span>
+                      <div>
+                        <span className="font-medium">Team:</span>
+                        <div className="mt-1">
+                          <div className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs">
+                            {session.teamPartecipanti} team
+                          </div>
+                        </div>
+                      </div>
                       <span>•</span>
-                      <span>
-                        <span className="font-medium">Feedback:</span>{' '}
-                        {session.feedbackGenerati}
-                      </span>
+                      <div>
+                        <span className="font-medium">Utenti:</span>
+                        <div className="mt-1">
+                          <div className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs">
+                            {session.utentiPartecipanti} utent{session.utentiPartecipanti !== 1 ? 'i' : 'e'}
+                          </div>
+                        </div>
+                      </div>
+                      <span>•</span>
+                      <div>
+                        <span className="font-medium">Feedback:</span>
+                        <div className="mt-1">
+                          <Badge variant="outline">{session.feedbackGenerati}</Badge>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -119,40 +137,29 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
                 </div>
               </TableCell>
               <TableCell className="hidden sm:table-cell">
-                <div className="flex flex-wrap gap-1">
-                  {getClusterNames(session.clusters).map((name) => (
-                    <Badge key={name} variant="secondary">
-                      {name}
-                    </Badge>
-                  ))}
-                  {(!session.clusters || session.clusters.length === 0) && (
-                    <span className="text-gray-400">Nessun cluster</span>
-                  )}
+                <div 
+                  className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                  title={getClusterNames(session.clusters).join(', ')}
+                >
+                  {session.clusters?.length || 0} cluster{(session.clusters?.length || 0) !== 1 ? 's' : ''}
+                </div>
+              </TableCell>
+              <TableCell className="hidden sm:table-cell">
+                <div className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs">
+                  {session.teamPartecipanti} team
+                </div>
+              </TableCell>
+              <TableCell className="hidden sm:table-cell">
+                <div className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs">
+                  {session.utentiPartecipanti} utent{session.utentiPartecipanti !== 1 ? 'i' : 'e'}
                 </div>
               </TableCell>
               <TableCell className="hidden lg:table-cell">
-                <div className="flex flex-wrap gap-1">
-                  {getRuleNames(session.regole).map((name) => (
-                    <Badge key={name} variant="outline">
-                      {name}
-                    </Badge>
-                  ))}
-                  {(!session.regole || session.regole.length === 0) && (
-                    <span className="text-gray-400">Nessuna regola</span>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="hidden xl:table-cell">
-                <div className="space-y-1">
-                  <div className="text-sm">
-                    Utenti: {session.utentiPartecipanti}
-                  </div>
-                  <div className="text-sm">
-                    Team: {session.teamPartecipanti}
-                  </div>
-                  <div className="text-sm">
-                    Cluster: {session.clusterPartecipanti}
-                  </div>
+                <div 
+                  className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                  title={getRuleNames(session.regole).join(', ')}
+                >
+                  {session.regole?.length || 0} regol{(session.regole?.length || 0) !== 1 ? 'e' : 'a'}
                 </div>
               </TableCell>
               <TableCell className="hidden md:table-cell">

@@ -122,7 +122,7 @@ export const SessionResultsTable = () => {
                     <span className="font-medium">Sessione:</span> {result.session_name}
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Livello:</span> {result.level_name}
+                    <span className="font-medium">Ruolo:</span> {result.level_name}
                   </div>
                   <div className="mb-2">
                     <span className="font-medium">Overall:</span> {result.overall}
@@ -159,8 +159,8 @@ export const SessionResultsTable = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>SESSIONE</TableHead>
-                <TableHead>LIVELLO</TableHead>
                 <TableHead>UTENTE</TableHead>
+                <TableHead>RUOLO</TableHead>
                 <TableHead>OVERALL</TableHead>
                 <TableHead>GAP</TableHead>
                 <TableHead>EXECUTION</TableHead>
@@ -173,8 +173,8 @@ export const SessionResultsTable = () => {
               {results.map((result) => (
                 <TableRow key={result.id}>
                   <TableCell>{result.session_name}</TableCell>
-                  <TableCell>{result.level_name}</TableCell>
                   <TableCell>{result.user_name}</TableCell>
+                  <TableCell>{result.level_name}</TableCell>
                   <TableCell>{result.overall}</TableCell>
                   <TableCell>{formatGap(result.gap)}</TableCell>
                   <TableCell>{result.execution}</TableCell>

@@ -35,14 +35,15 @@ export function QuestionsTable({ questions, onEdit }: QuestionsTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {questions.map((question) => (
+          {questions.map((question, index) => (
             <TableRow key={question.id}>
-              <TableCell className="hidden sm:table-cell">{question.id}</TableCell>
+              <TableCell className="hidden sm:table-cell">{index + 1}</TableCell>
               <TableCell>
                 <div className="space-y-1">
                   <div className="font-medium max-w-2xl">{question.text}</div>
                   {/* Info aggiuntive visibili solo su mobile */}
                   <div className="md:hidden space-y-1 text-sm text-gray-500">
+                    <div>ID: {index + 1}</div>
                     <div>
                       <span className={`font-medium ${getTypeColor(question.type)}`}>
                         {question.type}
