@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/navigation/bottom-nav";
+import Header from "@/components/navigation/header";
 
 function SessionResultsContent() {
   const searchParams = useSearchParams();
@@ -12,29 +13,18 @@ function SessionResultsContent() {
   const userName = searchParams.get('userName');
   const [selectedSession, setSelectedSession] = useState('Sessione terminata il 31/12/24');
 
+  const handleViewDetails = () => {
+    const queryParams = new URLSearchParams();
+    if (userId && userName) {
+      queryParams.set('userId', userId);
+      queryParams.set('userName', userName);
+    }
+    window.location.href = `/session_results/feedback${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b bg-white">
-        <div className="flex items-center justify-between px-4 py-4">
-          <div className="w-10" />
-          <h1 className="text-[24px] font-bold text-gray-900">
-            {userName ? userName : 'I miei Risultati'}
-          </h1>
-          <div className="flex items-center gap-3">
-            <button className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </button>
-            <button className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header title={userName ? userName : 'I miei Risultati'} />
 
       <main className="container mx-auto max-w-2xl px-4 py-6">
         {/* Session Selector */}
@@ -121,7 +111,7 @@ function SessionResultsContent() {
         <div className="mt-6">
           <Button 
             className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white py-6 rounded-full text-lg"
-            onClick={() => window.location.href = `/session_results/feedback?userId=${userId}&userName=${userName}`}
+            onClick={handleViewDetails}
           >
             Vedi Dettaglio
           </Button>
