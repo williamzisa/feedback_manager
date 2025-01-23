@@ -1,31 +1,37 @@
 'use client'
 
 import { useState } from 'react'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LevelsTable } from './levels-table'
 import { CreateLevelDialog } from './dialogs/create-level-dialog'
 import { EditLevelDialog } from './dialogs/edit-level-dialog'
 import type { Level } from '@/lib/types/levels'
 import { mockLevels } from '@/lib/data/mock-levels'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export const LevelsView = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedFilter, setSelectedFilter] = useState<string>('all')
   const [levels, setLevels] = useState<Level[]>(mockLevels)
 
-  const filteredLevels = levels.filter(level => 
-    level.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    String(level.step).includes(searchQuery)
-  )
+  const filteredLevels = selectedFilter === 'all' 
+    ? levels 
+    : levels.filter(level => level.role === selectedFilter)
+
+  const uniqueLevels = Array.from(new Set(levels.map(level => level.role)))
 
   const handleEdit = (level: Level) => {
     setSelectedLevel(level)
   }
 
   const handleSuccess = () => {
-    // Aggiorna la lista dei livelli dopo una modifica
     setLevels([...mockLevels])
   }
 
@@ -33,13 +39,22 @@ export const LevelsView = () => {
     <div>
       <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="w-full sm:w-96">
-          <Input
-            type="search"
-            placeholder="Cerca Livello"
-            className="w-full bg-white"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <Select
+            value={selectedFilter}
+            onValueChange={setSelectedFilter}
+          >
+            <SelectTrigger className="w-full bg-white">
+              <SelectValue placeholder="Filtra per livello" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti i livelli</SelectItem>
+              {uniqueLevels.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {level}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <Button 
           className="w-full sm:w-auto whitespace-nowrap"

@@ -30,7 +30,6 @@ export default function LevelsPage() {
         {/* Stats Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           <StatCard title="110 user" value={110} className="bg-white shadow-sm" />
-          <StatCard title="51 mentor" value={51} className="bg-blue-100" />
           <StatCard title="Livelli" value={12} className="bg-green-100" />
           <StatCard title="Categorie" value={4} className="bg-yellow-100" />
         </div>
