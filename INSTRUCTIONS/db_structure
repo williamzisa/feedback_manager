@@ -176,21 +176,23 @@ CONSTRAINT user_teams_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id)
 ) TABLESPACE pg_default;
 
 CREATE TABLE public.users (
-id uuid NOT NULL DEFAULT gen_random_uuid(),
-name text NOT NULL,
-surname text NOT NULL,
-email text NOT NULL,
-level uuid NULL,
-admin boolean NOT NULL DEFAULT false,
-company uuid NULL,
-mentor uuid NULL,
-created_at timestamp with time zone NULL DEFAULT now(),
-auth_id uuid NULL,
-CONSTRAINT users_pkey PRIMARY KEY (id),
-CONSTRAINT users_auth_id_key UNIQUE (auth_id),
-CONSTRAINT users_email_key UNIQUE (email),
-CONSTRAINT users_auth_id_fkey FOREIGN KEY (auth_id) REFERENCES auth.users(id),
-CONSTRAINT users_level_fkey FOREIGN KEY (level) REFERENCES levels(id),
-CONSTRAINT users_mentor_fkey FOREIGN KEY (mentor) REFERENCES users(id),
-CONSTRAINT users_company_fkey FOREIGN KEY (company) REFERENCES companies(id)
-) TABLESPACE pg_default;
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  surname text NOT NULL,
+  email text NOT NULL,
+  level uuid NULL,
+  admin boolean NOT NULL DEFAULT false,
+  company uuid NULL,
+  mentor uuid NULL,
+  created_at timestamp with time zone NULL DEFAULT now(),
+  auth_id uuid NULL,
+  status text NOT NULL DEFAULT 'active',
+  last_login timestamp with time zone NULL,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_auth_id_key UNIQUE (auth_id),
+  CONSTRAINT users_email_key UNIQUE (email),
+  CONSTRAINT users_auth_id_fkey FOREIGN KEY (auth_id) REFERENCES auth.users(id),
+  CONSTRAINT users_level_fkey FOREIGN KEY (level) REFERENCES levels(id),
+  CONSTRAINT users_mentor_fkey FOREIGN KEY (mentor) REFERENCES users(id),
+  CONSTRAINT users_company_fkey FOREIGN KEY (company) REFERENCES companies(id)
+);

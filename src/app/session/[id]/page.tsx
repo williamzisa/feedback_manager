@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import BottomNav from "@/components/navigation/bottom-nav";
 import Header from "@/components/navigation/header";
 import { useRouter } from "next/navigation";
@@ -25,16 +26,14 @@ const mockPeople: Person[] = [
 ];
 
 interface SessionDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function SessionDetailPage({ params }: SessionDetailPageProps) {
   const router = useRouter();
-
-  // Qui potresti usare l'id per filtrare i dati specifici della sessione
-  // const { id } = params;
+  const { id } = React.use(params);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -77,9 +76,9 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
                   className="bg-[#4285F4] text-white px-6 py-2 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
                   onClick={() =>
                     router.push(
-                      `/session/${
-                        params.id
-                      }/evaluate?person=${encodeURIComponent(person.name)}`
+                      `/session/${id}/evaluate?person=${encodeURIComponent(
+                        person.name
+                      )}`
                     )
                   }
                 >
