@@ -11,9 +11,44 @@
 
 ## File Structure
 
+
 ```
 feedback_manager
 ├─ .cursorrules
+├─ .git
+│  ├─ COMMIT_EDITMSG
+│  ├─ config
+│  ├─ description
+│  ├─ FETCH_HEAD
+│  ├─ HEAD
+│  ├─ hooks
+│  │  ├─ applypatch-msg.sample
+│  │  ├─ commit-msg.sample
+│  │  ├─ fsmonitor-watchman.sample
+│  │  ├─ post-update.sample
+│  │  ├─ pre-applypatch.sample
+│  │  ├─ pre-commit.sample
+│  │  ├─ pre-merge-commit.sample
+│  │  ├─ pre-push.sample
+│  │  ├─ pre-rebase.sample
+│  │  ├─ pre-receive.sample
+│  │  ├─ prepare-commit-msg.sample
+│  │  ├─ push-to-checkout.sample
+│  │  ├─ sendemail-validate.sample
+│  │  └─ update.sample
+│  ├─ index
+│  ├─ info
+│  │  └─ exclude
+│  ├─ logs
+│  │  ├─ HEAD
+│  │  └─ refs
+│  │     ├─ heads
+│  │     │  ├─ develop
+│  │     │  └─ main
+│  │     └─ remotes
+│  │        └─ origin
+│  │           ├─ develop
+│  │           └─ HEAD
 │  ├─ ORIG_HEAD
 │  ├─ packed-refs
 │  └─ refs
@@ -58,41 +93,30 @@ feedback_manager
 │  │  ├─ (routes)
 │  │  │  └─ admin
 │  │  │     ├─ clusters
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ feedback-management
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ layout.tsx
 │  │  │     ├─ levels
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ memberships
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ page.tsx
 │  │  │     ├─ pre-session-analysis
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ processes
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ questions
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ rules
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ session-results
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ sessions
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     ├─ teams
-│  │  │     │  ├─ components
 │  │  │     │  └─ page.tsx
 │  │  │     └─ users
-│  │  │        ├─ components
 │  │  │        └─ page.tsx
 │  │  ├─ @admin
 │  │  │  ├─ clusters
@@ -107,8 +131,7 @@ feedback_manager
 │  │  │  │        └─ cluster-schema.ts
 │  │  │  ├─ feedback-management
 │  │  │  │  └─ components
-│  │  │  │     ├─ feedback-management-view.tsx
-│  │  │  │     └─ FeedbackManagementView.tsx
+│  │  │  │     └─ feedback-management-view.tsx
 │  │  │  ├─ levels
 │  │  │  │  └─ components
 │  │  │  │     ├─ dialogs
@@ -155,7 +178,8 @@ feedback_manager
 │  │  │  │     └─ questions-view.tsx
 │  │  │  ├─ rules
 │  │  │  │  └─ components
-│  │  │  │     └─ rules-table.tsx
+│  │  │  │     ├─ rules-table.tsx
+│  │  │  │     └─ rules-view.tsx
 │  │  │  ├─ session-results
 │  │  │  │  └─ components
 │  │  │  │     ├─ session-results-table.tsx
@@ -187,7 +211,8 @@ feedback_manager
 │  │  │        ├─ forms
 │  │  │        │  ├─ user-form.tsx
 │  │  │        │  └─ user-schema.ts
-│  │  │        └─ users-table.tsx
+│  │  │        ├─ users-table.tsx
+│  │  │        └─ users-view.tsx
 │  │  ├─ favicon.ico
 │  │  ├─ globals.css
 │  │  ├─ layout.tsx
