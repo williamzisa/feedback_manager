@@ -1,0 +1,311 @@
+## Project Overview
+- **Stack**:
+  - Next.js
+  - Tailwind CSS
+  - Shadcn UI
+  - Supabase
+
+## Core Rules
+- All IDs must come from the users table.
+- Supabase Auth is used for authentication.
+
+## File Structure
+
+```
+feedback_manager
+├─ .cursorrules
+├─ .git
+│  ├─ config
+│  ├─ description
+│  ├─ FETCH_HEAD
+│  ├─ HEAD
+│  ├─ hooks
+│  │  ├─ applypatch-msg.sample
+│  │  ├─ commit-msg.sample
+│  │  ├─ fsmonitor-watchman.sample
+│  │  ├─ post-update.sample
+│  │  ├─ pre-applypatch.sample
+│  │  ├─ pre-commit.sample
+│  │  ├─ pre-merge-commit.sample
+│  │  ├─ pre-push.sample
+│  │  ├─ pre-rebase.sample
+│  │  ├─ pre-receive.sample
+│  │  ├─ prepare-commit-msg.sample
+│  │  ├─ push-to-checkout.sample
+│  │  ├─ sendemail-validate.sample
+│  │  └─ update.sample
+│  ├─ index
+│  ├─ info
+│  │  └─ exclude
+│  ├─ logs
+│  │  ├─ HEAD
+│  │  └─ refs
+│  │     ├─ heads
+│  │     │  ├─ develop
+│  │     │  └─ main
+│  │     └─ remotes
+│  │        └─ origin
+│  │           └─ HEAD
+│  ├─ objects
+│  │  ├─ info
+│  │  └─ pack
+│  │     ├─ pack-8c00bc5875f74966fe1053d870f0a162e7a467ac.idx
+│  │     ├─ pack-8c00bc5875f74966fe1053d870f0a162e7a467ac.pack
+│  │     └─ pack-8c00bc5875f74966fe1053d870f0a162e7a467ac.rev
+│  ├─ packed-refs
+│  └─ refs
+│     ├─ heads
+│     │  ├─ develop
+│     │  └─ main
+│     ├─ remotes
+│     │  └─ origin
+│     │     └─ HEAD
+│     └─ tags
+├─ .gitignore
+├─ .notes
+│  └─ directory_structure.md
+├─ .windsurfrules
+├─ comandi_utili.txt
+├─ components.json
+├─ eslint.config.mjs
+├─ INSTRUCTIONS
+│  ├─ cluster_instructions.md
+│  ├─ db_structure
+│  ├─ memberships_instructions.md
+│  ├─ questions_instructions.md
+│  └─ team_instructions.md
+├─ middleware.ts
+├─ next.config.ts
+├─ package-lock.json
+├─ package.json
+├─ postcss.config.mjs
+├─ public
+│  ├─ file.svg
+│  ├─ globe.svg
+│  ├─ next.svg
+│  ├─ vercel.svg
+│  └─ window.svg
+├─ README.md
+├─ src
+│  ├─ app
+│  │  ├─ (routes)
+│  │  │  └─ admin
+│  │  │     ├─ clusters
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ feedback-management
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ layout.tsx
+│  │  │     ├─ levels
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ memberships
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ page.tsx
+│  │  │     ├─ pre-session-analysis
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ processes
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ questions
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ rules
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ session-results
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ sessions
+│  │  │     │  └─ page.tsx
+│  │  │     ├─ teams
+│  │  │     │  └─ page.tsx
+│  │  │     └─ users
+│  │  │        └─ page.tsx
+│  │  ├─ favicon.ico
+│  │  ├─ globals.css
+│  │  ├─ layout.tsx
+│  │  ├─ page.tsx
+│  │  ├─ people
+│  │  │  └─ page.tsx
+│  │  ├─ session
+│  │  │  ├─ evaluate
+│  │  │  │  └─ page.tsx
+│  │  │  └─ page.tsx
+│  │  └─ session_results
+│  │     ├─ comment
+│  │     │  └─ page.tsx
+│  │     ├─ feedback
+│  │     │  └─ page.tsx
+│  │     └─ page.tsx
+│  ├─ components
+│  │  ├─ clusters
+│  │  │  ├─ clusters-table.tsx
+│  │  │  ├─ clusters-view.tsx
+│  │  │  ├─ dialogs
+│  │  │  │  ├─ create-cluster-dialog.tsx
+│  │  │  │  └─ edit-cluster-dialog.tsx
+│  │  │  └─ forms
+│  │  │     ├─ cluster-form.tsx
+│  │  │     └─ cluster-schema.ts
+│  │  ├─ feedback-management
+│  │  │  ├─ feedback-management-view.tsx
+│  │  │  └─ FeedbackManagementView.tsx
+│  │  ├─ layout
+│  │  │  └─ admin-header.tsx
+│  │  ├─ levels
+│  │  │  ├─ dialogs
+│  │  │  │  ├─ create-level-dialog.tsx
+│  │  │  │  └─ edit-level-dialog.tsx
+│  │  │  ├─ forms
+│  │  │  │  └─ level-form.tsx
+│  │  │  ├─ levels-table.tsx
+│  │  │  └─ levels-view.tsx
+│  │  ├─ memberships
+│  │  │  ├─ dialogs
+│  │  │  │  ├─ create-membership-dialog.tsx
+│  │  │  │  └─ edit-membership-dialog.tsx
+│  │  │  ├─ forms
+│  │  │  │  ├─ membership-form.tsx
+│  │  │  │  └─ membership-schema.ts
+│  │  │  ├─ memberships-table.tsx
+│  │  │  └─ memberships-view.tsx
+│  │  ├─ navigation
+│  │  │  ├─ bottom-nav.tsx
+│  │  │  └─ header.tsx
+│  │  ├─ pre-session-analysis
+│  │  │  ├─ dialogs
+│  │  │  │  └─ generate-feedback-dialog.tsx
+│  │  │  ├─ pre-session-analysis-view.tsx
+│  │  │  └─ pre-session-feedbacks-table.tsx
+│  │  ├─ processes
+│  │  │  ├─ dialogs
+│  │  │  │  ├─ create-process-dialog.tsx
+│  │  │  │  └─ edit-process-dialog.tsx
+│  │  │  ├─ forms
+│  │  │  │  └─ process-form.tsx
+│  │  │  ├─ processes-table.tsx
+│  │  │  └─ processes-view.tsx
+│  │  ├─ questions
+│  │  │  ├─ dialogs
+│  │  │  │  ├─ create-question-dialog.tsx
+│  │  │  │  └─ edit-question-dialog.tsx
+│  │  │  ├─ forms
+│  │  │  │  ├─ question-form.tsx
+│  │  │  │  └─ question-schema.ts
+│  │  │  ├─ questions-table.tsx
+│  │  │  └─ questions-view.tsx
+│  │  ├─ rules
+│  │  │  └─ rules-table.tsx
+│  │  ├─ session-results
+│  │  │  ├─ session-results-table.tsx
+│  │  │  └─ session-results-view.tsx
+│  │  ├─ sessions
+│  │  │  ├─ dialogs
+│  │  │  │  ├─ create-session-dialog.tsx
+│  │  │  │  └─ edit-session-dialog.tsx
+│  │  │  ├─ forms
+│  │  │  │  └─ session-form.tsx
+│  │  │  ├─ sessions-table.tsx
+│  │  │  └─ sessions-view.tsx
+│  │  ├─ stats
+│  │  │  └─ stat-card.tsx
+│  │  ├─ teams
+│  │  │  ├─ dialogs
+│  │  │  │  ├─ create-team-dialog.tsx
+│  │  │  │  └─ edit-team-dialog.tsx
+│  │  │  ├─ forms
+│  │  │  │  ├─ team-form.tsx
+│  │  │  │  └─ team-schema.ts
+│  │  │  ├─ teams-table.tsx
+│  │  │  └─ teams-view.tsx
+│  │  ├─ ui
+│  │  │  ├─ badge.tsx
+│  │  │  ├─ button.tsx
+│  │  │  ├─ calendar.tsx
+│  │  │  ├─ checkbox.tsx
+│  │  │  ├─ command.tsx
+│  │  │  ├─ dialog.tsx
+│  │  │  ├─ form.tsx
+│  │  │  ├─ input.tsx
+│  │  │  ├─ label.tsx
+│  │  │  ├─ multi-select.tsx
+│  │  │  ├─ popover.tsx
+│  │  │  ├─ select.tsx
+│  │  │  ├─ sheet.tsx
+│  │  │  ├─ table.tsx
+│  │  │  └─ tabs.tsx
+│  │  └─ users
+│  │     ├─ dialogs
+│  │     │  ├─ create-user-dialog.tsx
+│  │     │  └─ edit-user-dialog.tsx
+│  │     ├─ forms
+│  │     │  ├─ user-form.tsx
+│  │     │  └─ user-schema.ts
+│  │     └─ users-table.tsx
+│  └─ lib
+│     ├─ data
+│     │  ├─ mock-levels.ts
+│     │  ├─ mock-memberships.ts
+│     │  ├─ mock-people.ts
+│     │  ├─ mock-processes.ts
+│     │  ├─ mock-questions.ts
+│     │  ├─ mock-sessions.ts
+│     │  ├─ mock-teams.ts
+│     │  └─ mock-users.ts
+│     ├─ supabase
+│     │  ├─ config.ts
+│     │  ├─ database.types.ts
+│     │  ├─ queries.ts
+│     │  └─ schema.sql
+│     ├─ types
+│     │  ├─ clusters.ts
+│     │  ├─ feedbacks.ts
+│     │  ├─ levels.ts
+│     │  ├─ memberships.ts
+│     │  ├─ processes.ts
+│     │  ├─ questions.ts
+│     │  ├─ sessions.ts
+│     │  ├─ teams.ts
+│     │  └─ users.ts
+│     └─ utils.ts
+├─ tailwind.config.ts
+├─ tsconfig.json
+└─ update_directory.ps1
+
+```
+
+## Requirements
+- Supabase Auth is used for authentication.
+
+## Best Practices
+- **Code Structure**:
+  - Components -> `src/components/`
+  - Pages -> `src/app/`
+
+- **Style**:
+  - Strict English comments
+  - Dynamic middleware updates
+  - No unused fields/logs
+
+- **Queries**:
+  - Fetch IDs strictly from users table
+  - Optimize joins via foreign keys
+
+- **Performance**:
+  - Exclude unnecessary files in docker builds
+  - Volumes only for active files
+
+- **Types**:
+  - Use TypeScript strictly with interfaces
+  - Avoid enums; prefer const objects with 'as const'
+  - Declare explicit return types
+
+- **Syntax**:
+  - Use "function" for pure functions
+  - Avoid redundant curly braces in conditionals
+  - Use declarative JSX only
+  - Assicura di mantenere la type-safety ad ogni inserimento di codice con controlli di tipizzazione per evitare problemi di deployment in Vercel
+
+- **Documentation**:
+  - Maintain README
+  - Document API interactions
+  - Document permission requirements
+
+- **Scalability**:
+  - Queries and components must scale for new fields
+  - Middleware extensible for new roles/permissions
