@@ -1,67 +1,68 @@
-'use client';
+"use client";
 
 import BottomNav from "@/components/navigation/bottom-nav";
 import Header from "@/components/navigation/header";
+import { useRouter } from "next/navigation";
 
-type Person = {
+interface Session {
+  id: string;
   name: string;
-  remainingAnswers: number;
-};
+  endDate: string;
+  participants: number;
+  status: "VAI" | "ANALISI";
+}
 
-const mockPeople: Person[] = [
+const mockSessions: Session[] = [
   {
-    name: 'Mario Rossi',
-    remainingAnswers: 50
+    id: "winter-2024",
+    name: "Winter 2024",
+    endDate: "15/12/2024",
+    participants: 71,
+    status: "VAI",
   },
   {
-    name: 'Alice Nastri',
-    remainingAnswers: 32
+    id: "summer-2024",
+    name: "Summer 2024",
+    endDate: "15/06/2024",
+    participants: 23,
+    status: "ANALISI",
   },
-  {
-    name: 'Elena Ski',
-    remainingAnswers: 40
-  }
 ];
 
-export default function SessionPage() {
+export default function SessionsPage() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Sessione di valutazione" />
+      <Header title="Sessioni" />
 
       <main className="container mx-auto max-w-2xl px-4 py-6">
-        {/* Session Info */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-2">Sessione iniziata il 30/11/2024</h2>
-          <p className="text-xl text-gray-700">Data termine: 31/12/2024</p>
-        </div>
-
-        {/* Progress Section */}
-        <div className="bg-white rounded-[20px] p-6 mb-8">
-          <h3 className="text-xl font-bold mb-4">Feedback completati</h3>
-          <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-5xl font-bold">22</span>
-            <span className="text-xl text-gray-600">/88</span>
-          </div>
-          <div className="relative h-2 bg-[#E5F8F6] rounded-full overflow-hidden">
-            <div className="absolute left-0 top-0 h-full w-[25%] bg-[#00BFA5] rounded-full"></div>
-          </div>
-          <div className="mt-2 text-right text-gray-600">25%</div>
-        </div>
-
-        {/* People List */}
         <div className="space-y-4">
-          {mockPeople.map((person, index) => (
-            <div key={index} className="bg-white rounded-[20px] p-6">
+          {mockSessions.map((session) => (
+            <div
+              key={session.id}
+              className="bg-white rounded-[20px] p-6"
+              onClick={() => router.push(`/session/${session.id}`)}
+            >
+              <h2 className="text-2xl font-bold mb-2">{session.name}</h2>
               <div className="flex justify-between items-center">
                 <div>
-                  <h4 className="text-xl font-bold mb-1">{person.name}</h4>
-                  <p className="text-red-500">{person.remainingAnswers} risposte rimanenti</p>
+                  <p className="text-gray-600">
+                    Data di conclusione: {session.endDate}
+                  </p>
+                  <p className="text-gray-600">
+                    Partecipanti: {session.participants}
+                  </p>
                 </div>
-                <button 
-                  className="bg-[#4285F4] text-white px-6 py-2 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
-                  onClick={() => window.location.href = `/session/evaluate?person=${encodeURIComponent(person.name)}`}
+                <button
+                  className={`px-6 py-2 rounded-full text-white font-medium
+                    ${
+                      session.status === "VAI"
+                        ? "bg-emerald-500"
+                        : "bg-blue-500"
+                    }`}
                 >
-                  Valuta
+                  {session.status}
                 </button>
               </div>
             </div>
@@ -72,4 +73,4 @@ export default function SessionPage() {
       <BottomNav />
     </div>
   );
-} 
+}
