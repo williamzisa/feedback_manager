@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { LevelsTable } from "./levels-table";
 import { CreateLevelDialog } from "./dialogs/create-level-dialog";
 import { EditLevelDialog } from "./dialogs/edit-level-dialog";
 import type { Level } from "@/lib/types/levels";
-import { mockLevels } from "@/lib/data/mock-levels";
 import { StatCard } from "@/components/stats/stat-card";
 import {
   Select,
@@ -15,25 +14,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { queries } from "@/lib/supabase/queries";
 
 export const LevelsView = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
-  const [levels, setLevels] = useState<Level[]>(mockLevels);
+  const [levels, setLevels] = useState<Level[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchLevels = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const currentUser = await queries.users.getCurrentUser();
+      if (!currentUser.company) {
+        throw new Error("Company non configurata per questo utente");
+      }
+      const levelsData = await queries.levels.getByCompany(currentUser.company);
+      setLevels(levelsData);
+    } catch (err) {
+      console.error("Errore nel caricamento dei livelli:", err);
+      setError(err instanceof Error ? err.message : "Errore nel caricamento dei livelli");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLevels();
+  }, []);
 
   const filteredLevels =
     selectedFilter === "all"
       ? levels
       : levels.filter((level) => level.role === selectedFilter);
 
-  const uniqueLevels = Array.from(new Set(levels.map((level) => level.role)));
+  const uniqueLevels = Array.from(new Set(levels.map((level) => level.role).filter((role): role is string => role !== null)));
 
   // Calcola le statistiche
   const totalLevels = levels.length;
   const uniqueRoles = new Set(levels.map((level) => level.role)).size;
   const averageStandard = Math.round(
-    levels.reduce((acc, level) => acc + level.standard, 0) / levels.length
+    levels.reduce((acc, level) => acc + level.standard, 0) / levels.length || 0
   );
 
   const handleEdit = (level: Level) => {
@@ -41,8 +65,16 @@ export const LevelsView = () => {
   };
 
   const handleSuccess = () => {
-    setLevels([...mockLevels]);
+    fetchLevels();
   };
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-500 bg-red-50 rounded-md">
+        Errore: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,59 +147,65 @@ export const LevelsView = () => {
               </p>
             </div>
             <div className="p-4">
-              <div className="block sm:hidden space-y-4">
-                {filteredLevels.map((level) => (
-                  <div key={level.id} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-lg">{level.role}</h3>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(level)}
-                        >
-                          Modifica
-                        </Button>
+              {isLoading ? (
+                <div className="text-center py-4">Caricamento...</div>
+              ) : (
+                <>
+                  <div className="block sm:hidden space-y-4">
+                    {filteredLevels.map((level) => (
+                      <div key={level.id} className="p-4 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="font-semibold text-lg">{level.role}</h3>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(level)}
+                            >
+                              Modifica
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-600 space-y-2">
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-gray-100 p-2 rounded">
+                              <p className="text-xs text-gray-500">Execution</p>
+                              <p className="font-medium">
+                                {level.execution_weight}%
+                              </p>
+                            </div>
+                            <div className="bg-gray-100 p-2 rounded">
+                              <p className="text-xs text-gray-500">Soft</p>
+                              <p className="font-medium">{level.soft_weight}%</p>
+                            </div>
+                            <div className="bg-gray-100 p-2 rounded">
+                              <p className="text-xs text-gray-500">Strategy</p>
+                              <p className="font-medium">
+                                {level.strategy_weight}%
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center pt-2">
+                            <div>
+                              <span className="text-gray-500">Standard:</span>
+                              <span className="ml-2 font-medium">
+                                {level.standard}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Step:</span>
+                              <span className="ml-2 font-medium">{level.step}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-sm text-gray-600 space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-gray-100 p-2 rounded">
-                          <p className="text-xs text-gray-500">Execution</p>
-                          <p className="font-medium">
-                            {level.execution_weight}%
-                          </p>
-                        </div>
-                        <div className="bg-gray-100 p-2 rounded">
-                          <p className="text-xs text-gray-500">Soft</p>
-                          <p className="font-medium">{level.soft_weight}%</p>
-                        </div>
-                        <div className="bg-gray-100 p-2 rounded">
-                          <p className="text-xs text-gray-500">Strategy</p>
-                          <p className="font-medium">
-                            {level.strategy_weight}%
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center pt-2">
-                        <div>
-                          <span className="text-gray-500">Standard:</span>
-                          <span className="ml-2 font-medium">
-                            {level.standard}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Step:</span>
-                          <span className="ml-2 font-medium">{level.step}</span>
-                        </div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="hidden sm:block">
-                <LevelsTable levels={filteredLevels} onEdit={handleEdit} />
-              </div>
+                  <div className="hidden sm:block">
+                    <LevelsTable levels={filteredLevels} onEdit={handleEdit} />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

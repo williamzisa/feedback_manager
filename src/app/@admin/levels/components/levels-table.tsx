@@ -20,7 +20,7 @@ export function LevelsTable({ levels, onEdit }: LevelsTableProps) {
       <TableHeader>
         <TableRow>
           <TableHead>Ruolo</TableHead>
-          <TableHead>Step</TableHead>
+          <TableHead className="text-center">Step</TableHead>
           <TableHead className="text-center">% Execution</TableHead>
           <TableHead className="text-center">% Soft</TableHead>
           <TableHead className="text-center">% Strategy</TableHead>
@@ -32,11 +32,11 @@ export function LevelsTable({ levels, onEdit }: LevelsTableProps) {
         {levels.map((level) => (
           <TableRow key={level.id}>
             <TableCell className="font-medium">{level.role}</TableCell>
-            <TableCell>{level.step}</TableCell>
+            <TableCell className="text-center">{level.step}</TableCell>
             <TableCell className="text-center">{level.execution_weight}%</TableCell>
             <TableCell className="text-center">{level.soft_weight}%</TableCell>
             <TableCell className="text-center">{level.strategy_weight}%</TableCell>
-            <TableCell>{level.standard}</TableCell>
+            <TableCell className="text-center">{level.standard}</TableCell>
             <TableCell className="text-right">
               <Button
                 variant="ghost"

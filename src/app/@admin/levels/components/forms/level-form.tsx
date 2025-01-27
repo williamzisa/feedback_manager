@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { levelSchema } from "@/lib/types/levels"
 import type { LevelFormData } from "@/lib/types/levels"
+import type { Level } from "@/lib/types/levels"
 
 interface LevelFormProps {
   onSubmit: (data: LevelFormData) => void
   onDelete?: () => void
   isLoading?: boolean
-  initialData?: LevelFormData
+  initialData?: Level
   mode?: 'create' | 'edit'
 }
 
@@ -26,7 +27,7 @@ export function LevelForm({
   const form = useForm<LevelFormData>({
     resolver: zodResolver(levelSchema),
     defaultValues: {
-      role: initialData?.role ?? '',
+      role: initialData?.role || '',
       step: initialData?.step ?? 0,
       execution_weight: initialData?.execution_weight ?? 0,
       soft_weight: initialData?.soft_weight ?? 0,
@@ -36,7 +37,16 @@ export function LevelForm({
   })
 
   const handleSubmit = (data: LevelFormData) => {
-    onSubmit(data)
+    // Convertiamo esplicitamente tutti i valori numerici
+    const formattedData: LevelFormData = {
+      ...data,
+      step: Number(data.step),
+      execution_weight: Number(data.execution_weight),
+      soft_weight: Number(data.soft_weight),
+      strategy_weight: Number(data.strategy_weight),
+      standard: Number(data.standard)
+    }
+    onSubmit(formattedData)
   }
 
   return (
@@ -63,7 +73,14 @@ export function LevelForm({
             <FormItem>
               <FormLabel>Step</FormLabel>
               <FormControl>
-                <Input {...field} type="number" min={0} placeholder="Inserisci lo step" />
+                <Input 
+                  {...field} 
+                  type="number" 
+                  min={0} 
+                  onChange={e => field.onChange(Number(e.target.value))}
+                  value={field.value || ''}
+                  placeholder="Inserisci lo step" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -145,7 +162,15 @@ export function LevelForm({
             <FormItem>
               <FormLabel>Standard</FormLabel>
               <FormControl>
-                <Input {...field} type="number" min={0} placeholder="Inserisci lo standard" />
+                <Input 
+                  {...field} 
+                  type="number" 
+                  min={0} 
+                  step="0.1"
+                  onChange={e => field.onChange(Number(e.target.value))}
+                  value={field.value || ''}
+                  placeholder="Inserisci lo standard" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

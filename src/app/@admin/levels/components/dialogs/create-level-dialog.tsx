@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { LevelForm } from "../forms/level-form"
 import type { LevelFormData } from "@/lib/types/levels"
-import { mockLevelsApi } from "@/lib/data/mock-levels"
+import { queries } from "@/lib/supabase/queries"
 
 interface CreateLevelDialogProps {
   open: boolean
@@ -42,17 +42,15 @@ export function CreateLevelDialog({
         throw new Error('La somma delle percentuali deve essere 100%')
       }
 
-      const levelData = {
+      await queries.levels.create({
         role: data.role.trim(),
         step: data.step,
         execution_weight: Number(data.execution_weight),
         soft_weight: Number(data.soft_weight),
         strategy_weight: Number(data.strategy_weight),
         standard: data.standard,
-        company: "00000000-0000-0000-0000-000000000000" // TODO: ottenere la company dall'utente corrente
-      }
-
-      mockLevelsApi.create(levelData)
+        company: "placeholder" // La company viene gestita dalla query
+      });
       
       onOpenChange(false)
       onSuccess?.()

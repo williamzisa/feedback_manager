@@ -829,14 +829,10 @@ export const queries = {
       }
     },
 
-    update: async (level: Omit<Level, 'created_at'>) => {
+    update: async (id: string, level: Partial<Omit<Level, 'id' | 'created_at'>>) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        // Otteniamo la company dell'utente corrente
-        const currentUser = await queries.users.getCurrentUser();
-        if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
-        }
+        console.log('Tentativo di aggiornamento livello:', { id, level });
 
         const { data, error } = await supabase
           .from('levels')
@@ -847,13 +843,18 @@ export const queries = {
             soft_weight: level.soft_weight,
             strategy_weight: level.strategy_weight,
             standard: level.standard,
-            company: currentUser.company
+            company: level.company
           })
-          .eq('id', level.id)
+          .eq('id', id)
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Errore nell\'aggiornamento del livello:', error);
+          throw error;
+        }
+
+        console.log('Livello aggiornato con successo:', data);
         return data;
       } catch (err) {
         console.error('Errore nell\'aggiornamento del livello:', err);
