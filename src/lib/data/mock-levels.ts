@@ -8,7 +8,9 @@ export const mockLevels: Level[] = [
     execution_weight: 30,
     soft_weight: 30,
     strategy_weight: 40,
-    standard: 4.2
+    standard: 4.2,
+    company: 'mock-company-1',
+    created_at: new Date().toISOString()
   },
   {
     id: '2',
@@ -17,7 +19,9 @@ export const mockLevels: Level[] = [
     execution_weight: 30,
     soft_weight: 40,
     strategy_weight: 30,
-    standard: 4.0
+    standard: 4.0,
+    company: 'mock-company-1',
+    created_at: new Date().toISOString()
   },
   {
     id: '3',
@@ -26,7 +30,9 @@ export const mockLevels: Level[] = [
     execution_weight: 40,
     soft_weight: 30,
     strategy_weight: 30,
-    standard: 4.0
+    standard: 4.0,
+    company: 'mock-company-1',
+    created_at: new Date().toISOString()
   },
   {
     id: '4',
@@ -35,7 +41,9 @@ export const mockLevels: Level[] = [
     execution_weight: 30,
     soft_weight: 50,
     strategy_weight: 20,
-    standard: 3.8
+    standard: 3.8,
+    company: 'mock-company-1',
+    created_at: new Date().toISOString()
   }
 ]
 

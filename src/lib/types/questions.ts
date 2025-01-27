@@ -1,9 +1,9 @@
 export interface Question {
   id: string
-  text: string
+  description: string
   type: 'SOFT' | 'STRATEGY' | 'EXECUTION'
   created_at: string
-  company: string | null
+  company: string
 }
 
 export interface QuestionFormData {

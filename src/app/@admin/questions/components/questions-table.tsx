@@ -40,7 +40,7 @@ export function QuestionsTable({ questions, onEdit }: QuestionsTableProps) {
               <TableCell className="hidden sm:table-cell">{index + 1}</TableCell>
               <TableCell>
                 <div className="space-y-1">
-                  <div className="font-medium max-w-2xl">{question.text}</div>
+                  <div className="font-medium max-w-2xl">{question.description}</div>
                   {/* Info aggiuntive visibili solo su mobile */}
                   <div className="md:hidden space-y-1 text-sm text-gray-500">
                     <div>ID: {index + 1}</div>

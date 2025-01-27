@@ -83,7 +83,7 @@ export function QuestionsView() {
   };
 
   const filteredQuestions = questions.filter((question) => {
-    const matchesSearch = question.text
+    const matchesSearch = question.description
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "ALL" || question.type === typeFilter;

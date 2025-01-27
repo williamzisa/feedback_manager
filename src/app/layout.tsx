@@ -27,5 +27,5 @@ export default function RootLayout({
 // Definiamo esplicitamente l'interfaccia LayoutProps
 export interface LayoutProps {
   children: React.ReactNode;
-  admin?: React.ReactNode;
+  admin: React.ReactNode;
 }

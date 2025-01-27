@@ -3,24 +3,24 @@ import { Question, QuestionFormData } from '../types/questions'
 let mockQuestions: Question[] = [
   {
     id: '1',
-    text: 'Come valuti la capacità di lavorare in team?',
+    description: 'Come valuti la capacità di comunicazione del tuo collega?',
     type: 'SOFT',
     created_at: '2024-01-01T10:00:00Z',
-    company: null
+    company: 'mock-company-1'
   },
   {
     id: '2',
-    text: 'Quali strategie utilizzi per raggiungere gli obiettivi?',
+    description: 'Quanto è efficace nel prendere decisioni strategiche?',
     type: 'STRATEGY',
-    created_at: '2024-01-02T10:00:00Z',
-    company: null
+    created_at: '2024-01-01T10:00:00Z',
+    company: 'mock-company-1'
   },
   {
     id: '3',
-    text: 'Come gestisci le scadenze dei progetti?',
+    description: 'Come valuti la sua capacità di esecuzione dei task assegnati?',
     type: 'EXECUTION',
-    created_at: '2024-01-03T10:00:00Z',
-    company: null
+    created_at: '2024-01-01T10:00:00Z',
+    company: 'mock-company-1'
   }
 ]
 

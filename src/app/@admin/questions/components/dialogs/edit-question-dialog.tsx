@@ -47,7 +47,7 @@ export function EditQuestionDialog({
         <div className="mt-6">
           <QuestionForm
             defaultValues={{
-              text: question.text,
+              text: question.description,
               type: question.type
             }}
             onSubmit={handleSubmit}
