@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { UserForm } from "../forms/user-form";
 import { useState } from "react";
-import { mockUsersApi } from "@/lib/data/mock-users";
+import { queries } from "@/lib/supabase/queries";
 import type { User, UserFormData } from "@/lib/types/users";
 
 interface EditUserDialogProps {
@@ -30,12 +30,44 @@ export function EditUserDialog({
       setIsLoading(true);
       setError(null);
 
-      if (!user) return;
+      if (!user) {
+        throw new Error('Nessun utente selezionato per la modifica');
+      }
 
-      mockUsersApi.update(user.id, data);
+      console.log('Form data ricevuti:', data);
 
-      onOpenChange(false);
-      onSuccess?.();
+      // Prepara i dati per l'aggiornamento mantenendo i valori esistenti se non modificati
+      const updateData = {
+        name: data.name || user.name,
+        surname: data.surname || user.surname,
+        email: data.email || user.email,
+        level: data.level === "_none" ? null : data.level,
+        mentor: data.mentor === "_none" ? null : data.mentor,
+        status: data.status || user.status
+      };
+
+      console.log('Dati di aggiornamento:', updateData);
+      console.log('ID utente:', user.id);
+
+      try {
+        const result = await queries.users.update(user.id, updateData);
+        console.log('Risultato aggiornamento:', result);
+
+        if (!result) {
+          throw new Error('Nessun dato ricevuto dopo l\'aggiornamento');
+        }
+
+        onOpenChange(false);
+        onSuccess?.();
+      } catch (updateError) {
+        console.error('Errore specifico update:', updateError);
+        if (updateError instanceof Error) {
+          throw new Error(`Errore durante l'aggiornamento: ${updateError.message}`);
+        } else {
+          console.error('Dettagli errore non standard:', updateError);
+          throw new Error('Errore non previsto durante l\'aggiornamento dell\'utente');
+        }
+      }
     } catch (err) {
       console.error("Error updating user:", err);
       setError(
@@ -55,7 +87,7 @@ export function EditUserDialog({
 
       if (!user) return;
 
-      mockUsersApi.delete(user.id);
+      await queries.users.delete(user.id);
 
       onOpenChange(false);
       onSuccess?.();
@@ -80,7 +112,18 @@ export function EditUserDialog({
         {error && <div className="text-sm text-red-500 mb-4">{error}</div>}
         {user && (
           <UserForm
-            initialData={user}
+            initialData={{
+              name: user.name,
+              surname: user.surname,
+              email: user.email,
+              level: user.level || "_none",
+              mentor: user.mentor || "_none",
+              company: user.company,
+              admin: user.admin,
+              status: user.status,
+              auth_id: user.auth_id
+            }}
+            userId={user.id}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
             isLoading={isLoading}

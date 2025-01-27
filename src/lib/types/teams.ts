@@ -1,26 +1,68 @@
-export interface Team {
-  id: string
-  name: string
-  project: boolean
-  isclusterleader: boolean
-  leader: { id: string; name: string; surname: string } | null
-  team_clusters: Array<{ id: string; cluster: { id: string; name: string } }>
-  user_teams: Array<{ id: string; user_id: string; team_id: string; created_at: string }>
-}
-
-export interface TeamFormData {
-  name: string
-  project: boolean
-  isclusterleader: boolean
-  leaderId?: string | null
-  clusterId?: string | null
-}
-
 /* 
   Questi tipi verranno utilizzati quando integreremo Supabase
   Per ora li teniamo commentati per evitare errori di ESLint
-
-  import type { Database } from "../supabase/database.types"
-  export type TeamInsert = Database['public']['Tables']['teams']['Insert']
-  export type TeamUpdate = Database['public']['Tables']['teams']['Update']
 */
+
+export interface User {
+  id: string;
+  name: string;
+  surname: string;
+}
+
+export interface TeamCluster {
+  id: string;
+  cluster: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface UserTeam {
+  id: string;
+  user_id: string | null;
+  team_id: string;
+  created_at: string | null;
+}
+
+export type Team = {
+  id: string;
+  name: string;
+  is_project: boolean;
+  leader: {
+    id: string;
+    name: string;
+    surname: string;
+  };
+  team_clusters?: {
+    id: string;
+    cluster: {
+      id: string;
+      name: string;
+    };
+  }[];
+  user_teams?: {
+    id: string;
+    user_id: string | null;
+    created_at: string | null;
+  }[];
+};
+
+export type TeamFormData = {
+  name: string;
+  clusterId: string | null;
+  leaderId: string;
+  project: boolean;
+};
+
+export type TeamCreateData = {
+  name: string;
+  leaderId: string;
+  is_project: boolean;
+  company: string;
+};
+
+export type TeamUpdateData = {
+  name: string;
+  leaderId: string;
+  is_project: boolean;
+};

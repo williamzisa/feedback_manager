@@ -2,23 +2,19 @@
 
 import { StatCard } from "@/components/stats/stat-card";
 import { MembershipsView } from "@/app/@admin/memberships/components/memberships-view";
-import { useState } from "react";
-import { mockMembershipsApi } from "@/lib/data/mock-memberships";
-import type { Membership } from "@/lib/types/memberships";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/lib/supabase/queries";
 
 export default function MembershipsPage() {
-  const [memberships, setMemberships] = useState<Membership[]>(
-    mockMembershipsApi.getAll()
-  );
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['memberships'],
+    queryFn: queries.userTeams.getAll
+  });
 
   // Calcola le statistiche
   const totalMemberships = memberships.length;
   const activeTeams = new Set(memberships.map((m) => m.team_id)).size;
   const activeUsers = new Set(memberships.map((m) => m.user_id)).size;
-
-  const handleSuccess = () => {
-    setMemberships(mockMembershipsApi.getAll());
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -60,7 +56,7 @@ export default function MembershipsPage() {
           />
         </div>
 
-        <MembershipsView memberships={memberships} onSuccess={handleSuccess} />
+        <MembershipsView />
       </main>
     </div>
   );

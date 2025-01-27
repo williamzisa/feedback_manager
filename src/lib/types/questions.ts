@@ -11,8 +11,17 @@ export interface QuestionFormData {
   type: 'SOFT' | 'STRATEGY' | 'EXECUTION'
 }
 
-export type QuestionInsert = Omit<Question, 'id' | 'created_at'>
-export type QuestionUpdate = Partial<QuestionInsert>
+export type QuestionInsert = {
+  description: string;
+  type: string;
+  company: string;
+};
+
+export type QuestionUpdate = {
+  description?: string;
+  type?: string;
+  company?: string;
+};
 
 /* 
   Questi tipi verranno utilizzati quando integreremo Supabase

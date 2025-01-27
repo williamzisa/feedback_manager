@@ -37,13 +37,23 @@ export function ClustersView() {
     queryFn: queries.clusters.getAll,
   }) as { data: Cluster[]; refetch: () => void };
 
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: queries.users.getAll
+  });
+
+  // Funzione per trovare il leader di un cluster
+  const findLeader = (leaderId: string | null) => {
+    if (!leaderId) return null;
+    return users.find(u => u.id === leaderId);
+  };
+
   const filteredClusters = clusters.filter(
-    (cluster) =>
-      cluster.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (cluster.leader &&
-        `${cluster.leader.name} ${cluster.leader.surname}`
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()))
+    (cluster) => {
+      const leader = findLeader(cluster.leader);
+      return cluster.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (leader && `${leader.name} ${leader.surname}`.toLowerCase().includes(searchQuery.toLowerCase()))
+    }
   );
 
   // Calcola le statistiche
@@ -145,9 +155,10 @@ export function ClustersView() {
                     <div className="text-sm text-gray-600 space-y-1">
                       <p className="flex items-center">
                         <span className="w-24">Leader:</span>
-                        {cluster.leader
-                          ? `${cluster.leader.name} ${cluster.leader.surname}`
-                          : "-"}
+                        {(() => {
+                          const leader = findLeader(cluster.leader);
+                          return leader ? `${leader.name} ${leader.surname}` : "-";
+                        })()}
                       </p>
                       <p className="flex items-center">
                         <span className="w-24">Teams:</span>

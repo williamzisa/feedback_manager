@@ -1,20 +1,40 @@
 "use client";
 
 import { StatCard } from "@/components/stats/stat-card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TeamsTable } from "./teams-table";
 import { CreateTeamDialog } from "./dialogs/create-team-dialog";
 import { EditTeamDialog } from "./dialogs/edit-team-dialog";
-import { mockTeamsApi } from "@/lib/data/mock-teams";
+import { queries } from "@/lib/supabase/queries";
 import type { Team } from "@/lib/types/teams";
 
 export function TeamsView() {
-  const [teams, setTeams] = useState<Team[]>(mockTeamsApi.getAll());
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const loadTeams = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await queries.teams.getAll();
+      setTeams(data);
+    } catch (err) {
+      console.error('Errore nel caricamento dei team:', err);
+      setError(err instanceof Error ? err.message : 'Errore nel caricamento dei team. Controlla la console per i dettagli.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTeams();
+  }, []);
 
   const filteredTeams = teams.filter(
     (team) =>
@@ -25,16 +45,17 @@ export function TeamsView() {
 
   // Calcola le statistiche
   const totalTeams = teams.length;
-  const projectTeams = teams.filter((t) => t.project).length;
-  const leaderTeams = teams.filter((t) => t.isclusterleader).length;
-
-  const handleSuccess = () => {
-    setTeams(mockTeamsApi.getAll());
-  };
+  const projectTeams = teams.filter((t) => t.is_project).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="mx-auto max-w-full px-4 sm:px-8 py-8">
+        {error && (
+          <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-md">
+            {error}
+          </div>
+        )}
+
         {/* Header Section */}
         <div className="mb-6 flex items-center">
           <svg
@@ -65,11 +86,6 @@ export function TeamsView() {
             value={projectTeams}
             className="bg-blue-100"
           />
-          <StatCard
-            title="TEAMS LEADER"
-            value={leaderTeams}
-            className="bg-green-100"
-          />
         </div>
 
         {/* Teams Table Section */}
@@ -95,7 +111,11 @@ export function TeamsView() {
                 Nuovo Team
               </Button>
             </div>
-            <TeamsTable teams={filteredTeams} onSuccess={handleSuccess} />
+            <TeamsTable 
+              teams={filteredTeams} 
+              onSuccess={loadTeams}
+              isLoading={isLoading} 
+            />
           </div>
         </div>
       </main>
@@ -103,14 +123,14 @@ export function TeamsView() {
       <CreateTeamDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        onSuccess={handleSuccess}
+        onSuccess={loadTeams}
       />
 
       <EditTeamDialog
         team={selectedTeam}
         open={!!selectedTeam}
         onOpenChange={(open) => !open && setSelectedTeam(null)}
-        onSuccess={handleSuccess}
+        onSuccess={loadTeams}
       />
     </div>
   );

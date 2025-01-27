@@ -35,7 +35,8 @@ export function EditLevelDialog({
         execution_weight: Number(data.execution_weight),
         soft_weight: Number(data.soft_weight),
         strategy_weight: Number(data.strategy_weight),
-        standard: data.standard
+        standard: data.standard,
+        company: level.company
       }
 
       mockLevelsApi.update(level.id, levelData)

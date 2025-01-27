@@ -7,29 +7,36 @@ import { Button } from "@/components/ui/button";
 import { CreateUserDialog } from "./dialogs/create-user-dialog";
 import { EditUserDialog } from "./dialogs/edit-user-dialog";
 import { useState, useMemo } from "react";
-import { mockUsers, mockUsersApi } from "@/lib/data/mock-users";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/lib/supabase/queries";
 import type { User } from "@/lib/types/users";
 
 export function UsersView() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(mockUsers);
   const [userFilter, setUserFilter] = useState("");
   const [mentorFilter, setMentorFilter] = useState("");
 
-  // Funzione per trovare il nome completo del mentor
-  const getMentorName = (mentorId: string | null) => {
-    if (!mentorId) return "";
-    const mentor = mockUsers.find((u) => u.id === mentorId);
-    return mentor ? `${mentor.name} ${mentor.surname}`.toLowerCase() : "";
-  };
+  const { data: users = [], refetch } = useQuery({
+    queryKey: ['users'],
+    queryFn: queries.users.getAll
+  });
 
   // Filtra gli utenti in base ai criteri di ricerca
   const filteredUsers = useMemo(() => {
+    // Funzione per trovare il mentor di un utente
+    const findMentor = (mentorId: string | null) => {
+      if (!mentorId) return null;
+      return users.find(u => u.id === mentorId);
+    };
+
     return users.filter((user) => {
       const userName = `${user.name} ${user.surname}`.toLowerCase();
       const userEmail = user.email.toLowerCase();
-      const mentorName = getMentorName(user.mentorId);
+      const mentor = findMentor(user.mentor);
+      const mentorName = mentor 
+        ? `${mentor.name} ${mentor.surname}`.toLowerCase()
+        : '';
       const searchUser = userFilter.toLowerCase();
       const searchMentor = mentorFilter.toLowerCase();
 
@@ -43,15 +50,11 @@ export function UsersView() {
 
   // Calcola le statistiche sui risultati filtrati
   const totalUsers = filteredUsers.length;
-  const totalMentors = filteredUsers.filter((u) => u.isMentor).length;
-  const activeUsers = filteredUsers.filter((u) => u.isActive).length;
+  const totalMentors = filteredUsers.filter((u) => u.mentor).length;
+  const activeUsers = filteredUsers.filter((u) => u.status === 'active').length;
   const activeMentors = filteredUsers.filter(
-    (u) => u.isMentor && u.isActive
+    (u) => u.mentor && u.status === 'active'
   ).length;
-
-  const handleSuccess = () => {
-    setUsers([...mockUsers]);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -89,12 +92,12 @@ export function UsersView() {
             className="bg-blue-100"
           />
           <StatCard
-            title="Utenti"
+            title="Utenti Attivi"
             value={activeUsers}
             className="bg-green-100"
           />
           <StatCard
-            title="Mentor"
+            title="Mentor Attivi"
             value={activeMentors}
             className="bg-yellow-100"
           />
@@ -147,23 +150,13 @@ export function UsersView() {
       <CreateUserDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        onSubmit={async (data) => {
-          try {
-            await mockUsersApi.create(data);
-            handleSuccess();
-            return true;
-          } catch (error) {
-            console.error("Error creating user:", error);
-            return false;
-          }
-        }}
-        onSuccess={handleSuccess}
+        onSuccess={refetch}
       />
 
       <EditUserDialog
         user={editingUser}
         onOpenChange={(open) => !open && setEditingUser(null)}
-        onSuccess={handleSuccess}
+        onSuccess={refetch}
       />
     </div>
   );

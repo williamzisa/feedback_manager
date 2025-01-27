@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TeamForm } from "../forms/team-form"
 import type { Team, TeamFormData } from "@/lib/types/teams"
-import { mockTeamsApi } from "@/lib/data/mock-teams"
-import { mockUsers } from "@/lib/data/mock-users"
+import { queries } from "@/lib/supabase/queries"
 
 interface EditTeamDialogProps {
   team: Team | null
@@ -22,6 +21,18 @@ export function EditTeamDialog({
 }: EditTeamDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [initialData, setInitialData] = useState<TeamFormData | null>(null)
+
+  useEffect(() => {
+    if (team) {
+      setInitialData({
+        name: team.name,
+        clusterId: team.team_clusters?.[0]?.cluster?.id || null,
+        leaderId: team.leader?.id || "",
+        project: team.is_project
+      })
+    }
+  }, [team])
 
   const handleSubmit = async (data: TeamFormData) => {
     try {
@@ -30,45 +41,34 @@ export function EditTeamDialog({
       setIsLoading(true)
       setError(null)
 
-      console.log('Form data:', data)
-
-      // Troviamo il leader tra gli utenti
-      const leader = data.leaderId ? mockUsers.find(u => u.id === data.leaderId) : null
-
-      const updateData: Partial<Team> = {
+      // Prima aggiorniamo il team base
+      await queries.teams.update(team.id, {
         name: data.name.trim(),
-        leader,
-        isclusterleader: data.isclusterleader,
-        project: data.project,
-      }
+        leaderId: data.leaderId,
+        is_project: data.project
+      });
 
-      // Aggiorniamo il cluster solo se è stato selezionato
+      // Poi gestiamo il cluster
       if (data.clusterId) {
-        const clusterName = data.clusterId === 'cluster1' ? 'Cluster Marketing' :
-                          data.clusterId === 'cluster2' ? 'Cluster Operations' :
-                          'Cluster Development'
+        // Prima rimuoviamo eventuali cluster esistenti
+        await queries.team_clusters.deleteByTeamId(team.id);
         
-        updateData.team_clusters = [{
-          id: team.team_clusters?.[0]?.id || crypto.randomUUID(),
-          cluster: {
-            id: data.clusterId,
-            name: clusterName
-          }
-        }]
+        // Poi aggiungiamo il nuovo cluster
+        await queries.team_clusters.create({
+          team_id: team.id,
+          cluster_id: data.clusterId
+        });
+      } else {
+        // Se non c'è un cluster, rimuoviamo eventuali associazioni esistenti
+        await queries.team_clusters.deleteByTeamId(team.id);
       }
-
-      console.log('Update data:', updateData)
-      
-      const updatedTeam = mockTeamsApi.update(team.id, updateData)
-      console.log('Team updated:', updatedTeam)
       
       onOpenChange(false)
       if (onSuccess) {
-        console.log('Calling onSuccess from EditTeamDialog')
         onSuccess()
       }
     } catch (err) {
-      console.error('Errore:', err)
+      console.error('Errore durante la modifica del team:', err)
       setError(err instanceof Error ? err.message : 'Errore durante la modifica del team')
     } finally {
       setIsLoading(false)
@@ -82,24 +82,25 @@ export function EditTeamDialog({
       setIsLoading(true)
       setError(null)
 
-      console.log('Deleting team:', team.id)
-      mockTeamsApi.delete(team.id)
-      console.log('Team deleted')
+      // Prima rimuoviamo le associazioni con i cluster
+      await queries.team_clusters.deleteByTeamId(team.id);
+      
+      // Poi eliminiamo il team
+      await queries.teams.delete(team.id);
       
       onOpenChange(false)
       if (onSuccess) {
-        console.log('Calling onSuccess from EditTeamDialog after delete')
         onSuccess()
       }
     } catch (err) {
-      console.error('Errore:', err)
+      console.error('Errore durante l\'eliminazione del team:', err)
       setError(err instanceof Error ? err.message : 'Errore durante l\'eliminazione del team')
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (!team) return null
+  if (!team || !initialData) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -114,13 +115,7 @@ export function EditTeamDialog({
             </div>
           )}
           <TeamForm
-            initialData={{
-              name: team.name,
-              clusterId: team.team_clusters?.[0]?.cluster?.id || null,
-              leaderId: team.leader?.id || null,
-              isclusterleader: team.isclusterleader,
-              project: team.project
-            }}
+            initialData={initialData}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
             isLoading={isLoading}

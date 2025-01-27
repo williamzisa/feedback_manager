@@ -4,8 +4,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TeamForm } from "../forms/team-form"
 import type { TeamFormData } from "@/lib/types/teams"
-import { mockTeamsApi } from "@/lib/data/mock-teams"
-import { mockUsers } from "@/lib/data/mock-users"
+import { queries } from "@/lib/supabase/queries"
 
 interface CreateTeamDialogProps {
   open: boolean
@@ -30,27 +29,43 @@ export function CreateTeamDialog({
         throw new Error('Il nome del team è obbligatorio')
       }
 
-      mockTeamsApi.create({
+      if (!data.leaderId) {
+        throw new Error('Il team leader è obbligatorio')
+      }
+
+      // Otteniamo la company dell'utente corrente
+      const currentUser = await queries.users.getCurrentUser();
+      
+      if (!currentUser.company) {
+        throw new Error('Errore: account non configurato correttamente (company mancante)');
+      }
+
+      // Creiamo il team con la company dell'utente
+      const teamResponse = await queries.teams.create({
         name: data.name.trim(),
-        leader: data.leaderId ? mockUsers.find(u => u.id === data.leaderId) || null : null,
-        isclusterleader: data.isclusterleader || false,
-        project: data.project || false,
-        team_clusters: data.clusterId ? [{
-          id: crypto.randomUUID(),
-          cluster: {
-            id: data.clusterId,
-            name: data.clusterId === 'cluster1' ? 'Cluster Marketing' :
-                  data.clusterId === 'cluster2' ? 'Cluster Operations' :
-                  'Cluster Development'
-          }
-        }] : [],
-        user_teams: []
-      })
+        leaderId: data.leaderId,
+        is_project: data.project,
+        company: currentUser.company
+      });
+
+      if (!teamResponse?.id) {
+        throw new Error('Errore nella creazione del team')
+      }
+
+      // Se abbiamo un cluster, lo associamo al team
+      if (data.clusterId) {
+        await queries.team_clusters.create({
+          team_id: teamResponse.id,
+          cluster_id: data.clusterId
+        });
+      }
       
       onOpenChange(false)
-      onSuccess?.()
+      if (onSuccess) {
+        onSuccess()
+      }
     } catch (err) {
-      console.error('Errore:', err)
+      console.error('Errore durante la creazione del team:', err)
       setError(err instanceof Error ? err.message : 'Errore durante la creazione del team')
     } finally {
       setIsLoading(false)

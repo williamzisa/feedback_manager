@@ -20,31 +20,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { userSchema } from "./user-schema";
-import type { User, UserFormData } from "@/lib/types/users";
-import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
-import { mockUsers } from "@/lib/data/mock-users";
+import type { UserFormData } from "@/lib/types/users";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/lib/supabase/queries";
 
 interface UserFormProps {
-  defaultValues?: Partial<UserFormData>;
-  initialData?: User;
+  initialData?: Partial<UserFormData>;
+  userId?: string;
   onSubmit: (data: UserFormData) => Promise<void>;
+  onDelete?: () => Promise<void>;
   isLoading?: boolean;
   mode?: "create" | "edit";
-  submitLabel?: string;
-  showDeleteButton?: boolean;
-  onDelete?: () => Promise<void>;
 }
 
 export function UserForm({
-  defaultValues,
   initialData,
+  userId,
   onSubmit,
+  onDelete,
   isLoading = false,
   mode = "create",
-  submitLabel = mode === "create" ? "Crea User" : "Salva",
-  showDeleteButton = mode === "edit",
-  onDelete,
 }: UserFormProps) {
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -52,43 +47,45 @@ export function UserForm({
       name: initialData?.name ?? "",
       surname: initialData?.surname ?? "",
       email: initialData?.email ?? "",
-      mentorId: initialData?.mentorId ?? null,
-      processes: initialData?.processes ?? [],
       level: initialData?.level ?? null,
-      role: initialData?.role ?? "",
-      isMentor: initialData?.isMentor ?? false,
-      isActive: initialData?.isActive ?? true,
-      ...defaultValues,
+      mentor: initialData?.mentor ?? null,
+      company: initialData?.company ?? null,
+      admin: initialData?.admin ?? false,
+      status: initialData?.status ?? "active",
+      auth_id: initialData?.auth_id ?? null
     },
   });
 
-  const mentors = mockUsers.filter((u) => u.isMentor);
+  // Ottieni l'utente corrente per la company
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: queries.users.getCurrentUser
+  });
 
-  const availableProcesses = [
-    "Compliance Legal",
-    "Foreign Memberships",
-    "Customer Satisfaction",
-    "Revenues Analyst",
-  ];
+  // Ottieni la lista degli utenti per selezionare i mentor (stessa company)
+  const { data: potentialMentors = [] } = useQuery({
+    queryKey: ['users', currentUser?.company],
+    queryFn: () => currentUser?.company ? queries.users.getByCompany(currentUser.company) : Promise.resolve([]),
+    enabled: !!currentUser?.company,
+    select: (users) => users.filter(user => 
+      user.status === 'active' && 
+      (!userId || user.id !== userId)
+    )
+  });
 
-  const availableLevels = [
-    "Junior 1",
-    "Junior 2",
-    "Junior 3",
-    "Mid 1",
-    "Mid 2",
-    "Mid 3",
-    "Senior 1",
-    "Senior 2",
-    "Senior 3",
-    "Manager (F) 1",
-    "PCG Manager 1",
-  ] as const;
+  // Ottieni la lista dei livelli per la company
+  const { data: levels = [] } = useQuery({
+    queryKey: ['levels', currentUser?.company],
+    queryFn: () => currentUser?.company ? queries.levels.getByCompany(currentUser.company) : Promise.resolve([]),
+    enabled: !!currentUser?.company
+  });
 
   const handleSubmit = async (data: UserFormData) => {
     try {
       await onSubmit(data);
-      form.reset();
+      if (mode === "create") {
+        form.reset();
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
     }
@@ -145,15 +142,13 @@ export function UserForm({
 
         <FormField
           control={form.control}
-          name="mentorId"
+          name="mentor"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Mentor</FormLabel>
               <Select
-                value={field.value ?? "none"}
-                onValueChange={(value) =>
-                  field.onChange(value === "none" ? null : value)
-                }
+                onValueChange={(value) => field.onChange(value === "_none" ? null : value)}
+                value={field.value ?? "_none"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -161,63 +156,14 @@ export function UserForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="none">Nessun mentor</SelectItem>
-                  {mentors.map((mentor) => (
-                    <SelectItem key={mentor.id} value={mentor.id}>
-                      {mentor.name} {mentor.surname}
+                  <SelectItem value="_none">Nessun mentor</SelectItem>
+                  {potentialMentors.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} {user.surname}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="processes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Processi</FormLabel>
-              <div className="border rounded-md p-4">
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {field.value?.map((process) => (
-                    <Badge key={process} variant="secondary" className="gap-1">
-                      {process}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => {
-                          field.onChange(
-                            field.value.filter((p) => p !== process)
-                          );
-                        }}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-                <Select
-                  value="none"
-                  onValueChange={(value) => {
-                    if (value !== "none" && !field.value?.includes(value)) {
-                      field.onChange([...(field.value || []), value]);
-                    }
-                  }}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Aggiungi processo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {availableProcesses.map((process) => (
-                      <SelectItem key={process} value={process}>
-                        {process}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -230,10 +176,8 @@ export function UserForm({
             <FormItem>
               <FormLabel>Livello</FormLabel>
               <Select
-                value={field.value || "none"}
-                onValueChange={(value) =>
-                  field.onChange(value === "none" ? null : value)
-                }
+                onValueChange={(value) => field.onChange(value === "_none" ? null : value)}
+                value={field.value ?? "_none"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -241,10 +185,10 @@ export function UserForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="none">Nessun livello</SelectItem>
-                  {availableLevels.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {level}
+                  <SelectItem value="_none">Nessun livello</SelectItem>
+                  {levels.map((level) => (
+                    <SelectItem key={level.id} value={level.id}>
+                      {level.role} {level.step}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -254,11 +198,11 @@ export function UserForm({
           )}
         />
 
-        <div className="flex justify-between pt-4">
+        <div className="flex justify-between">
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Salvataggio..." : submitLabel}
+            {mode === "create" ? "Crea User" : "Salva Modifiche"}
           </Button>
-          {showDeleteButton && onDelete && (
+          {mode === "edit" && onDelete && (
             <Button
               type="button"
               variant="destructive"

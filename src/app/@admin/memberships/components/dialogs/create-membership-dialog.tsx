@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MembershipForm } from "../forms/membership-form"
-import type { MembershipFormData, MembershipCreate } from "@/lib/types/memberships"
-import { mockMembershipsApi } from "@/lib/data/mock-memberships"
+import type { UserTeamFormData } from "@/lib/types/memberships"
+import { queries } from "@/lib/supabase/queries"
 
 interface CreateMembershipDialogProps {
   open: boolean
@@ -20,18 +20,15 @@ export function CreateMembershipDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (data: MembershipFormData) => {
+  const handleSubmit = async (data: UserTeamFormData) => {
     try {
       setIsLoading(true)
       setError(null)
 
-      const newMembership: MembershipCreate = {
-        user_id: data.userId,
-        team_id: data.teamId,
-        role: 'MEMBER'
-      }
-
-      mockMembershipsApi.create(newMembership)
+      await queries.userTeams.create({
+        userId: data.userId,
+        teamId: data.teamId
+      })
       
       onOpenChange(false)
       onSuccess?.()

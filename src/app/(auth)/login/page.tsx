@@ -29,10 +29,12 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      // Se il login ha successo
       toast.success("Login effettuato con successo");
-      router.push("/");
-      router.refresh();
+      
+      setTimeout(() => {
+        router.push("/");
+      }, 500);
+      
     } catch (err) {
       if (err instanceof AuthError) {
         setError(err.message);
@@ -93,4 +95,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+} 

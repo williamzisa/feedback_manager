@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   Form,
   FormControl,
@@ -20,48 +22,82 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { teamSchema } from "./team-schema";
-import type { TeamFormData } from "@/lib/types/teams";
-import { mockUsers } from "@/lib/data/mock-users";
+import { queries } from "@/lib/supabase/queries";
+
+const formSchema = z.object({
+  name: z.string().min(1, {
+    message: "Il nome del team è obbligatorio",
+  }),
+  clusterId: z.string().nullable(),
+  leaderId: z.string(),
+  project: z.boolean().default(false),
+});
 
 interface TeamFormProps {
-  onSubmit: (data: TeamFormData) => void;
+  initialData?: z.infer<typeof formSchema>;
+  onSubmit: (data: z.infer<typeof formSchema>) => void;
   onDelete?: () => void;
   isLoading?: boolean;
-  initialData?: TeamFormData;
   mode?: "create" | "edit";
 }
 
 export function TeamForm({
+  initialData,
   onSubmit,
   onDelete,
   isLoading,
-  initialData,
   mode = "create",
 }: TeamFormProps) {
-  const form = useForm<TeamFormData>({
-    resolver: zodResolver(teamSchema),
+  const [users, setUsers] = useState<Array<{ id: string; name: string; surname: string }>>([]);
+  const [clusters, setClusters] = useState<Array<{ id: string; name: string }>>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      name: initialData?.name ?? "",
-      clusterId: initialData?.clusterId ?? null,
-      leaderId: initialData?.leaderId ?? null,
-      project: initialData?.project ?? false,
+      name: initialData?.name || "",
+      clusterId: initialData?.clusterId || null,
+      leaderId: initialData?.leaderId || "",
+      project: initialData?.project || false,
     },
   });
 
-  // Ottieni la lista dei potenziali leader (utenti che sono mentor)
-  const potentialLeaders = mockUsers.filter((user) => user.isMentor);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoadingData(true);
+        setError(null);
 
-  // Lista dei cluster disponibili
-  const availableClusters = [
-    { id: "cluster1", name: "Cluster Marketing" },
-    { id: "cluster2", name: "Cluster Operations" },
-    { id: "cluster3", name: "Cluster Development" },
-  ];
+        // Carica gli utenti
+        const usersData = await queries.users.getAll();
+        setUsers(usersData);
+
+        // Carica i cluster
+        const clustersData = await queries.clusters.getAll();
+        setClusters(clustersData);
+      } catch (err) {
+        console.error('Errore nel caricamento dei dati:', err);
+        setError('Errore nel caricamento dei dati del form');
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  if (isLoadingData) {
+    return <div>Caricamento...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -69,7 +105,7 @@ export function TeamForm({
             <FormItem>
               <FormLabel>Nome Team</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Nome del team" />
+                <Input placeholder="Inserisci il nome del team" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -83,10 +119,8 @@ export function TeamForm({
             <FormItem>
               <FormLabel>Cluster</FormLabel>
               <Select
-                value={field.value ?? "none"}
-                onValueChange={(value) =>
-                  field.onChange(value === "none" ? null : value)
-                }
+                onValueChange={field.onChange}
+                defaultValue={field.value || undefined}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -94,8 +128,7 @@ export function TeamForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="none">Nessun cluster</SelectItem>
-                  {availableClusters.map((cluster) => (
+                  {clusters.map((cluster) => (
                     <SelectItem key={cluster.id} value={cluster.id}>
                       {cluster.name}
                     </SelectItem>
@@ -114,21 +147,18 @@ export function TeamForm({
             <FormItem>
               <FormLabel>Team Leader</FormLabel>
               <Select
-                value={field.value ?? "none"}
-                onValueChange={(value) =>
-                  field.onChange(value === "none" ? null : value)
-                }
+                onValueChange={field.onChange}
+                defaultValue={field.value || undefined}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleziona un leader" />
+                    <SelectValue placeholder="Seleziona un team leader" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="none">Nessun leader</SelectItem>
-                  {potentialLeaders.map((leader) => (
-                    <SelectItem key={leader.id} value={leader.id}>
-                      {leader.name} {leader.surname}
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {`${user.name} ${user.surname}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -142,21 +172,26 @@ export function TeamForm({
           control={form.control}
           name="project"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
               <FormControl>
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel className="font-normal">
-                Questo team è un progetto?
-              </FormLabel>
+              <div className="space-y-1 leading-none">
+                <FormLabel>
+                  Team di Progetto
+                </FormLabel>
+              </div>
             </FormItem>
           )}
         />
 
-        <div className="flex justify-end gap-4 pt-4">
+        <div className="flex gap-4">
+          <Button type="submit" disabled={isLoading}>
+            {mode === "create" ? "Crea Team" : "Salva Modifiche"}
+          </Button>
           {mode === "edit" && onDelete && (
             <Button
               type="button"
@@ -164,12 +199,9 @@ export function TeamForm({
               onClick={onDelete}
               disabled={isLoading}
             >
-              Elimina
+              Elimina Team
             </Button>
           )}
-          <Button type="submit" disabled={isLoading}>
-            {mode === "create" ? "Crea Team" : "Salva"}
-          </Button>
         </div>
       </form>
     </Form>

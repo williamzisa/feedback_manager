@@ -12,10 +12,6 @@ import {
 import { PreSessionStats } from "@/lib/types/feedbacks";
 import { mockSessionsApi } from "@/lib/data/mock-sessions";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import type { Session, SessionStatus } from "@/lib/types/sessions";
-import { Button } from "@/components/ui/button";
-import { GenerateFeedbackDialog } from "./dialogs/generate-feedback-dialog";
 
 export function PreSessionAnalysisView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");

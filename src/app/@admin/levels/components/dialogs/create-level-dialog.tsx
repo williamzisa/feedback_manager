@@ -48,7 +48,8 @@ export function CreateLevelDialog({
         execution_weight: Number(data.execution_weight),
         soft_weight: Number(data.soft_weight),
         strategy_weight: Number(data.strategy_weight),
-        standard: data.standard
+        standard: data.standard,
+        company: "00000000-0000-0000-0000-000000000000" // TODO: ottenere la company dall'utente corrente
       }
 
       mockLevelsApi.create(levelData)

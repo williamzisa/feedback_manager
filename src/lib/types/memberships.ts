@@ -1,3 +1,5 @@
+import type { Database } from '../supabase/database.types'
+
 // Tipo base per i dati mockati
 export interface Membership {
   id: string
@@ -17,23 +19,35 @@ export interface Membership {
   } | null
 }
 
+export type UserTeam = Database['public']['Tables']['user_teams']['Row'] & {
+  users?: {
+    id: string
+    name: string
+    surname: string
+    email: string
+  } | null
+  teams?: {
+    id: string
+    name: string
+  } | null
+}
+
 // Tipo per il form
-export interface MembershipFormData {
+export type UserTeamFormData = {
   userId: string
   teamId: string
 }
 
 // Tipo per la creazione
-export interface MembershipCreate {
-  user_id: string
-  team_id: string
-  role: 'MEMBER' | 'LEADER'
+export type UserTeamCreate = {
+  userId: string
+  teamId: string
 }
 
 // Tipo per l'aggiornamento
-export interface MembershipUpdate {
-  user_id: string
-  team_id: string
+export type UserTeamUpdate = {
+  userId: string
+  teamId: string
 }
 
 /* 

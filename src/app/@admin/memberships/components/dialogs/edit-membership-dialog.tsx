@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MembershipForm } from "../forms/membership-form"
-import type { Membership, MembershipFormData } from "@/lib/types/memberships"
-import { mockMembershipsApi } from "@/lib/data/mock-memberships"
+import type { UserTeam, UserTeamFormData } from "@/lib/types/memberships"
+import { queries } from "@/lib/supabase/queries"
 
 interface EditMembershipDialogProps {
-  membership: Membership | null
+  membership: UserTeam | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
@@ -22,16 +22,16 @@ export function EditMembershipDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (data: MembershipFormData) => {
+  const handleSubmit = async (data: UserTeamFormData) => {
     try {
       if (!membership) return
       
       setIsLoading(true)
       setError(null)
 
-      mockMembershipsApi.update(membership.id, {
-        user_id: data.userId,
-        team_id: data.teamId
+      await queries.userTeams.update(membership.id, {
+        userId: data.userId,
+        teamId: data.teamId
       })
       
       onOpenChange(false)
@@ -51,7 +51,7 @@ export function EditMembershipDialog({
       setIsLoading(true)
       setError(null)
 
-      mockMembershipsApi.delete(membership.id)
+      await queries.userTeams.delete(membership.id)
       
       onOpenChange(false)
       onSuccess?.()
@@ -63,7 +63,7 @@ export function EditMembershipDialog({
     }
   }
 
-  if (!membership) return null
+  if (!membership || !membership.user_id || !membership.team_id) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

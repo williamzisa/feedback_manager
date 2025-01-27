@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Edit } from 'lucide-react'
-import type { Membership } from '@/lib/types/memberships'
+import type { UserTeam } from '@/lib/types/memberships'
 
 interface MembershipsTableProps {
-  memberships: Membership[]
-  onEdit: (membership: Membership) => void
+  memberships: UserTeam[]
+  onEdit: (membership: UserTeam) => void
 }
 
 export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps) {
@@ -34,19 +34,19 @@ export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps)
               <TableCell className="w-[45%]">
                 <div className="space-y-1">
                   <div className="font-medium">
-                    {membership.user?.name} {membership.user?.surname}
+                    {membership.users?.name} {membership.users?.surname}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {membership.user?.email}
+                    {membership.users?.email}
                   </div>
                   {/* Info aggiuntive visibili solo su mobile */}
                   <div className="md:hidden space-y-1 text-sm text-gray-500">
-                    <div>Team: {membership.team?.name}</div>
+                    <div>Team: {membership.teams?.name}</div>
                   </div>
                 </div>
               </TableCell>
               <TableCell className="hidden md:table-cell w-[45%]">
-                {membership.team?.name}
+                {membership.teams?.name}
               </TableCell>
               <TableCell className="w-[10%]">
                 <Button 

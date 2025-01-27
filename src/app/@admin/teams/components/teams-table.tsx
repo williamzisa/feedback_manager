@@ -14,20 +14,30 @@ import { Edit } from "lucide-react";
 import { EditTeamDialog } from "./dialogs/edit-team-dialog";
 import type { Team } from "@/lib/types/teams";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TeamsTableProps {
   teams: Team[];
   onSuccess?: () => void;
+  isLoading?: boolean;
 }
 
-export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
-  const [isEditOpen, setIsEditOpen] = useState(false);
+export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
   const handleEdit = (team: Team) => {
     setSelectedTeam(team);
-    setIsEditOpen(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -58,7 +68,7 @@ export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
                 {team.user_teams?.length || 0}
               </div>
               <div className="flex flex-wrap gap-2">
-                {team.project && <Badge variant="outline">Progetto</Badge>}
+                {team.is_project && <Badge variant="outline">Progetto</Badge>}
               </div>
             </div>
           </div>
@@ -88,8 +98,8 @@ export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
                 }`}</TableCell>
                 <TableCell>{team.user_teams?.length || 0}</TableCell>
                 <TableCell>
-                  <Badge variant={team.project ? "default" : "secondary"}>
-                    {team.project ? "Sì" : "No"}
+                  <Badge variant={team.is_project ? "default" : "secondary"}>
+                    {team.is_project ? "Sì" : "No"}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -117,8 +127,8 @@ export function TeamsTable({ teams, onSuccess }: TeamsTableProps) {
       {selectedTeam && (
         <EditTeamDialog
           team={selectedTeam}
-          open={isEditOpen}
-          onOpenChange={setIsEditOpen}
+          open={!!selectedTeam}
+          onOpenChange={(open) => !open && setSelectedTeam(null)}
           onSuccess={onSuccess}
         />
       )}

@@ -39,7 +39,7 @@ export function ClusterForm({
     defaultValues: {
       name: initialData?.name ?? '',
       level: initialData?.level ?? null,
-      leaderId: initialData?.leaderId ?? null
+      leader: initialData?.leader ?? null
     }
   })
 
@@ -96,7 +96,7 @@ export function ClusterForm({
 
         <FormField
           control={form.control}
-          name="leaderId"
+          name="leader"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Cluster Leader</FormLabel>

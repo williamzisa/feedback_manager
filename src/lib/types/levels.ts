@@ -11,8 +11,14 @@ export const levelSchema = z.object({
 
 export type LevelFormData = z.infer<typeof levelSchema>
 
-export interface Level extends LevelFormData {
-  id: string
-  created_at?: string
-  company?: string | null
-} 
+export type Level = {
+  id: string;
+  role: string;
+  step: number;
+  execution_weight: number;
+  soft_weight: number;
+  strategy_weight: number;
+  standard: number;
+  company: string;
+  created_at?: string;
+}; 

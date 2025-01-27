@@ -32,7 +32,7 @@ export function CreateClusterDialog({
       await queries.clusters.create({
         name: data.name.trim(),
         level: data.level,
-        leaderId: data.leaderId
+        leader: data.leader
       })
       
       onOpenChange(false)

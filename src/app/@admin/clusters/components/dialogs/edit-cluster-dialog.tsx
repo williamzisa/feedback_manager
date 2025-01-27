@@ -37,7 +37,7 @@ export function EditClusterDialog({
       await queries.clusters.update(cluster.id, {
         name: data.name.trim(),
         level: data.level,
-        leaderId: data.leaderId
+        leader: data.leader
       })
       
       onOpenChange(false)
@@ -75,10 +75,10 @@ export function EditClusterDialog({
 
   if (!cluster) return null
 
-  const initialData: ClusterFormData = {
+  const defaultValues = {
     name: cluster.name,
     level: cluster.level,
-    leaderId: Array.isArray(cluster.leader) && cluster.leader.length > 0 ? cluster.leader[0].id : null
+    leader: cluster.leader
   }
 
   return (
@@ -97,7 +97,7 @@ export function EditClusterDialog({
             onSubmit={handleSubmit}
             onDelete={handleDelete}
             isLoading={isLoading}
-            initialData={initialData}
+            initialData={defaultValues}
             mode="edit"
           />
         </div>
