@@ -894,6 +894,169 @@ export const queries = {
     },
   },
 
+  // Processes
+  processes: {
+    getAll: async () => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('processes')
+          .select(`
+            *,
+            user_processes (
+              id,
+              user_id
+            ),
+            questions!processes_linked_question_id_fkey (
+              id,
+              description
+            )
+          `)
+          .order('name');
+
+        if (error) {
+          console.error('Errore nel recupero dei processi:', error);
+          throw error;
+        }
+
+        return data.map(process => ({
+          id: process.id,
+          name: process.name,
+          linked_question_id: process.linked_question_id,
+          linked_question: process.questions,
+          user_count: process.user_processes?.length || 0,
+          company: process.company,
+          created_at: process.created_at
+        }));
+      } catch (err) {
+        console.error('Errore nel recupero dei processi:', err);
+        throw err;
+      }
+    },
+
+    create: async (processData: { name: string, linked_question_id: string }) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
+        const { data, error } = await supabase
+          .from('processes')
+          .insert({
+            name: processData.name.trim(),
+            linked_question_id: processData.linked_question_id,
+            company: currentUser.company
+          })
+          .select(`
+            *,
+            user_processes (
+              id,
+              user_id
+            ),
+            questions!processes_linked_question_id_fkey (
+              id,
+              description
+            )
+          `)
+          .single();
+
+        if (error) {
+          console.error('Errore nella creazione del processo:', error);
+          throw error;
+        }
+
+        return {
+          id: data.id,
+          name: data.name,
+          linked_question_id: data.linked_question_id,
+          linked_question: data.questions,
+          user_count: data.user_processes?.length || 0,
+          company: data.company,
+          created_at: data.created_at
+        };
+      } catch (err) {
+        console.error('Errore nella creazione del processo:', err);
+        throw err;
+      }
+    },
+
+    update: async (id: string, processData: { name: string, linked_question_id: string }) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('processes')
+          .update({
+            name: processData.name.trim(),
+            linked_question_id: processData.linked_question_id
+          })
+          .eq('id', id)
+          .select(`
+            *,
+            user_processes (
+              id,
+              user_id
+            ),
+            questions!processes_linked_question_id_fkey (
+              id,
+              description
+            )
+          `)
+          .single();
+
+        if (error) {
+          console.error('Errore nell\'aggiornamento del processo:', error);
+          throw error;
+        }
+
+        return {
+          id: data.id,
+          name: data.name,
+          linked_question_id: data.linked_question_id,
+          linked_question: data.questions,
+          user_count: data.user_processes?.length || 0,
+          company: data.company,
+          created_at: data.created_at
+        };
+      } catch (err) {
+        console.error('Errore nell\'aggiornamento del processo:', err);
+        throw err;
+      }
+    },
+
+    delete: async (id: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Prima elimino le associazioni user_processes
+        const { error: userProcessesError } = await supabase
+          .from('user_processes')
+          .delete()
+          .eq('process_id', id);
+
+        if (userProcessesError) {
+          console.error('Errore nell\'eliminazione delle associazioni user_processes:', userProcessesError);
+          throw userProcessesError;
+        }
+
+        // Poi elimino il processo
+        const { error: processError } = await supabase
+          .from('processes')
+          .delete()
+          .eq('id', id);
+
+        if (processError) {
+          console.error('Errore nell\'eliminazione del processo:', processError);
+          throw processError;
+        }
+      } catch (err) {
+        console.error('Errore nell\'eliminazione del processo:', err);
+        throw err;
+      }
+    }
+  },
+
   // Questions
   questions: {
     getAll: async () => {

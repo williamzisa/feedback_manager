@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ProcessForm } from "../forms/process-form"
 import type { ProcessFormData } from "@/lib/types/processes"
-import { mockProcessesApi } from "@/lib/data/mock-processes"
+import { queries } from "@/lib/supabase/queries"
 
 interface CreateProcessDialogProps {
   open: boolean
@@ -25,8 +25,9 @@ export function CreateProcessDialog({
       setIsLoading(true)
       setError(null)
 
-      mockProcessesApi.create({
-        processo: data.processo.trim()
+      await queries.processes.create({
+        name: data.name.trim(),
+        linked_question_id: data.linked_question_id
       })
       
       onOpenChange(false)

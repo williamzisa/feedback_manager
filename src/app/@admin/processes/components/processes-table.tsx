@@ -15,13 +15,17 @@ export function ProcessesTable({ processes, onEdit }: ProcessesTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>PROCESSO</TableHead>
+            <TableHead>DOMANDA COLLEGATA</TableHead>
+            <TableHead className="text-center">N. UTENTI</TableHead>
             <TableHead className="text-right"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {processes.map((process) => (
             <TableRow key={process.id}>
-              <TableCell className="font-medium">{process.processo}</TableCell>
+              <TableCell className="font-medium">{process.name}</TableCell>
+              <TableCell>{process.linked_question?.description || '-'}</TableCell>
+              <TableCell className="text-center">{process.user_count}</TableCell>
               <TableCell className="text-right">
                 <Button 
                   variant="ghost" 

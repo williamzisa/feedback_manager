@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ProcessForm } from "../forms/process-form"
 import type { Process, ProcessFormData } from "@/lib/types/processes"
-import { mockProcessesApi } from "@/lib/data/mock-processes"
+import { queries } from "@/lib/supabase/queries"
 
 interface EditProcessDialogProps {
   process: Process | null
@@ -29,8 +29,9 @@ export function EditProcessDialog({
       setIsLoading(true)
       setError(null)
 
-      mockProcessesApi.update(process.id, {
-        processo: data.processo.trim()
+      await queries.processes.update(process.id, {
+        name: data.name.trim(),
+        linked_question_id: data.linked_question_id
       })
       
       onOpenChange(false)
@@ -50,7 +51,7 @@ export function EditProcessDialog({
       setIsLoading(true)
       setError(null)
 
-      mockProcessesApi.delete(process.id)
+      await queries.processes.delete(process.id)
       
       onOpenChange(false)
       onSuccess?.()

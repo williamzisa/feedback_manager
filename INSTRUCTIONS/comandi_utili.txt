@@ -1,6 +1,4 @@
 - Aggiorna la struttura del database in file scr/lib/supabase/database.types.ts
-npx supabase gen types typescript --project-id ytqftuilseusyfbhbhpd --schema public > src/lib/supabase/database.types.ts
-
 npx supabase gen types typescript --project-id ytqftuilseusyfbhbhpd --schema public | Out-File -FilePath src/lib/supabase/database.types.ts -Encoding utf8
 
 

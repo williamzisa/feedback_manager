@@ -1,46 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProcessesTable } from "./processes-table";
 import { CreateProcessDialog } from "./dialogs/create-process-dialog";
 import { EditProcessDialog } from "./dialogs/edit-process-dialog";
 import type { Process } from "@/lib/types/processes";
-import { mockProcessesApi } from "@/lib/data/mock-processes";
+import { queries } from "@/lib/supabase/queries";
 import { StatCard } from "@/components/stats/stat-card";
 
 export function ProcessesView() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [processes, setProcesses] = useState<Process[]>(
-    mockProcessesApi.getAll()
-  );
+  const [processes, setProcesses] = useState<Process[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+  const loadProcesses = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await queries.processes.getAll();
+      setProcesses(data);
+    } catch (err) {
+      console.error('Errore nel caricamento dei processi:', err);
+      setError(err instanceof Error ? err.message : 'Errore nel caricamento dei processi');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProcesses();
+  }, []);
+
   const filteredProcesses = processes.filter((process) =>
-    process.processo.toLowerCase().includes(searchQuery.toLowerCase())
+    process.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Calcola le statistiche
   const totalProcesses = processes.length;
-  const averageNameLength = Math.round(
-    processes.reduce((acc, p) => acc + p.processo.length, 0) / processes.length
-  );
+  const totalUsers = processes.reduce((acc, p) => acc + p.user_count, 0);
+  const averageUsersPerProcess = totalProcesses > 0 
+    ? Math.round(totalUsers / totalProcesses) 
+    : 0;
 
   const handleCreateSuccess = () => {
-    setProcesses(mockProcessesApi.getAll());
+    loadProcesses();
   };
 
   const handleEditSuccess = () => {
-    setProcesses(mockProcessesApi.getAll());
+    loadProcesses();
   };
 
   const handleEdit = (process: Process) => {
     setSelectedProcess(process);
     setIsEditDialogOpen(true);
   };
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-500 bg-red-50 rounded-md">
+        Errore: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,13 +95,13 @@ export function ProcessesView() {
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <StatCard title="TOTALE PROCESSI" value={totalProcesses} />
           <StatCard
-            title="LUNGHEZZA MEDIA NOME"
-            value={averageNameLength}
+            title="TOTALE UTENTI"
+            value={totalUsers}
             className="bg-blue-100"
           />
           <StatCard
-            title="PROCESSI FILTRATI"
-            value={filteredProcesses.length}
+            title="MEDIA UTENTI PER PROCESSO"
+            value={averageUsersPerProcess}
             className="bg-yellow-100"
           />
         </div>
@@ -104,7 +131,13 @@ export function ProcessesView() {
             </p>
           </div>
           <div className="p-4">
-            <ProcessesTable processes={filteredProcesses} onEdit={handleEdit} />
+            {isLoading ? (
+              <div className="text-center py-4 text-gray-500">
+                Caricamento processi...
+              </div>
+            ) : (
+              <ProcessesTable processes={filteredProcesses} onEdit={handleEdit} />
+            )}
           </div>
         </div>
 
