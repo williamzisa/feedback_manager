@@ -1,5 +1,5 @@
 $projectRoot = "."
-$outputFile = "./.notes/directory_structure.md"
+$outputFile = "./INSTRUCTIONS/directory_structure.md"
 
 # Lista di cartelle da escludere
 $excludedFolders = @("node_modules", ".git", ".notes", ".next")

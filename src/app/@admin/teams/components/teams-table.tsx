@@ -15,6 +15,12 @@ import { EditTeamDialog } from "./dialogs/edit-team-dialog";
 import type { Team } from "@/lib/types/teams";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TeamsTableProps {
   teams: Team[];
@@ -27,6 +33,14 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
 
   const handleEdit = (team: Team) => {
     setSelectedTeam(team);
+  };
+
+  const getMembersList = (team: Team) => {
+    console.log('User Teams:', team.user_teams);
+    return team.user_teams
+      ?.filter(ut => ut.user)
+      .map(ut => `${ut.user?.name} ${ut.user?.surname}`)
+      .join(", ") || "Nessun membro";
   };
 
   if (isLoading) {
@@ -65,7 +79,16 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
               </div>
               <div>
                 <span className="font-medium">Members:</span>{" "}
-                {team.user_teams?.length || 0}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      {team.user_teams?.length || 0}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">{getMembersList(team)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <div className="flex flex-wrap gap-2">
                 {team.is_project && <Badge variant="outline">Progetto</Badge>}
@@ -96,7 +119,18 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
                 <TableCell>{`${team.leader?.name || ""} ${
                   team.leader?.surname || ""
                 }`}</TableCell>
-                <TableCell>{team.user_teams?.length || 0}</TableCell>
+                <TableCell>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        {team.user_teams?.length || 0}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">{getMembersList(team)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
                 <TableCell>
                   <Badge variant={team.is_project ? "default" : "secondary"}>
                     {team.is_project ? "Sì" : "No"}

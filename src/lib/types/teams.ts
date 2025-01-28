@@ -44,6 +44,11 @@ export type Team = {
     id: string;
     user_id: string | null;
     created_at: string | null;
+    user?: {
+      id: string;
+      name: string;
+      surname: string;
+    } | null;
   }[];
 };
 

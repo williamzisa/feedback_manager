@@ -52,6 +52,12 @@ export function CreateTeamDialog({
         throw new Error('Errore nella creazione del team')
       }
 
+      // Creiamo l'associazione user_teams per il leader
+      await queries.userTeams.create({
+        userId: data.leaderId,
+        teamId: teamResponse.id
+      });
+
       // Se abbiamo un cluster, lo associamo al team
       if (data.clusterId) {
         await queries.team_clusters.create({

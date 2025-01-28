@@ -12,6 +12,7 @@ import type { Team } from "@/lib/types/teams";
 
 export function TeamsView() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [totalClusters, setTotalClusters] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -32,8 +33,18 @@ export function TeamsView() {
     }
   };
 
+  const loadClusters = async () => {
+    try {
+      const clusters = await queries.clusters.getAll();
+      setTotalClusters(clusters.length);
+    } catch (err) {
+      console.error('Errore nel caricamento dei cluster:', err);
+    }
+  };
+
   useEffect(() => {
     loadTeams();
+    loadClusters();
   }, []);
 
   const filteredTeams = teams.filter(
@@ -46,6 +57,7 @@ export function TeamsView() {
   // Calcola le statistiche
   const totalTeams = teams.length;
   const projectTeams = teams.filter((t) => t.is_project).length;
+  const totalMembers = teams.reduce((acc, team) => acc + (team.user_teams?.length || 0), 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -79,13 +91,15 @@ export function TeamsView() {
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+          <StatCard title="TOTALE CLUSTERS" value={totalClusters} />
           <StatCard title="TOTALE TEAMS" value={totalTeams} />
           <StatCard
-            title="TEAMS PROGETTO"
+            title="TEAMS DI PROGETTO"
             value={projectTeams}
             className="bg-blue-100"
           />
+          <StatCard title="TOTALE MEMBERS" value={totalMembers} />
         </div>
 
         {/* Teams Table Section */}

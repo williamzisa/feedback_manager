@@ -316,7 +316,12 @@ export const queries = {
             user_teams (
               id,
               user_id,
-              created_at
+              created_at,
+              user:users (
+                id,
+                name,
+                surname
+              )
             )
           `)
           .order('name');

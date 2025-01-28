@@ -48,6 +48,15 @@ export function EditTeamDialog({
         is_project: data.project
       });
 
+      // Se il leader è cambiato, aggiorniamo user_teams
+      if (team.leader?.id !== data.leaderId) {
+        // Creiamo l'associazione per il nuovo leader
+        await queries.userTeams.create({
+          userId: data.leaderId,
+          teamId: team.id
+        });
+      }
+
       // Poi gestiamo il cluster
       if (data.clusterId) {
         // Prima rimuoviamo eventuali cluster esistenti
