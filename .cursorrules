@@ -9,7 +9,8 @@
 - All IDs must come from the users table.
 - Supabase Auth is used for authentication.
 
-## File Structure
+## File Structure  
+## Non modificare da <START STRUCTURE> a <END STRUCTURE>
 <!-- START STRUCTURE -->
 
 ``|-- public
@@ -238,7 +239,7 @@
 \-- tsconfig.json
 ``
 <!-- END STRUCTURE -->
-
+## Non modificare da <START STRUCTURE> a <END STRUCTURE>
 ## Important Notice!
 - Effettua le modifiche grafiche e di design seguendo attentamente le istruzioni, prendi sempre spunto dalle pagine esistenti
 e correlate, prenditi la libertÃ  di decidere autonomamente modifiche alla UI o al layout solo se esplicitamente richiesto.
@@ -283,4 +284,7 @@ e correlate, prenditi la libertÃ  di decidere autonomamente modifiche alla UI 
 - **Scalability**:
   - Queries and components must scale for new fields
   - Middleware extensible for new roles/permissions
+
+
+
 

@@ -2,5 +2,5 @@
 npx supabase gen types typescript --project-id ytqftuilseusyfbhbhpd --schema public | Out-File -FilePath src/lib/supabase/database.types.ts -Encoding utf8
 
 
-- Aggiorna la struttura della directory in file .notes/directory_structure.md
+- Aggiorna la struttura della directory in file .cursorrules.md
 .\INSTRUCTIONS\update_directory.ps1
