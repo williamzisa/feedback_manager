@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { queries } from "@/lib/supabase/queries";
 import { Question, QuestionFormData } from "@/lib/types/questions";
 import { StatCard } from "@/components/stats/stat-card";
-import { mockQuestionsApi } from "@/lib/data/mock-questions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,9 +18,7 @@ import { CreateQuestionDialog } from "./dialogs/create-question-dialog";
 import { EditQuestionDialog } from "./dialogs/edit-question-dialog";
 
 export function QuestionsView() {
-  const [questions, setQuestions] = useState<Question[]>(
-    mockQuestionsApi.getAll()
-  );
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,12 +28,13 @@ export function QuestionsView() {
 
   const fetchQuestions = async () => {
     try {
-      const data = (await queries.questions.getAll()) as Question[];
-      setQuestions(data);
+      setIsLoading(true);
+      const data = await queries.questions.getAll();
+      setQuestions(data as Question[]);
       setError(null);
     } catch (err) {
-      setError("Failed to fetch questions");
-      console.error("Error fetching questions:", err);
+      setError("Errore nel caricamento delle domande");
+      console.error("Errore nel caricamento delle domande:", err);
     } finally {
       setIsLoading(false);
     }
@@ -48,11 +46,16 @@ export function QuestionsView() {
 
   const handleCreate = async (data: QuestionFormData): Promise<boolean> => {
     try {
-      mockQuestionsApi.create(data);
-      setQuestions(mockQuestionsApi.getAll());
+      const currentUser = await queries.users.getCurrentUser();
+      await queries.questions.create({
+        description: data.text,
+        type: data.type,
+        company: currentUser.company || ''
+      });
+      await fetchQuestions();
       return true;
     } catch (error) {
-      console.error("Error creating question:", error);
+      console.error("Errore nella creazione della domanda:", error);
       return false;
     }
   };
@@ -62,22 +65,25 @@ export function QuestionsView() {
     data: QuestionFormData
   ): Promise<boolean> => {
     try {
-      mockQuestionsApi.update(id, data);
-      setQuestions(mockQuestionsApi.getAll());
+      await queries.questions.update(id, {
+        description: data.text,
+        type: data.type
+      });
+      await fetchQuestions();
       return true;
     } catch (error) {
-      console.error("Error updating question:", error);
+      console.error("Errore nell'aggiornamento della domanda:", error);
       return false;
     }
   };
 
   const handleDelete = async (id: string): Promise<boolean> => {
     try {
-      mockQuestionsApi.delete(id);
-      setQuestions(mockQuestionsApi.getAll());
+      await queries.questions.delete(id);
+      await fetchQuestions();
       return true;
     } catch (error) {
-      console.error("Error deleting question:", error);
+      console.error("Errore nell'eliminazione della domanda:", error);
       return false;
     }
   };
@@ -89,6 +95,12 @@ export function QuestionsView() {
     const matchesType = typeFilter === "ALL" || question.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  // Calcolo statistiche
+  const totalQuestions = questions.length;
+  const softQuestions = questions.filter(q => q.type === 'SOFT').length;
+  const strategyQuestions = questions.filter(q => q.type === 'STRATEGY').length;
+  const executionQuestions = questions.filter(q => q.type === 'EXECUTION').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -116,12 +128,12 @@ export function QuestionsView() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCard
             title="Totale Domande"
-            value={284}
+            value={totalQuestions}
             className="bg-white shadow-sm"
           />
-          <StatCard title="Soft Skills" value={95} className="bg-blue-100" />
-          <StatCard title="Strategy" value={89} className="bg-purple-100" />
-          <StatCard title="Execution" value={100} className="bg-green-100" />
+          <StatCard title="Soft Skills" value={softQuestions} className="bg-blue-100" />
+          <StatCard title="Strategy" value={strategyQuestions} className="bg-purple-100" />
+          <StatCard title="Execution" value={executionQuestions} className="bg-green-100" />
         </div>
 
         {error && (
@@ -130,7 +142,7 @@ export function QuestionsView() {
           </div>
         )}
         {isLoading ? (
-          <div className="text-center p-4">Loading questions...</div>
+          <div className="text-center p-4">Caricamento domande...</div>
         ) : (
           <div className="mt-6">
             {/* Questions Table Component */}
