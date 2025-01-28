@@ -1,84 +1,28 @@
 'use client'
 
-import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { SessionForm } from "../forms/session-form"
-import type { Session, SessionFormData } from "@/lib/types/sessions"
+import type { EditSessionDialogProps, SessionFormData } from "@/lib/types/sessions"
+import { queries } from "@/lib/supabase/queries"
 
-interface EditSessionDialogProps {
-  session: Session | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSubmit: (data: SessionFormData) => void
-  onDelete: () => void
-}
-
-export function EditSessionDialog({
-  session,
-  open,
-  onOpenChange,
-  onSubmit,
-  onDelete
-}: EditSessionDialogProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleSubmit = async (data: SessionFormData) => {
-    try {
-      if (!session) return
-      
-      setIsLoading(true)
-      setError(null)
-
-      await onSubmit(data)
-      onOpenChange(false)
-    } catch (err) {
-      console.error('Errore:', err)
-      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento della sessione')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    try {
-      if (!session) return
-      
-      setIsLoading(true)
-      setError(null)
-
-      await onDelete()
-      onOpenChange(false)
-    } catch (err) {
-      console.error('Errore:', err)
-      setError(err instanceof Error ? err.message : 'Errore durante l\'eliminazione della sessione')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (!session) return null
-
+export function EditSessionDialog({ session, onSuccess, open, onOpenChange }: EditSessionDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold">Modifica Sessione</DialogTitle>
+          <DialogTitle>Modifica Sessione</DialogTitle>
         </DialogHeader>
-        <div className="mt-6">
-          {error && (
-            <div className="mb-4 p-3 text-sm text-red-500 bg-red-50 rounded-md">
-              {error}
-            </div>
-          )}
-          <SessionForm
-            onSubmit={handleSubmit}
-            onDelete={handleDelete}
-            isLoading={isLoading}
-            initialData={session}
-            mode="edit"
-          />
-        </div>
+        <SessionForm 
+          initialData={session}
+          onSubmit={async (data: SessionFormData) => {
+            await queries.sessions.update(session.id, {
+              ...data,
+              status: session.status // Manteniamo lo status esistente
+            })
+            await onSuccess()
+            onOpenChange(false)
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

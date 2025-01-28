@@ -349,6 +349,78 @@ export type Database = {
           },
         ]
       }
+      session_clusters: {
+        Row: {
+          cluster_id: string
+          created_at: string | null
+          id: string
+          session_id: string
+        }
+        Insert: {
+          cluster_id: string
+          created_at?: string | null
+          id?: string
+          session_id: string
+        }
+        Update: {
+          cluster_id?: string
+          created_at?: string | null
+          id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_clusters_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_clusters_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_rules: {
+        Row: {
+          created_at: string | null
+          id: string
+          rule_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          rule_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          rule_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_rules_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_rules_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessions: {
         Row: {
           company: string | null

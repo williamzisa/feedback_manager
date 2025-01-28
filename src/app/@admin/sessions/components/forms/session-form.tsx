@@ -9,16 +9,17 @@ import type { Session, SessionFormData } from "@/lib/types/sessions"
 import { Loader2, X } from "lucide-react"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { mockClusters, mockRules } from "@/lib/data/mock-sessions"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { queries } from "@/lib/supabase/queries"
+import { useQuery } from "@tanstack/react-query"
 
 const formSchema = z.object({
-  nomeSessione: z.string().min(1, "Il nome della sessione è obbligatorio"),
-  dataInizio: z.string().optional(),
-  dataFine: z.string().optional(),
+  name: z.string().min(1, "Il nome della sessione è obbligatorio"),
+  start_time: z.string().nullable(),
+  end_time: z.string().nullable(),
   clusters: z.array(z.string()).min(1, "Seleziona almeno un cluster"),
-  regole: z.array(z.string()).min(1, "Seleziona almeno una regola")
+  rules: z.array(z.string()).min(1, "Seleziona almeno una regola")
 })
 
 interface SessionFormProps {
@@ -36,15 +37,37 @@ export function SessionForm({
   initialData,
   mode = 'create'
 }: SessionFormProps) {
+  // Otteniamo la company dell'utente corrente
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: queries.users.getCurrentUser
+  })
+
+  // Otteniamo i cluster della company
+  const { data: clusters = [] } = useQuery({
+    queryKey: ['clusters', currentUser?.company],
+    queryFn: () => currentUser?.company ? queries.clusters.getAll() : Promise.resolve([]),
+    enabled: !!currentUser?.company
+  })
+
+  // Otteniamo le regole della company
+  const { data: rules = [] } = useQuery({
+    queryKey: ['rules', currentUser?.company],
+    queryFn: () => currentUser?.company ? queries.rules.getByCompany(currentUser.company) : Promise.resolve([]),
+    enabled: !!currentUser?.company
+  })
+
+  const defaultValues: Partial<SessionFormData> = {
+    name: initialData?.name || '',
+    start_time: initialData?.start_time || null,
+    end_time: initialData?.end_time || null,
+    clusters: initialData?.session_clusters?.map(sc => sc.cluster.id) || [],
+    rules: initialData?.session_rules?.map(sr => sr.rule.id) || []
+  }
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      nomeSessione: initialData?.nomeSessione || '',
-      dataInizio: initialData?.dataInizio || '',
-      dataFine: initialData?.dataFine || '',
-      clusters: initialData?.clusters || [],
-      regole: initialData?.regole || []
-    }
+    defaultValues: defaultValues
   })
 
   return (
@@ -52,7 +75,7 @@ export function SessionForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="nomeSessione"
+          name="name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Nome Sessione</FormLabel>
@@ -75,7 +98,7 @@ export function SessionForm({
                   <div className="border rounded-md p-4">
                     <div className="flex flex-wrap gap-2 mb-2">
                       {field.value.map((clusterId) => {
-                        const cluster = mockClusters.find(c => c.id === clusterId)
+                        const cluster = clusters.find(c => c.id === clusterId)
                         return cluster ? (
                           <Badge key={cluster.id} variant="secondary" className="gap-1">
                             {cluster.name}
@@ -103,7 +126,7 @@ export function SessionForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockClusters.map((cluster) => (
+                        {clusters.map((cluster) => (
                           <SelectItem key={cluster.id} value={cluster.id}>
                             {cluster.name}
                           </SelectItem>
@@ -118,14 +141,14 @@ export function SessionForm({
 
             <FormField
               control={form.control}
-              name="regole"
+              name="rules"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Regole</FormLabel>
                   <div className="border rounded-md p-4">
                     <div className="flex flex-wrap gap-2 mb-2">
                       {field.value.map((ruleId) => {
-                        const rule = mockRules.find(r => r.id === ruleId)
+                        const rule = rules.find(r => r.id === ruleId)
                         return rule ? (
                           <Badge key={rule.id} variant="secondary" className="gap-1">
                             {rule.name}
@@ -153,7 +176,7 @@ export function SessionForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockRules.map((rule) => (
+                        {rules.map((rule) => (
                           <SelectItem key={rule.id} value={rule.id}>
                             {rule.name}
                           </SelectItem>
@@ -171,12 +194,17 @@ export function SessionForm({
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="dataInizio"
+            name="start_time"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Data Inizio</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} disabled={isLoading} />
+                  <Input 
+                    type="date" 
+                    {...field} 
+                    value={field.value || ''} 
+                    disabled={isLoading} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -185,12 +213,17 @@ export function SessionForm({
 
           <FormField
             control={form.control}
-            name="dataFine"
+            name="end_time"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Data Fine</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} disabled={isLoading} />
+                  <Input 
+                    type="date" 
+                    {...field} 
+                    value={field.value || ''} 
+                    disabled={isLoading} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

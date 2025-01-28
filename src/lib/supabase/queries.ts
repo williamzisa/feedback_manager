@@ -1189,5 +1189,194 @@ export const queries = {
 
       if (error) throw error;
     }
+  },
+
+  // Sessions
+  sessions: {
+    create: async (sessionData: {
+      name: string;
+      start_time: string | null;
+      end_time: string | null;
+      clusters: string[];
+      rules: string[];
+      status?: string;
+    }) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
+        // 1. Creiamo la sessione
+        const { data: session, error: sessionError } = await supabase
+          .from('sessions')
+          .insert({
+            id: crypto.randomUUID(),
+            name: sessionData.name,
+            start_time: sessionData.start_time,
+            end_time: sessionData.end_time,
+            status: sessionData.status || 'In preparazione',
+            company: currentUser.company
+          })
+          .select()
+          .single();
+
+        if (sessionError) {
+          console.error('Errore nella creazione della sessione:', sessionError);
+          throw sessionError;
+        }
+
+        // 2. Creiamo le associazioni session_clusters
+        if (sessionData.clusters.length > 0) {
+          const { error: clustersError } = await supabase
+            .from('session_clusters')
+            .insert(
+              sessionData.clusters.map(clusterId => ({
+                id: crypto.randomUUID(),
+                session_id: session.id,
+                cluster_id: clusterId
+              }))
+            );
+
+          if (clustersError) {
+            console.error('Errore nella creazione delle associazioni session_clusters:', clustersError);
+            throw clustersError;
+          }
+        }
+
+        // 3. Creiamo le associazioni session_rules
+        if (sessionData.rules.length > 0) {
+          const { error: rulesError } = await supabase
+            .from('session_rules')
+            .insert(
+              sessionData.rules.map(ruleId => ({
+                id: crypto.randomUUID(),
+                session_id: session.id,
+                rule_id: ruleId
+              }))
+            );
+
+          if (rulesError) {
+            console.error('Errore nella creazione delle associazioni session_rules:', rulesError);
+            throw rulesError;
+          }
+        }
+
+        return session;
+      } catch (err) {
+        console.error('Errore nella creazione della sessione:', err);
+        throw err;
+      }
+    },
+
+    update: async (sessionId: string, sessionData: {
+      name: string;
+      start_time: string | null;
+      end_time: string | null;
+      clusters: string[];
+      rules: string[];
+      status?: string;
+    }) => {
+      const supabase = createClientComponentClient<Database>()
+
+      // Aggiorniamo la sessione
+      const { data: session, error } = await supabase
+        .from('sessions')
+        .update({
+          name: sessionData.name,
+          start_time: sessionData.start_time,
+          end_time: sessionData.end_time,
+          status: sessionData.status
+        })
+        .eq('id', sessionId)
+        .select()
+        .single()
+
+      if (error) throw error
+      if (!session) throw new Error('Errore durante l\'aggiornamento della sessione')
+
+      // Aggiorniamo le associazioni con i cluster
+      // Prima eliminiamo tutte le associazioni esistenti
+      const { error: deleteClusterError } = await supabase
+        .from('session_clusters')
+        .delete()
+        .eq('session_id', sessionId)
+      if (deleteClusterError) throw deleteClusterError
+
+      // Poi creiamo le nuove associazioni
+      if (sessionData.clusters.length > 0) {
+        const { error: clustersError } = await supabase
+          .from('session_clusters')
+          .insert(
+            sessionData.clusters.map(clusterId => ({
+              session_id: sessionId,
+              cluster_id: clusterId
+            }))
+          )
+        if (clustersError) throw clustersError
+      }
+
+      // Aggiorniamo le associazioni con le regole
+      // Prima eliminiamo tutte le associazioni esistenti
+      const { error: deleteRulesError } = await supabase
+        .from('session_rules')
+        .delete()
+        .eq('session_id', sessionId)
+      if (deleteRulesError) throw deleteRulesError
+
+      // Poi creiamo le nuove associazioni
+      if (sessionData.rules.length > 0) {
+        const { error: rulesError } = await supabase
+          .from('session_rules')
+          .insert(
+            sessionData.rules.map(ruleId => ({
+              session_id: sessionId,
+              rule_id: ruleId
+            }))
+          )
+        if (rulesError) throw rulesError
+      }
+
+      return session
+    },
+
+    getByCompany: async (company: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('sessions')
+          .select(`
+            *,
+            session_clusters (
+              id,
+              cluster:clusters (
+                id,
+                name
+              )
+            ),
+            session_rules (
+              id,
+              rule:rules (
+                id,
+                name
+              )
+            )
+          `)
+          .eq('company', company)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Errore nel recupero delle sessioni:', error);
+          throw error;
+        }
+
+        return data || [];
+      } catch (err) {
+        console.error('Errore nel recupero delle sessioni:', err);
+        throw err;
+      }
+    }
   }
 }

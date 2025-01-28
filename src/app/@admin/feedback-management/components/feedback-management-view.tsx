@@ -13,22 +13,21 @@ import { PreSessionStats } from "@/lib/types/feedbacks";
 import { mockSessionsApi } from "@/lib/data/mock-sessions";
 import { Badge } from "@/components/ui/badge";
 
-export type SessionStatus = "in-progress" | "completed";
+export type SessionStatus = 'In preparazione' | 'In corso' | 'Conclusa';
 
 export function FeedbackManagementView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
-  const [sessionStatus, setSessionStatus] =
-    useState<SessionStatus>("in-progress");
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("In corso");
   const sessions = mockSessionsApi
     .getAll()
-    .filter((s) => s.stato === "In corso" || s.stato === "Conclusa");
+    .filter((s) => s.status === "In corso" || s.status === "Conclusa");
 
   // Seleziona la prima sessione all'avvio
   useEffect(() => {
     if (sessions.length > 0 && !selectedSessionId) {
       const firstSession = sessions[0];
       setSelectedSessionId(firstSession.id);
-      setSessionStatus(mapSessionStatus(firstSession.stato));
+      setSessionStatus(mapSessionStatus(firstSession.status));
     }
   }, [sessions, selectedSessionId]);
 
@@ -44,41 +43,38 @@ export function FeedbackManagementView() {
     const session = sessions.find((s) => s.id === sessionId);
     if (session) {
       setSelectedSessionId(sessionId);
-      setSessionStatus(mapSessionStatus(session.stato));
+      setSessionStatus(mapSessionStatus(session.status));
     }
   };
 
-  const mapSessionStatus = (stato: string): SessionStatus => {
-    switch (stato) {
+  const mapSessionStatus = (status: string): SessionStatus => {
+    switch (status) {
       case "In corso":
-        return "in-progress";
+        return "In corso";
       case "Conclusa":
-        return "completed";
+        return "Conclusa";
+      case "In preparazione":
+        return "In preparazione";
       default:
-        return "in-progress";
+        return "In corso";
     }
   };
 
   const getStatusBadgeVariant = (status: SessionStatus) => {
     switch (status) {
-      case "in-progress":
+      case "In corso":
         return "secondary";
-      case "completed":
+      case "Conclusa":
         return "outline";
+      case "In preparazione":
+        return "default";
       default:
         return "secondary";
     }
   };
 
   const getStatusLabel = (status: SessionStatus) => {
-    switch (status) {
-      case "in-progress":
-        return "In Corso";
-      case "completed":
-        return "Conclusa";
-      default:
-        return "In Corso";
-    }
+    return status;
   };
 
   return (
@@ -116,7 +112,7 @@ export function FeedbackManagementView() {
               <SelectContent>
                 {sessions.map((session) => (
                   <SelectItem key={session.id} value={session.id}>
-                    {session.nomeSessione}
+                    {session.name}
                   </SelectItem>
                 ))}
               </SelectContent>
