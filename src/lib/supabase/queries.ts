@@ -3,6 +3,7 @@ import type { QuestionInsert, QuestionUpdate } from '../types/questions'
 import type { Level } from '../types/levels'
 import type { TeamCreateData, TeamUpdateData } from '../types/teams'
 import type { Database } from './database.types'
+import type { RuleInsert, RuleUpdate } from '../types/rules'
 
 export const queries = {
   // Users
@@ -1138,6 +1139,55 @@ export const queries = {
         .delete()
         .eq('id', id)
       if (error) throw error
+    }
+  },
+
+  rules: {
+    getByCompany: async (company: string) => {
+      const supabase = createClientComponentClient<Database>();
+      const { data, error } = await supabase
+        .from('rules')
+        .select('*')
+        .eq('company', company)
+        .order('number', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+
+    create: async (rule: RuleInsert) => {
+      const supabase = createClientComponentClient<Database>();
+      const { data, error } = await supabase
+        .from('rules')
+        .insert([rule])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    update: async (id: string, updates: RuleUpdate) => {
+      const supabase = createClientComponentClient<Database>();
+      const { data, error } = await supabase
+        .from('rules')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    delete: async (id: string) => {
+      const supabase = createClientComponentClient<Database>();
+      const { error } = await supabase
+        .from('rules')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
     }
   }
 }

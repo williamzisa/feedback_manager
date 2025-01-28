@@ -1,54 +1,54 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { AdminHeader } from "@/components/layout/admin-header";
 import { Button } from "@/components/ui/button";
 import { RulesTable } from "./rules-table";
-import type { Rule } from "./rules-table";
-
-const mockRules: Rule[] = [
-  {
-    numero: 1,
-    nomeRegola: "FEEDBACK SOFT E STRATEGY DA CLU VERSO TL",
-    descrizione:
-      "Genera feedback da ciascun Cluster Leader (CLU) verso ciascun Team Leader (TL) del proprio cluster.",
-    note: true,
-    codiceSQL: "Apri",
-  },
-  {
-    numero: 2,
-    nomeRegola: "FEEDBACK SOFT E STRATEGY DA CLU VERSO TL",
-    descrizione:
-      "Genera feedback da ciascun Cluster Leader (CLU) verso ciascun Team Leader (TL) del proprio cluster.",
-    note: true,
-    codiceSQL: "Button",
-  },
-  {
-    numero: 3,
-    nomeRegola: "FEEDBACK SOFT E STRATEGY DA CLU VERSO TL",
-    descrizione:
-      "Genera feedback da ciascun Cluster Leader (CLU) verso ciascun Team Leader (TL) del proprio cluster.",
-    note: true,
-    codiceSQL: "Button",
-  },
-  {
-    numero: 4,
-    nomeRegola: "FEEDBACK SOFT E STRATEGY DA CLU VERSO TL",
-    descrizione:
-      "Genera feedback da ciascun Cluster Leader (CLU) verso ciascun Team Leader (TL) del proprio cluster.",
-    note: true,
-    codiceSQL: "Button",
-  },
-  {
-    numero: 5,
-    nomeRegola: "FEEDBACK SOFT E STRATEGY DA CLU VERSO TL",
-    descrizione:
-      "Genera feedback da ciascun Cluster Leader (CLU) verso ciascun Team Leader (TL) del proprio cluster.",
-    note: true,
-    codiceSQL: "Button",
-  },
-];
+import { CreateRuleDialog } from "./dialogs/create-rule-dialog";
+import { EditRuleDialog } from "./dialogs/edit-rule-dialog";
+import type { Rule } from "@/lib/types/rules";
+import { queries } from "@/lib/supabase/queries";
 
 export function RulesView() {
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedRule, setSelectedRule] = useState<Rule | null>(null);
+
+  const fetchRules = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const currentUser = await queries.users.getCurrentUser();
+      if (!currentUser.company) {
+        throw new Error('Errore: account non configurato correttamente (company mancante)');
+      }
+
+      const rulesData = await queries.rules.getByCompany(currentUser.company);
+      setRules(rulesData);
+    } catch (err) {
+      console.error('Errore nel caricamento delle regole:', err);
+      setError(err instanceof Error ? err.message : 'Errore nel caricamento delle regole');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRules();
+  }, []);
+
+  const handleCreateSuccess = () => {
+    fetchRules();
+  };
+
+  const handleEditSuccess = () => {
+    fetchRules();
+    setSelectedRule(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminHeader />
@@ -76,7 +76,10 @@ export function RulesView() {
             </svg>
             <h1 className="text-2xl font-semibold text-gray-900">Regole</h1>
           </div>
-          <Button className="w-full sm:w-auto whitespace-nowrap">
+          <Button 
+            className="w-full sm:w-auto whitespace-nowrap"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
             Nuova Regola
           </Button>
         </div>
@@ -85,41 +88,40 @@ export function RulesView() {
         <div className="mt-6">
           <div className="rounded-lg bg-white shadow-sm">
             <div className="px-4 py-3 border-b">
-              <p className="text-sm text-gray-500">5 regole</p>
+              <p className="text-sm text-gray-500">{rules.length} regole</p>
             </div>
-            <div className="p-4 overflow-x-auto">
-              <div className="block sm:hidden space-y-4">
-                {mockRules.map((rule) => (
-                  <div key={rule.numero} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-500 mr-2">
-                          Regola #{rule.numero}
-                        </span>
-                        {rule.note && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            Note
-                          </span>
-                        )}
-                      </div>
-                      <Button className="w-full sm:w-auto whitespace-nowrap">
-                        {rule.codiceSQL}
-                      </Button>
-                    </div>
-                    <h3 className="font-semibold text-sm mb-2">
-                      {rule.nomeRegola}
-                    </h3>
-                    <p className="text-sm text-gray-600">{rule.descrizione}</p>
-                  </div>
-                ))}
+            {error && (
+              <div className="p-4 text-sm text-red-500 bg-red-50">
+                {error}
               </div>
-              <div className="hidden sm:block">
-                <RulesTable rules={mockRules} />
+            )}
+            {isLoading ? (
+              <div className="p-4 text-center text-gray-500">
+                Caricamento...
               </div>
-            </div>
+            ) : (
+              <div className="p-4 overflow-x-auto">
+                <RulesTable 
+                  rules={rules} 
+                  onEdit={setSelectedRule}
+                />
+              </div>
+            )}
           </div>
         </div>
       </main>
+
+      <CreateRuleDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={handleCreateSuccess}
+      />
+
+      <EditRuleDialog
+        rule={selectedRule}
+        onOpenChange={() => setSelectedRule(null)}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 }

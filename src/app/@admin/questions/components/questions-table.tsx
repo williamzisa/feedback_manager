@@ -1,6 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Pencil } from 'lucide-react'
+import { Edit } from 'lucide-react'
 import { Question } from '@/lib/types/questions'
 
 interface QuestionsTableProps {
@@ -69,7 +69,7 @@ export function QuestionsTable({ questions, onEdit }: QuestionsTableProps) {
                   size="icon"
                   onClick={() => onEdit(question.id)}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Edit className="h-4 w-4" />
                 </Button>
               </TableCell>
             </TableRow>

@@ -313,22 +313,31 @@ export type Database = {
           company: string
           content_sql: string
           created_at: string
+          description: string | null
           id: string
+          name: string
           number: number
+          template: boolean | null
         }
         Insert: {
           company: string
           content_sql: string
           created_at?: string
+          description?: string | null
           id?: string
+          name?: string
           number: number
+          template?: boolean | null
         }
         Update: {
           company?: string
           content_sql?: string
           created_at?: string
+          description?: string | null
           id?: string
+          name?: string
           number?: number
+          template?: boolean | null
         }
         Relationships: [
           {

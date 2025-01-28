@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Edit } from "lucide-react"
 import type { Level } from "@/lib/types/levels"
 
 interface LevelsTableProps {
@@ -40,10 +41,10 @@ export function LevelsTable({ levels, onEdit }: LevelsTableProps) {
             <TableCell className="text-right">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => onEdit(level)}
               >
-                Modifica
+                <Edit className="h-4 w-4" />
               </Button>
             </TableCell>
           </TableRow>
