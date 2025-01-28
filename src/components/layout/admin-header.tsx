@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { Button } from '@/components/ui/button'
 import { Menu } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { UserMenu } from '@/components/navigation/user-menu'
 
 interface NavigationItem {
   name: string
@@ -74,41 +75,44 @@ export const AdminHeader = () => {
         {isMobile ? (
           <>
             <div className="flex-1" />
-            <Sheet open={isOpen} onOpenChange={setIsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden">
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[400px] p-6">
-                <SheetTitle className="text-xl font-bold text-gray-900 mb-4">
-                  Admin Menu
-                </SheetTitle>
-                <div className="flex flex-col space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                      Gestione Team
-                    </h3>
-                    <div className="space-y-1">
-                      {navigationLeft.map((item) => (
-                        <NavLink key={item.name} item={item} />
-                      ))}
+            <div className="flex items-center gap-3">
+              <UserMenu />
+              <Sheet open={isOpen} onOpenChange={setIsOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="lg:hidden">
+                    <Menu className="h-6 w-6" />
+                    <span className="sr-only">Toggle menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] sm:w-[400px] p-6">
+                  <SheetTitle className="text-xl font-bold text-gray-900 mb-4">
+                    Admin Menu
+                  </SheetTitle>
+                  <div className="flex flex-col space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+                        Gestione Team
+                      </h3>
+                      <div className="space-y-1">
+                        {navigationLeft.map((item) => (
+                          <NavLink key={item.name} item={item} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="pt-2 space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+                        Gestione Feedback
+                      </h3>
+                      <div className="space-y-1">
+                        {navigationRight.map((item) => (
+                          <NavLink key={item.name} item={item} />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="pt-2 space-y-2">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                      Gestione Feedback
-                    </h3>
-                    <div className="space-y-1">
-                      {navigationRight.map((item) => (
-                        <NavLink key={item.name} item={item} />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </SheetContent>
+              </Sheet>
+            </div>
           </>
         ) : (
           <>
@@ -121,6 +125,7 @@ export const AdminHeader = () => {
               {navigationRight.map((item) => (
                 <NavLink key={item.name} item={item} />
               ))}
+              <UserMenu />
             </div>
           </>
         )}
