@@ -1,74 +1,66 @@
-$projectRoot = "."
-$outputFile = "./INSTRUCTIONS/directory_structure.md"
+# Imposta il percorso del file di output
+$outputFile = "./.cursorrules"
 
 # Lista di cartelle da escludere
-$excludedFolders = @("node_modules", ".git", ".notes", ".next")
+$excludedFolders = @("node_modules", ".git", ".notes", ".next", "INSTRUCTIONS")
 
-# Funzione per generare la struttura di directory in formato compatto con gestione della lunghezza delle righe
-function Get-CompactDirectory {
+# Delimitatori per la sezione
+$startMarker = "<!-- START STRUCTURE -->"
+$endMarker = "<!-- END STRUCTURE -->"
+
+# Funzione per generare la struttura della directory in formato testo
+function Get-TreeStructure {
     param (
         [string]$path,
-        [int]$maxLineLength = 80
+        [string]$prefix = "",
+        [string]$branch = "|--",
+        [string]$lastBranch = "\--"
     )
 
     $result = @()
-    $currentLine = ""
+    $items = Get-ChildItem -Path $path -Force | Where-Object { -not ($excludedFolders -contains $_.Name) }
 
-    foreach ($item in Get-ChildItem -Path $path -Force) {
-        # Salta le cartelle escluse
-        if ($excludedFolders -contains $item.Name) {
-            continue
-        }
+    for ($i = 0; $i -lt $items.Count; $i++) {
+        $item = $items[$i]
+        $isLast = ($i -eq $items.Count - 1)
+
+        $currentPrefix = if ($isLast) { $lastBranch } else { $branch }
+        $nextPrefix = if ($isLast) { "    " } else { "|   " }
 
         if ($item.PSIsContainer) {
-            # Elabora la sottocartella in modo ricorsivo
-            $subItems = Get-CompactDirectory -path $item.FullName -maxLineLength $maxLineLength
-            $formatted = "$($item.Name)/{$subItems}"
+            # Per le cartelle, aggiungi il nome e chiama ricorsivamente
+            $result += "$prefix$currentPrefix $($item.Name)"
+            $result += Get-TreeStructure -path $item.FullName -prefix ($prefix + $nextPrefix)
         } else {
-            $formatted = "$($item.Name)"
-        }
-
-        # Aggiungi elemento alla riga corrente se non supera la lunghezza massima
-        if (($currentLine.Length + $formatted.Length + 2) -le $maxLineLength) {
-            if ($currentLine -ne "") {
-                $currentLine += ", "
-            }
-            $currentLine += $formatted
-        } else {
-            # Aggiungi la riga al risultato e inizia una nuova riga
-            $result += $currentLine
-            $currentLine = $formatted
+            # Per i file, aggiungi solo il nome
+            $result += "$prefix$currentPrefix $($item.Name)"
         }
     }
-
-    # Aggiungi l'ultima riga al risultato
-    if ($currentLine -ne "") {
-        $result += $currentLine
-    }
-
-    return $result -join "`n"
+    return $result
 }
 
-# Esegui la funzione e cattura l'output in una variabile
-$directoryStructure = Get-CompactDirectory -path $projectRoot
+# Genera la struttura della directory con ritorni a capo
+$directoryStructure = (Get-TreeStructure -path ".") -join "`n"
 
-# Prepara il contenuto in formato Markdown
-$markdownContent = @"
-# Current Directory Structure
-
-## Core Components
-
-\`\`\`
-$directoryStructure
-\`\`\`
-"@
-
-# (1) Crea la cartella .notes se non esiste
-if (!(Test-Path -Path ".notes")) {
-    New-Item -ItemType Directory -Path ".notes" | Out-Null
+# Controlla se il file esiste
+if (-Not (Test-Path -Path $outputFile)) {
+    # Crea il file se non esiste
+    New-Item -ItemType File -Path $outputFile -Force | Out-Null
 }
 
-# (2) Scrive il contenuto nel file
-$markdownContent | Out-File -FilePath $outputFile -Encoding UTF8
+# Leggi il contenuto del file
+$fileContent = Get-Content -Path $outputFile -Raw
 
-Write-Host "Directory structure updated in $($outputFile)"
+# Trova la sezione delimitata
+if ($fileContent -match [regex]::Escape($startMarker) -and $fileContent -match [regex]::Escape($endMarker)) {
+    # Aggiorna la sezione esistente
+    $updatedContent = $fileContent -replace "(?s)$([regex]::Escape($startMarker)).*?$([regex]::Escape($endMarker))", "$startMarker`n`n````$directoryStructure`n`````n$endMarker"
+} else {
+    # Aggiungi la sezione se non esiste
+    $updatedContent = $fileContent + "`n`n$startMarker`n`n````$directoryStructure`n`````n$endMarker"
+}
+
+# Scrivi il contenuto aggiornato nel file con ritorni a capo
+$updatedContent | Set-Content -Path $outputFile -Encoding UTF8
+
+Write-Host "Directory structure updated in $outputFile"
