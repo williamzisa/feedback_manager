@@ -10,8 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockRules, mockSessionsApi } from "@/lib/data/mock-sessions"
 import { Loader2 } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { queries } from "@/lib/supabase/queries"
+import { Session } from "@/lib/types/sessions"
 
 interface GenerateFeedbackDialogProps {
   sessionId: string
@@ -32,14 +34,38 @@ export function GenerateFeedbackDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Ottieni l'utente corrente
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: queries.users.getCurrentUser
+  });
+
   // Ottieni la sessione corrente
-  const session = mockSessionsApi.getAll().find(s => s.id === sessionId)
+  const { data: sessions } = useQuery<Session[]>({
+    queryKey: ['sessions', currentUser?.company],
+    queryFn: () => {
+      if (!currentUser?.company) throw new Error('Company non disponibile');
+      return queries.sessions.getByCompany(currentUser.company);
+    },
+    enabled: !!currentUser?.company
+  });
+
+  const session = sessions?.find(s => s.id === sessionId);
+  
+  // Ottieni le regole disponibili per la company
+  const { data: rules = [] } = useQuery({
+    queryKey: ['rules', currentUser?.company],
+    queryFn: () => {
+      if (!currentUser?.company) throw new Error('Company non disponibile');
+      return queries.rules.getByCompany(currentUser.company);
+    },
+    enabled: !!currentUser?.company
+  });
   
   // Filtra le regole disponibili (solo quelle della sessione e non ancora generate)
-  const availableRules = session?.regole
-    ?.filter(ruleId => !generatedRules.includes(ruleId))
-    .map(ruleId => mockRules.find(r => r.id === ruleId))
-    .filter(Boolean) || []
+  const sessionRules = session?.session_rules?.map(sr => sr.rule?.id) || [];
+  const availableRules = rules
+    .filter(rule => sessionRules.includes(rule.id) && !generatedRules.includes(rule.id));
 
   const handleGenerate = async () => {
     if (!selectedRule) {
@@ -51,8 +77,8 @@ export function GenerateFeedbackDialog({
       setIsLoading(true)
       setError(null)
 
-      // Genera i feedback per la regola selezionata
-      await mockSessionsApi.generateFeedback(sessionId, selectedRule)
+      // TODO: Implementare la generazione dei feedback per la regola selezionata
+      // await queries.feedbacks.generateForRule(sessionId, selectedRule);
 
       onSuccess(selectedRule)
       onOpenChange(false)
@@ -88,8 +114,8 @@ export function GenerateFeedbackDialog({
               </SelectTrigger>
               <SelectContent>
                 {availableRules.map((rule) => (
-                  <SelectItem key={rule?.id} value={rule?.id || ""}>
-                    {rule?.name}
+                  <SelectItem key={rule.id} value={rule.id}>
+                    {rule.name}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -293,6 +293,9 @@ feedback_manager
 └─ tsconfig.json
 
 ```
+## Important Notice!
+- Effettua le modifiche grafiche e di design seguendo attentamente le istruzioni, prendi sempre spunto dalle pagine esistenti
+e correlate, prenditi la libertà di decidere autonomamente modifiche alla UI o al layout solo se esplicitamente richiesto.
 
 ## Requirements
 - Supabase Auth is used for authentication.

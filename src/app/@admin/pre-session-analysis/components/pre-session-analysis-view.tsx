@@ -10,14 +10,46 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PreSessionStats } from "@/lib/types/feedbacks";
-import { mockSessionsApi } from "@/lib/data/mock-sessions";
 import { Badge } from "@/components/ui/badge";
+import { queries } from "@/lib/supabase/queries";
+import { Session } from "@/lib/types/sessions";
+import { useQuery } from "@tanstack/react-query";
+import { PreSessionFeedbacksTable } from "./pre-session-feedbacks-table";
 
 export function PreSessionAnalysisView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
-  const allSessions = mockSessionsApi.getAll();
-  const preparationSessions = allSessions.filter(
-    (s) => s.stato === "In preparazione"
+  
+  // Ottieni l'utente corrente
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: queries.users.getCurrentUser
+  });
+
+  // Ottieni le sessioni per la company dell'utente
+  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<Session[]>({
+    queryKey: ['sessions', currentUser?.company],
+    queryFn: () => {
+      if (!currentUser?.company) throw new Error('Company non disponibile');
+      return queries.sessions.getByCompany(currentUser.company);
+    },
+    enabled: !!currentUser?.company
+  });
+
+  // Ottieni le statistiche per la sessione selezionata
+  const { data: stats, isLoading: isLoadingStats } = useQuery<PreSessionStats>({
+    queryKey: ['sessionStats', selectedSessionId],
+    queryFn: () => queries.sessionStats.getStats(selectedSessionId),
+    enabled: !!selectedSessionId,
+    initialData: {
+      totalFeedbacks: 0,
+      avgFeedbacksPerUser: 0,
+      usersWithNoFeedbacks: 0,
+      totalUsers: 0
+    }
+  });
+
+  const preparationSessions = sessions.filter(
+    (s) => s.status === "In preparazione"
   );
 
   // Seleziona la prima sessione in preparazione all'avvio
@@ -27,17 +59,19 @@ export function PreSessionAnalysisView() {
     }
   }, [preparationSessions, selectedSessionId]);
 
-  // Statistiche statiche (da implementare con i dati reali)
-  const stats: PreSessionStats = {
-    totalFeedbacks: 2365,
-    avgFeedbacksPerUser: 38.7,
-    usersWithNoFeedbacks: 33,
-    totalUsers: 61,
-  };
-
   const handleSessionChange = (sessionId: string) => {
     setSelectedSessionId(sessionId);
   };
+
+  if (isLoadingSessions) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">Caricamento sessioni...</div>
+      </div>
+    );
+  }
+
+  const selectedSession = sessions.find(s => s.id === selectedSessionId);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -74,14 +108,14 @@ export function PreSessionAnalysisView() {
               <SelectContent>
                 {preparationSessions.map((session) => (
                   <SelectItem key={session.id} value={session.id}>
-                    {session.nomeSessione}
+                    {session.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {selectedSessionId && (
+            {selectedSession && (
               <div className="mt-2">
-                <Badge variant="default">In Preparazione</Badge>
+                <Badge variant="default">{selectedSession.status}</Badge>
               </div>
             )}
           </div>
@@ -90,21 +124,28 @@ export function PreSessionAnalysisView() {
         {/* Stats Section */}
         <div className="space-y-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <StatCard title="FEEDBACK TOTALI" value={stats.totalFeedbacks} />
+            <StatCard 
+              title="FEEDBACK TOTALI" 
+              value={stats.totalFeedbacks}
+              isLoading={isLoadingStats}
+            />
             <StatCard
               title="MEDIA PER UTENTE"
               value={stats.avgFeedbacksPerUser}
               className="bg-blue-100"
+              isLoading={isLoadingStats}
             />
             <StatCard
               title="UTENTI SENZA FEEDBACK"
               value={stats.usersWithNoFeedbacks}
               className="bg-yellow-100"
+              isLoading={isLoadingStats}
             />
             <StatCard
               title="UTENTI TOTALI"
               value={stats.totalUsers}
               className="bg-green-100"
+              isLoading={isLoadingStats}
             />
           </div>
 
@@ -116,7 +157,9 @@ export function PreSessionAnalysisView() {
                   <p className="text-sm text-gray-500">Analisi Feedback</p>
                 </div>
                 <div className="p-4 overflow-x-auto">
-                  {/* Pre Session Analysis Table/Content */}
+                  <PreSessionFeedbacksTable 
+                    sessionId={selectedSessionId}
+                  />
                 </div>
               </div>
             </div>

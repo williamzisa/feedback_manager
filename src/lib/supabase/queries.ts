@@ -4,6 +4,7 @@ import type { Level } from '../types/levels'
 import type { TeamCreateData, TeamUpdateData } from '../types/teams'
 import type { Database } from './database.types'
 import type { RuleInsert, RuleUpdate } from '../types/rules'
+import type { PreSessionStats } from '../types/feedbacks'
 
 export const queries = {
   // Users
@@ -1375,6 +1376,129 @@ export const queries = {
         return data || [];
       } catch (err) {
         console.error('Errore nel recupero delle sessioni:', err);
+        throw err;
+      }
+    }
+  },
+
+  // Feedbacks
+  feedbacks: {
+    getBySession: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('feedbacks')
+          .select(`
+            *,
+            sender:users!feedbacks_sender_fkey (
+              id,
+              name,
+              surname
+            ),
+            receiver:users!feedbacks_receiver_fkey (
+              id,
+              name,
+              surname
+            ),
+            question:questions (
+              id,
+              description,
+              type
+            ),
+            rule:rules (
+              id,
+              name,
+              number
+            )
+          `)
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Errore nel recupero dei feedback:', error);
+          throw error;
+        }
+
+        return data.map(feedback => ({
+          id: feedback.id,
+          sender: feedback.sender ? `${feedback.sender.name} ${feedback.sender.surname}` : '',
+          receiver: feedback.receiver ? `${feedback.receiver.name} ${feedback.receiver.surname}` : '',
+          question: feedback.question?.description || '',
+          rule: feedback.rule?.number || 0,
+          tags: [], // TODO: Implementare i tag quando disponibili
+          value: feedback.value,
+          comment: feedback.comment
+        }));
+      } catch (err) {
+        console.error('Errore nel recupero dei feedback:', err);
+        throw err;
+      }
+    },
+
+    generateForRule: async (
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      sessionId: string, 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ruleId: string
+    ) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // TODO: Implementare la generazione dei feedback per una regola
+        throw new Error('Non implementato');
+      } catch (err) {
+        console.error('Errore nella generazione dei feedback:', err);
+        throw err;
+      }
+    }
+  },
+
+  // Session Stats
+  sessionStats: {
+    getStats: async (sessionId: string): Promise<PreSessionStats> => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Ottieni il numero totale di feedback
+        const { count: totalFeedbacks, error: feedbackError } = await supabase
+          .from('feedbacks')
+          .select('*', { count: 'exact', head: true })
+          .eq('session_id', sessionId);
+
+        if (feedbackError) throw feedbackError;
+
+        // Ottieni il numero di utenti coinvolti nella sessione
+        const { data: userSessions, error: userSessionsError } = await supabase
+          .from('user_sessions')
+          .select('user_id')
+          .eq('session_id', sessionId);
+
+        if (userSessionsError) throw userSessionsError;
+
+        const totalUsers = userSessions.length;
+
+        // Ottieni il numero di utenti senza feedback
+        const { data: usersWithFeedback, error: usersError } = await supabase
+          .from('feedbacks')
+          .select('receiver')
+          .eq('session_id', sessionId)
+          .not('receiver', 'is', null);
+
+        if (usersError) throw usersError;
+
+        const uniqueUsersWithFeedback = new Set(usersWithFeedback.map(f => f.receiver)).size;
+        const usersWithNoFeedbacks = totalUsers - uniqueUsersWithFeedback;
+
+        // Calcola la media di feedback per utente
+        const avgFeedbacksPerUser = totalUsers > 0 ? (totalFeedbacks || 0) / totalUsers : 0;
+
+        return {
+          totalFeedbacks: totalFeedbacks || 0,
+          avgFeedbacksPerUser: Number(avgFeedbacksPerUser.toFixed(1)),
+          usersWithNoFeedbacks,
+          totalUsers
+        };
+      } catch (err) {
+        console.error('Errore nel calcolo delle statistiche:', err);
         throw err;
       }
     }

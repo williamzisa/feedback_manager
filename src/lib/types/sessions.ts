@@ -42,4 +42,4 @@ export interface SessionFormData {
   status?: string
 }
 
-export type SessionStatus = 'In preparazione' | 'In corso' | 'Conclusa' 
+export type SessionStatus = 'In preparazione' | 'In corso' | 'Conclusa' | string 

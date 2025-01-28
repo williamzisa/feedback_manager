@@ -28,6 +28,7 @@ interface SessionFormProps {
   isLoading?: boolean
   initialData?: Session
   mode?: 'create' | 'edit'
+  readOnlyFields?: string[]
 }
 
 export function SessionForm({
@@ -35,7 +36,8 @@ export function SessionForm({
   onDelete,
   isLoading = false,
   initialData,
-  mode = 'create'
+  mode = 'create',
+  readOnlyFields = []
 }: SessionFormProps) {
   // Otteniamo la company dell'utente corrente
   const { data: currentUser } = useQuery({
@@ -57,10 +59,15 @@ export function SessionForm({
     enabled: !!currentUser?.company
   })
 
+  const formatDateForInput = (date: string | null | undefined) => {
+    if (!date) return null
+    return new Date(date).toISOString().split('T')[0]
+  }
+
   const defaultValues: Partial<SessionFormData> = {
     name: initialData?.name || '',
-    start_time: initialData?.start_time || null,
-    end_time: initialData?.end_time || null,
+    start_time: formatDateForInput(initialData?.start_time),
+    end_time: formatDateForInput(initialData?.end_time),
     clusters: initialData?.session_clusters?.map(sc => sc.cluster.id) || [],
     rules: initialData?.session_rules?.map(sr => sr.rule.id) || []
   }
@@ -87,109 +94,113 @@ export function SessionForm({
           )}
         />
 
-        {mode === 'create' && (
-          <>
-            <FormField
-              control={form.control}
-              name="clusters"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cluster</FormLabel>
-                  <div className="border rounded-md p-4">
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {field.value.map((clusterId) => {
-                        const cluster = clusters.find(c => c.id === clusterId)
-                        return cluster ? (
-                          <Badge key={cluster.id} variant="secondary" className="gap-1">
-                            {cluster.name}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() => {
-                                field.onChange(field.value.filter(id => id !== cluster.id))
-                              }}
-                            />
-                          </Badge>
-                        ) : null
-                      })}
-                    </div>
-                    <Select
-                      value="none"
-                      onValueChange={(value) => {
-                        if (value !== "none" && !field.value.includes(value)) {
-                          field.onChange([...field.value, value])
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Aggiungi cluster" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clusters.map((cluster) => (
-                          <SelectItem key={cluster.id} value={cluster.id}>
-                            {cluster.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="clusters"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cluster</FormLabel>
+              <div className={`border rounded-md ${readOnlyFields.includes('clusters') ? 'p-2 bg-muted' : 'p-4'}`}>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {field.value.map((clusterId) => {
+                    const cluster = clusters.find(c => c.id === clusterId)
+                    return cluster ? (
+                      <Badge key={cluster.id} variant="secondary" className={readOnlyFields.includes('clusters') ? '' : 'gap-1'}>
+                        {cluster.name}
+                        {!readOnlyFields.includes('clusters') && (
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => {
+                              field.onChange(field.value.filter(id => id !== cluster.id))
+                            }}
+                          />
+                        )}
+                      </Badge>
+                    ) : null
+                  })}
+                </div>
+                {!readOnlyFields.includes('clusters') && (
+                  <Select
+                    value="none"
+                    onValueChange={(value) => {
+                      if (value !== "none" && !field.value.includes(value)) {
+                        field.onChange([...field.value, value])
+                      }
+                    }}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Aggiungi cluster" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {clusters.map((cluster) => (
+                        <SelectItem key={cluster.id} value={cluster.id}>
+                          {cluster.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="rules"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Regole</FormLabel>
-                  <div className="border rounded-md p-4">
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {field.value.map((ruleId) => {
-                        const rule = rules.find(r => r.id === ruleId)
-                        return rule ? (
-                          <Badge key={rule.id} variant="secondary" className="gap-1">
-                            {rule.name}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() => {
-                                field.onChange(field.value.filter(id => id !== rule.id))
-                              }}
-                            />
-                          </Badge>
-                        ) : null
-                      })}
-                    </div>
-                    <Select
-                      value="none"
-                      onValueChange={(value) => {
-                        if (value !== "none" && !field.value.includes(value)) {
-                          field.onChange([...field.value, value])
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Aggiungi regola" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {rules.map((rule) => (
-                          <SelectItem key={rule.id} value={rule.id}>
-                            {rule.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
-        )}
+        <FormField
+          control={form.control}
+          name="rules"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Regole</FormLabel>
+              <div className={`border rounded-md ${readOnlyFields.includes('rules') ? 'p-2 bg-muted' : 'p-4'}`}>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {field.value.map((ruleId) => {
+                    const rule = rules.find(r => r.id === ruleId)
+                    return rule ? (
+                      <Badge key={rule.id} variant="secondary" className={readOnlyFields.includes('rules') ? '' : 'gap-1'}>
+                        {rule.name}
+                        {!readOnlyFields.includes('rules') && (
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => {
+                              field.onChange(field.value.filter(id => id !== rule.id))
+                            }}
+                          />
+                        )}
+                      </Badge>
+                    ) : null
+                  })}
+                </div>
+                {!readOnlyFields.includes('rules') && (
+                  <Select
+                    value="none"
+                    onValueChange={(value) => {
+                      if (value !== "none" && !field.value.includes(value)) {
+                        field.onChange([...field.value, value])
+                      }
+                    }}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Aggiungi regola" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {rules.map((rule) => (
+                        <SelectItem key={rule.id} value={rule.id}>
+                          {rule.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
@@ -255,10 +266,8 @@ export function SessionForm({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Salvataggio...
               </>
-            ) : mode === 'create' ? (
-              'Crea Sessione'
             ) : (
-              'Salva'
+              'Salva Sessione'
             )}
           </Button>
         </div>

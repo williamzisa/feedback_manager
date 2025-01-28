@@ -10,34 +10,67 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PreSessionStats } from "@/lib/types/feedbacks";
-import { mockSessionsApi } from "@/lib/data/mock-sessions";
+import { queries } from "@/lib/supabase/queries";
 import { Badge } from "@/components/ui/badge";
+import type { Database } from "@/lib/supabase/database.types";
 
 export type SessionStatus = 'In preparazione' | 'In corso' | 'Conclusa';
+type Session = Database['public']['Tables']['sessions']['Row'];
 
 export function FeedbackManagementView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("In corso");
-  const sessions = mockSessionsApi
-    .getAll()
-    .filter((s) => s.status === "In corso" || s.status === "Conclusa");
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [stats, setStats] = useState<PreSessionStats>({
+    totalFeedbacks: 0,
+    avgFeedbacksPerUser: 0,
+    usersWithNoFeedbacks: 0,
+    totalUsers: 0,
+  });
 
-  // Seleziona la prima sessione all'avvio
+  // Carica le sessioni all'avvio
   useEffect(() => {
-    if (sessions.length > 0 && !selectedSessionId) {
-      const firstSession = sessions[0];
-      setSelectedSessionId(firstSession.id);
-      setSessionStatus(mapSessionStatus(firstSession.status));
-    }
-  }, [sessions, selectedSessionId]);
+    const loadSessions = async () => {
+      try {
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+        
+        const sessionsData = await queries.sessions.getByCompany(currentUser.company);
+        const filteredSessions = sessionsData.filter(s => 
+          s.status === "In corso" || s.status === "Conclusa"
+        );
+        setSessions(filteredSessions);
 
-  // Statistiche statiche (da implementare con i dati reali)
-  const stats: PreSessionStats = {
-    totalFeedbacks: 2365,
-    avgFeedbacksPerUser: 38.7,
-    usersWithNoFeedbacks: 33,
-    totalUsers: 61,
-  };
+        if (filteredSessions.length > 0 && !selectedSessionId) {
+          const firstSession = filteredSessions[0];
+          setSelectedSessionId(firstSession.id);
+          setSessionStatus(mapSessionStatus(firstSession.status));
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento delle sessioni:', error);
+      }
+    };
+
+    loadSessions();
+  }, [selectedSessionId]);
+
+  // Carica le statistiche quando viene selezionata una sessione
+  useEffect(() => {
+    const loadStats = async () => {
+      if (selectedSessionId) {
+        try {
+          const sessionStats = await queries.sessionStats.getStats(selectedSessionId);
+          setStats(sessionStats);
+        } catch (error) {
+          console.error('Errore nel caricamento delle statistiche:', error);
+        }
+      }
+    };
+
+    loadStats();
+  }, [selectedSessionId]);
 
   const handleSessionChange = (sessionId: string) => {
     const session = sessions.find((s) => s.id === sessionId);

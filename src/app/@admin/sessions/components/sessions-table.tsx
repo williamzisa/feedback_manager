@@ -8,7 +8,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Edit2 } from 'lucide-react'
+import { Edit2, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 interface SessionsTableProps {
   sessions: Session[]
@@ -51,7 +52,8 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
           <TableHead>Stato</TableHead>
           <TableHead>Cluster</TableHead>
           <TableHead>Regole</TableHead>
-          <TableHead className="w-[100px]">Azioni</TableHead>
+          <TableHead></TableHead>
+          <TableHead></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -63,7 +65,17 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
             <TableCell>{session.status}</TableCell>
             <TableCell>{getClusterNames(session)}</TableCell>
             <TableCell>{getRuleNames(session)}</TableCell>
-            <TableCell>
+            <TableCell className="text-right pr-2">
+              {session.status === 'In preparazione' && (
+                <Link href={`/admin/pre-session-analysis?session=${session.id}`}>
+                  <Button variant="outline" size="sm" className="h-8 px-2 text-sm">
+                    Impostazioni sessione
+                    <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </Link>
+              )}
+            </TableCell>
+            <TableCell className="w-[50px]">
               <Button
                 variant="ghost"
                 size="icon"

@@ -1,13 +1,15 @@
-export interface Feedback {
+export type Feedback = {
   id: string
   sender: string
   receiver: string
   question: string
-  tags: string[]
   rule: number
+  tags: string[]
+  value: number | null
+  comment: string | null
 }
 
-export interface PreSessionStats {
+export type PreSessionStats = {
   totalFeedbacks: number
   avgFeedbacksPerUser: number
   usersWithNoFeedbacks: number
