@@ -1383,6 +1383,66 @@ export const queries = {
         console.error('Errore nel recupero delle sessioni:', err);
         throw err;
       }
+    },
+
+    getUserSessions: async (userId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
+        const { data, error } = await supabase
+          .from('sessions')
+          .select(`
+            *,
+            session_clusters!inner (
+              id,
+              cluster:clusters!inner (
+                id,
+                name,
+                team_clusters!inner (
+                  id,
+                  team:teams!inner (
+                    id,
+                    user_teams!inner (
+                      id,
+                      user_id
+                    )
+                  )
+                )
+              )
+            )
+          `)
+          .eq('company', currentUser.company)
+          .neq('status', 'In preparazione')
+          .eq('session_clusters.cluster.team_clusters.team.user_teams.user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Errore nel recupero delle sessioni dell\'utente:', error);
+          throw error;
+        }
+
+        // Trasformiamo i dati nel formato atteso dal tipo Session
+        const formattedData = data?.map(session => ({
+          ...session,
+          session_clusters: session.session_clusters.map(sc => ({
+            id: sc.id,
+            cluster: {
+              id: sc.cluster.id,
+              name: sc.cluster.name
+            }
+          }))
+        })) || [];
+
+        return formattedData;
+      } catch (err) {
+        console.error('Errore nel recupero delle sessioni dell\'utente:', err);
+        throw err;
+      }
     }
   },
 
