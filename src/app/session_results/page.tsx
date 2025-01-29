@@ -26,7 +26,7 @@ function SessionResultsContent() {
     <div className="min-h-screen bg-gray-50">
       <Header title={userName ? userName : 'I miei Risultati'} />
 
-      <main className="container mx-auto max-w-2xl px-4 py-6">
+      <main className="container mx-auto max-w-2xl px-4 py-6 pb-32 mt-[60px]">
         {/* Session Selector */}
         <div className="mb-6">
           <Select value={selectedSession} onValueChange={setSelectedSession}>
@@ -69,7 +69,7 @@ function SessionResultsContent() {
         </div>
 
         {/* Skills Cards */}
-        <div className="space-y-4">
+        <div className="space-y-4 mb-6">
           {/* Soft Skills */}
           <div className="bg-[#FFF8F0] rounded-[20px] p-6">
             <div className="flex justify-between items-center mb-4">
@@ -107,14 +107,16 @@ function SessionResultsContent() {
           </div>
         </div>
 
-        {/* View Details Button */}
-        <div className="mt-6">
-          <Button 
-            className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white py-6 rounded-full text-lg"
-            onClick={handleViewDetails}
-          >
-            Vedi Dettaglio
-          </Button>
+        {/* View Details Button - Fixed at bottom */}
+        <div className="fixed bottom-[80px] left-0 right-0 px-4 py-4 bg-gray-50">
+          <div className="container mx-auto max-w-2xl">
+            <Button 
+              className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white py-6 rounded-full text-lg"
+              onClick={handleViewDetails}
+            >
+              Vedi Dettaglio
+            </Button>
+          </div>
         </div>
       </main>
 

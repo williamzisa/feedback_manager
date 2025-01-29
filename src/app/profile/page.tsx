@@ -124,7 +124,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container max-w-2xl px-4 py-8">
+      <div className="container max-w-2xl px-4 py-8 mt-[60px]">
         <div className="mb-8 flex items-center gap-4">
           <Button
             variant="ghost"

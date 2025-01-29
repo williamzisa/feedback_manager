@@ -173,8 +173,7 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="Sessione di valutazione" />
-
-      <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32">
+      <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32 mt-[60px]">
         {/* Session Info */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-2">

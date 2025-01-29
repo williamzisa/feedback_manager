@@ -46,9 +46,13 @@ function FeedbackContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title={pageTitle} />
+      <Header 
+        title={pageTitle} 
+        showBackButton={true}
+        backUrl="/session_results"
+      />
 
-      <main className="container mx-auto max-w-2xl px-4 py-6">
+      <main className="container mx-auto max-w-2xl px-4 py-6 pb-32 mt-[60px]">
         {/* Session Selector */}
         <div className="mb-4">
           <Select value={selectedSession} onValueChange={setSelectedSession}>

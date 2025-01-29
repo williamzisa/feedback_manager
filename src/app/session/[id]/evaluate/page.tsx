@@ -610,7 +610,7 @@ function EvaluateContent() {
         backUrl={`/session/${sessionId}`}
       />
 
-      <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32">
+      <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32 mt-[60px]">
         {/* Person Selection */}
         <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-3 sm:mb-4 relative">
           <div

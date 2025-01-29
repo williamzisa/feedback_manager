@@ -76,7 +76,7 @@ export default function PeoplePage() {
       <Header title="Le mie Persone" />
 
       {/* Search Bar */}
-      <div className="px-4 py-4 bg-white border-b">
+      <div className="fixed top-[60px] left-0 right-0 z-40 px-4 py-4 bg-white border-b">
         <div className="relative max-w-2xl mx-auto">
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,7 +94,7 @@ export default function PeoplePage() {
       </div>
 
       {/* People List */}
-      <main className="container mx-auto max-w-2xl px-4 pb-24">
+      <main className="container mx-auto max-w-2xl px-4 pb-24 mt-[140px]">
         <div className="space-y-3 mt-4">
           {filteredMentees.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
