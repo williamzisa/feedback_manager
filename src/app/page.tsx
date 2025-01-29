@@ -49,7 +49,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header title="Home" />
-        <main className="container mx-auto max-w-2xl px-4 py-8">
+        <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32">
           <div className="flex justify-center items-center">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           </div>
@@ -63,7 +63,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header title="Home" />
-        <main className="container mx-auto max-w-2xl px-4 py-8">
+        <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32">
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
             {error}
           </div>
@@ -78,7 +78,7 @@ export default function HomePage() {
       <Header title="Home" />
 
       {/* Main Content */}
-      <main className="container mx-auto max-w-2xl px-4 py-8 pb-32 space-y-6">
+      <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32 space-y-6">
         {/* Le Sessioni */}
         <div className="bg-white rounded-[20px] shadow-sm p-6">
           <h2 className="text-[24px] font-bold text-gray-900 mb-2">Le Sessioni</h2>

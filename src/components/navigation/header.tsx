@@ -4,15 +4,16 @@ import { UserMenu } from "./user-menu";
 interface HeaderProps {
   title: string;
   showBackButton?: boolean;
+  backUrl?: string;
 }
 
-export default function Header({ title, showBackButton = false }: HeaderProps) {
+export default function Header({ title, showBackButton = false, backUrl = "/session" }: HeaderProps) {
   return (
     <header className="border-b bg-white">
       <div className="flex items-center justify-between px-4 py-4">
         {showBackButton ? (
           <Link
-            href="/session"
+            href={backUrl}
             className="w-10 h-10 flex items-center justify-center text-gray-600"
           >
             <svg
