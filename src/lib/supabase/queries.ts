@@ -243,6 +243,49 @@ export const queries = {
         throw new Error(err instanceof Error ? err.message : 'Errore sconosciuto nel recupero degli utenti');
       }
     },
+
+    getMentees: async (mentorId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select(`
+            *,
+            user_sessions (
+              val_overall,
+              val_gap,
+              level_standard,
+              created_at
+            )
+          `)
+          .eq('mentor', mentorId)
+          .eq('status', 'active')
+          .order('name');
+
+        if (error) {
+          console.error('Errore nel recupero dei mentee:', error.message);
+          throw new Error(`Errore nel recupero dei mentee: ${error.message}`);
+        }
+
+        // Ordiniamo le sessioni di ogni utente per data
+        const processedData = data?.map(user => ({
+          ...user,
+          user_sessions: user.user_sessions?.sort((a, b) => {
+            if (!a.created_at) return 1;
+            if (!b.created_at) return -1;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          })
+        }));
+
+        return { data: processedData, error: null };
+      } catch (err) {
+        console.error('Errore nel recupero dei mentee:', err);
+        return { 
+          data: null, 
+          error: err instanceof Error ? err.message : 'Errore sconosciuto nel recupero dei mentee'
+        };
+      }
+    },
   },
 
   // Companies
