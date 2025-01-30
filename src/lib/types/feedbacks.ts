@@ -7,6 +7,7 @@ export type Feedback = {
   tags: string[]
   value: number | null
   comment: string | null
+  questionType: string
 }
 
 export type PreSessionStats = {

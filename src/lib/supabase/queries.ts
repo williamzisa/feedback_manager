@@ -4,7 +4,7 @@ import type { Level } from '../types/levels'
 import type { TeamCreateData, TeamUpdateData } from '../types/teams'
 import type { Database } from './database.types'
 import type { RuleInsert, RuleUpdate } from '../types/rules'
-import type { PreSessionStats } from '../types/feedbacks'
+import type { PreSessionStats, Feedback } from '../types/feedbacks'
 
 export const queries = {
   // Users
@@ -1486,7 +1486,207 @@ export const queries = {
         console.error('Errore nel recupero delle sessioni dell\'utente:', err);
         throw err;
       }
-    }
+    },
+
+    generateUserSessions: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // 1. Otteniamo tutti gli utenti coinvolti nella sessione attraverso le relazioni
+        const { data: sessionData, error: usersError } = await supabase
+          .from('sessions')
+          .select(`
+            id,
+            session_clusters!inner (
+              cluster:clusters!inner (
+                id,
+                team_clusters!inner (
+                  team:teams!inner (
+                    id,
+                    user_teams!inner (
+                      user:users!inner (
+                        id,
+                        level (
+                          id,
+                          role,
+                          step,
+                          standard,
+                          execution_weight,
+                          strategy_weight,
+                          soft_weight
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          `)
+          .eq('id', sessionId)
+          .single();
+
+        if (usersError || !sessionData) {
+          console.error('Errore nel recupero della sessione:', usersError);
+          throw usersError || new Error('Sessione non trovata');
+        }
+
+        // Estraiamo gli utenti unici con i loro livelli
+        const userMap = new Map<string, {
+          userId: string,
+          level: {
+            role: string;
+            step: number;
+            standard: number;
+            execution_weight: number;
+            strategy_weight: number;
+            soft_weight: number;
+          }
+        }>();
+
+        sessionData.session_clusters.forEach(sc => {
+          sc.cluster.team_clusters.forEach(tc => {
+            tc.team?.user_teams.forEach(ut => {
+              if (!ut.user) return;
+              const level = ut.user.level;
+              if (level?.role && typeof level.role === 'string') {
+                userMap.set(ut.user.id, {
+                  userId: ut.user.id,
+                  level: {
+                    role: level.role,
+                    step: level.step,
+                    standard: level.standard,
+                    execution_weight: level.execution_weight,
+                    strategy_weight: level.strategy_weight,
+                    soft_weight: level.soft_weight
+                  }
+                });
+              }
+            });
+          });
+        });
+
+        if (userMap.size === 0) {
+          console.warn('Nessun utente trovato per la sessione');
+          return [];
+        }
+
+        // 2. Otteniamo tutti i feedback della sessione
+        const { data: feedbacks, error: feedbacksError } = await supabase
+          .from('feedbacks')
+          .select(`
+            value,
+            sender,
+            receiver,
+            question:questions!inner (
+              id,
+              type
+            )
+          `)
+          .eq('session_id', sessionId)
+          .not('value', 'is', null)
+          .gt('value', 0);
+
+        if (feedbacksError) {
+          console.error('Errore nel recupero dei feedback:', feedbacksError);
+          throw feedbacksError;
+        }
+
+        console.log('Numero totale di feedback trovati:', feedbacks.length);
+        console.log('Esempio di feedback:', JSON.stringify(feedbacks[0], null, 2));
+
+        // 3. Processiamo i feedback per ogni utente
+        const userSessionsData = Array.from(userMap.values()).map(({ userId, level }) => {
+          // Type guard per i feedback con valore valido
+          const hasValidValue = (f: typeof feedbacks[0]): f is (typeof feedbacks[0] & { value: number }) => 
+            f.value !== null && f.value > 0;
+
+          const calculateAverage = (isSelf: boolean, type: string) => {
+            const relevantFeedbacks = feedbacks
+              .filter(hasValidValue)
+              .filter(f => 
+                f.receiver === userId && 
+                f.question?.type?.toLowerCase() === type.toLowerCase() &&
+                (isSelf ? f.sender === userId : f.sender !== userId)
+              );
+            
+            if (relevantFeedbacks.length === 0) return null;
+            
+            const sum = relevantFeedbacks.reduce((acc, f) => acc + f.value, 0);
+            return sum / relevantFeedbacks.length;
+          };
+
+          // Calcolo medie per tipo
+          const val_execution = calculateAverage(false, 'EXECUTION') || null;
+          const val_strategy = calculateAverage(false, 'STRATEGY') || null;
+          const val_soft = calculateAverage(false, 'SOFT') || null;
+          const self_execution = calculateAverage(true, 'EXECUTION') || null;
+          const self_strategy = calculateAverage(true, 'STRATEGY') || null;
+          const self_soft = calculateAverage(true, 'SOFT') || null;
+
+          // Calcolo media ponderata
+          const calculateWeightedAverage = (vals: (number | null)[], weights: number[]) => {
+            const validPairs = vals.map((v, i) => ({ val: v, weight: weights[i] }))
+              .filter((p): p is { val: number; weight: number } => p.val !== null && p.val > 0);
+            
+            if (validPairs.length === 0) return null;
+            
+            const weightedSum = validPairs.reduce((sum, p) => sum + p.val * p.weight, 0);
+            const totalWeight = validPairs.reduce((sum, p) => sum + p.weight, 0);
+            
+            return totalWeight > 0 ? weightedSum / totalWeight : null;
+          };
+
+          // Calcolo medie ponderate
+          const val_overall = calculateWeightedAverage(
+            [val_execution, val_strategy, val_soft],
+            [level.execution_weight, level.strategy_weight, level.soft_weight]
+          );
+
+          const self_overall = calculateWeightedAverage(
+            [self_execution, self_strategy, self_soft],
+            [level.execution_weight, level.strategy_weight, level.soft_weight]
+          );
+
+          // Calcolo gap
+          const val_gap = val_overall !== null && level.standard !== 0
+            ? ((val_overall - level.standard) / level.standard)
+            : null;
+
+          return {
+            session_id: sessionId,
+            user_id: userId,
+            level_name: `${level.role} ${level.step}`,
+            level_standard: level.standard,
+            weight_execution: level.execution_weight,
+            weight_strategy: level.strategy_weight,
+            weight_soft: level.soft_weight,
+            val_execution,
+            val_strategy,
+            val_soft,
+            val_overall,
+            self_execution,
+            self_strategy,
+            self_soft,
+            self_overall,
+            val_gap
+          };
+        });
+
+        // 4. Inseriamo tutti gli user_sessions
+        const { error: insertError } = await supabase
+          .from('user_sessions')
+          .insert(userSessionsData);
+
+        if (insertError) {
+          console.error('Errore nell\'inserimento degli user_sessions:', insertError);
+          throw insertError;
+        }
+
+        return userSessionsData;
+      } catch (err) {
+        console.error('Errore nella generazione degli user_sessions:', err);
+        throw err;
+      }
+    },
   },
 
   // Feedbacks
@@ -1497,26 +1697,17 @@ export const queries = {
         const { data, error } = await supabase
           .from('feedbacks')
           .select(`
-            *,
-            sender:users!feedbacks_sender_fkey (
-              id,
-              name,
-              surname
-            ),
-            receiver:users!feedbacks_receiver_fkey (
-              id,
-              name,
-              surname
-            ),
-            question:questions (
+            id,
+            sender,
+            receiver,
+            question_id,
+            value,
+            comment,
+            rule_id,
+            questions!feedbacks_question_id_fkey (
               id,
               description,
               type
-            ),
-            rule:rules (
-              id,
-              name,
-              number
             )
           `)
           .eq('session_id', sessionId)
@@ -1527,16 +1718,20 @@ export const queries = {
           throw error;
         }
 
-        return data.map(feedback => ({
+        // Map dei risultati al tipo Feedback
+        const mappedFeedbacks: Feedback[] = data?.map(feedback => ({
           id: feedback.id,
-          sender: feedback.sender ? `${feedback.sender.name} ${feedback.sender.surname}` : '',
-          receiver: feedback.receiver ? `${feedback.receiver.name} ${feedback.receiver.surname}` : '',
-          question: feedback.question?.description || '',
-          rule: feedback.rule?.number || 0,
-          tags: [], // TODO: Implementare i tag quando disponibili
+          sender: feedback.sender || '',
+          receiver: feedback.receiver || '',
+          question: feedback.questions?.description || '',
           value: feedback.value,
-          comment: feedback.comment
-        }));
+          comment: feedback.comment,
+          rule: Number(feedback.rule_id) || 0,
+          tags: [], // TODO: implementare i tags quando necessario
+          questionType: feedback.questions?.type || 'strategy'
+        })) || [];
+
+        return mappedFeedbacks;
       } catch (err) {
         console.error('Errore nel recupero dei feedback:', err);
         throw err;
@@ -1607,6 +1802,44 @@ export const queries = {
         };
       } catch (err) {
         console.error('Errore nel calcolo delle statistiche:', err);
+        throw err;
+      }
+    }
+  },
+
+  // User Sessions
+  userSessions: {
+    getAll: async () => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('user_sessions')
+          .select(`
+            *,
+            session:sessions (
+              id,
+              name
+            ),
+            user:users (
+              id,
+              name,
+              surname
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Errore nel recupero degli user_sessions:', error);
+          throw error;
+        }
+
+        return data.map(us => ({
+          ...us,
+          session_name: us.session?.name || '',
+          user_name: us.user ? `${us.user.name} ${us.user.surname}` : ''
+        }));
+      } catch (err) {
+        console.error('Errore nel recupero degli user_sessions:', err);
         throw err;
       }
     }

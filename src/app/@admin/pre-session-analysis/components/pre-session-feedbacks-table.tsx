@@ -31,15 +31,16 @@ export const PreSessionFeedbacksTable = ({ sessionId }: PreSessionFeedbacksTable
   // Ottieni i feedback per la sessione corrente
   const { data: feedbacks = [], isLoading } = useQuery<Feedback[]>({
     queryKey: ['feedbacks', sessionId],
-    queryFn: () => {
+    queryFn: async () => {
       if (!currentUser?.company) throw new Error('Company non disponibile');
-      return queries.feedbacks.getBySession(sessionId);
+      const result = await queries.feedbacks.getBySession(sessionId);
+      return result;
     },
     enabled: !!sessionId && !!currentUser?.company
   });
 
   // Filtra i feedback in base ai parametri URL
-  const filteredFeedbacks = feedbacks.filter(feedback => {
+  const filteredFeedbacks = feedbacks.filter((feedback: Feedback) => {
     if (receiverFilter && feedback.receiver !== receiverFilter) {
       return false
     }

@@ -13,9 +13,31 @@ import { PreSessionStats } from "@/lib/types/feedbacks";
 import { queries } from "@/lib/supabase/queries";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/lib/supabase/database.types";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export type SessionStatus = 'In preparazione' | 'In corso' | 'Conclusa';
 type Session = Database['public']['Tables']['sessions']['Row'];
+
+type FeedbackType = 'SOFT' | 'EXECUTION' | 'STRATEGY';
+type FeedbackResponseFilter = 'all' | 'with_response' | 'without_response';
+
+type FeedbackWithType = {
+  id: string;
+  sender: string;
+  receiver: string;
+  question: string;
+  value: number | null;
+  comment: string | null;
+  questionType: string;
+};
 
 export function FeedbackManagementView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
@@ -27,6 +49,16 @@ export function FeedbackManagementView() {
     usersWithNoFeedbacks: 0,
     totalUsers: 0,
   });
+
+  // Filtri
+  const [senderFilter, setSenderFilter] = useState("");
+  const [receiverFilter, setReceiverFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState<FeedbackType | "all">("all");
+  const [responseFilter, setResponseFilter] = useState<FeedbackResponseFilter>("all");
+
+  // Feedback
+  const [feedbacks, setFeedbacks] = useState<FeedbackWithType[]>([]);
+  const [filteredFeedbacks, setFilteredFeedbacks] = useState<FeedbackWithType[]>([]);
 
   // Carica le sessioni all'avvio
   useEffect(() => {
@@ -71,6 +103,63 @@ export function FeedbackManagementView() {
 
     loadStats();
   }, [selectedSessionId]);
+
+  // Carica i feedback quando viene selezionata una sessione
+  useEffect(() => {
+    const loadFeedbacks = async () => {
+      if (selectedSessionId) {
+        try {
+          const feedbackData = await queries.feedbacks.getBySession(selectedSessionId);
+          setFeedbacks(feedbackData);
+          setFilteredFeedbacks(feedbackData);
+        } catch (error) {
+          console.error('Errore nel caricamento dei feedback:', error);
+        }
+      }
+    };
+
+    loadFeedbacks();
+  }, [selectedSessionId]);
+
+  // Applica i filtri quando cambiano
+  useEffect(() => {
+    let filtered = [...feedbacks];
+
+    // Filtro per mittente
+    if (senderFilter) {
+      filtered = filtered.filter(f => 
+        f.sender.toLowerCase().includes(senderFilter.toLowerCase())
+      );
+    }
+
+    // Filtro per destinatario
+    if (receiverFilter) {
+      filtered = filtered.filter(f => 
+        f.receiver.toLowerCase().includes(receiverFilter.toLowerCase())
+      );
+    }
+
+    // Filtro per tipo
+    if (typeFilter !== "all") {
+      filtered = filtered.filter(f => f.questionType.toLowerCase() === typeFilter.toLowerCase());
+    }
+
+    // Filtro per risposta
+    if (responseFilter !== "all") {
+      filtered = filtered.filter(f => 
+        responseFilter === "with_response" ? f.value !== null : f.value === null
+      );
+    }
+
+    // Ordinamento per mittente e destinatario
+    filtered.sort((a, b) => {
+      const senderCompare = a.sender.localeCompare(b.sender);
+      if (senderCompare !== 0) return senderCompare;
+      return a.receiver.localeCompare(b.receiver);
+    });
+
+    setFilteredFeedbacks(filtered);
+  }, [feedbacks, senderFilter, receiverFilter, typeFilter, responseFilter]);
 
   const handleSessionChange = (sessionId: string) => {
     const session = sessions.find((s) => s.id === sessionId);
@@ -183,13 +272,81 @@ export function FeedbackManagementView() {
             </div>
 
             <div className="mt-6">
-              {/* Feedback Management Content */}
               <div className="rounded-lg bg-white shadow-sm">
                 <div className="px-4 py-3 border-b">
-                  <p className="text-sm text-gray-500">Gestione Feedback</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-gray-500">Gestione Feedback</p>
+                    <span className="text-sm text-gray-500">{filteredFeedbacks.length} risultati</span>
+                  </div>
                 </div>
+
+                {/* Filtri */}
+                <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Input
+                    placeholder="Filtra per mittente..."
+                    value={senderFilter}
+                    onChange={(e) => setSenderFilter(e.target.value)}
+                    className="w-full"
+                  />
+                  <Input
+                    placeholder="Filtra per destinatario..."
+                    value={receiverFilter}
+                    onChange={(e) => setReceiverFilter(e.target.value)}
+                    className="w-full"
+                  />
+                  <Select
+                    value={typeFilter}
+                    onValueChange={(value) => setTypeFilter(value as FeedbackType | "all")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tipo di feedback" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tutti i tipi</SelectItem>
+                      <SelectItem value="SOFT">Soft</SelectItem>
+                      <SelectItem value="EXECUTION">Execution</SelectItem>
+                      <SelectItem value="STRATEGY">Strategy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={responseFilter}
+                    onValueChange={(value) => setResponseFilter(value as FeedbackResponseFilter)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Stato risposta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tutte le risposte</SelectItem>
+                      <SelectItem value="with_response">Con risposta</SelectItem>
+                      <SelectItem value="without_response">Senza risposta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tabella Feedback */}
                 <div className="p-4 overflow-x-auto">
-                  {/* Feedback Management Table/Content */}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mittente</TableHead>
+                        <TableHead>Destinatario</TableHead>
+                        <TableHead>Domanda</TableHead>
+                        <TableHead>Valore</TableHead>
+                        <TableHead>Commento</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredFeedbacks.map((feedback) => (
+                        <TableRow key={feedback.id}>
+                          <TableCell>{feedback.sender}</TableCell>
+                          <TableCell>{feedback.receiver}</TableCell>
+                          <TableCell>{feedback.question}</TableCell>
+                          <TableCell>{feedback.value ?? '-'}</TableCell>
+                          <TableCell>{feedback.comment || '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             </div>

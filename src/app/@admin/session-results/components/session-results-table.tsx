@@ -4,84 +4,72 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
+import { queries } from '@/lib/supabase/queries'
+import { useEffect, useState } from 'react'
 
 interface UserSessionResult {
-  id: string
+  session_id: string
   session_name: string
-  level_name: string
+  user_id: string
   user_name: string
-  overall: number
-  gap: number
-  execution: number
-  strategy: number
-  soft: number
+  level_name: string | null
+  level_standard: number | null
+  val_overall: number | null
+  self_overall: number | null
+  val_gap: number | null
+  val_execution: number | null
+  self_execution: number | null
+  val_strategy: number | null
+  self_strategy: number | null
+  val_soft: number | null
+  self_soft: number | null
 }
 
 export const SessionResultsTable = () => {
   const router = useRouter()
-  
-  // Mock data - da sostituire con dati reali dal backend
-  const results: UserSessionResult[] = [
-    {
-      id: '1',
-      session_name: 'Sessione Q4 2023',
-      level_name: 'Livello 1',
-      user_name: 'William Zisa',
-      overall: 4.1,
-      gap: 0.15,
-      execution: 4.2,
-      strategy: 3.5,
-      soft: 3.8
-    },
-    {
-      id: '2',
-      session_name: 'Sessione Q4 2023',
-      level_name: 'Livello 2',
-      user_name: 'Alessandro Cinus',
-      overall: 4.1,
-      gap: 0.15,
-      execution: 4.2,
-      strategy: 3.5,
-      soft: 3.8
-    },
-    {
-      id: '3',
-      session_name: 'Sessione Q4 2023',
-      level_name: 'Livello 3',
-      user_name: 'Marco Rossi',
-      overall: 3.9,
-      gap: 0.22,
-      execution: 3.8,
-      strategy: 4.0,
-      soft: 3.9
-    },
-    {
-      id: '4',
-      session_name: 'Sessione Q3 2023',
-      level_name: 'Livello 2',
-      user_name: 'William Zisa',
-      overall: 3.8,
-      gap: 0.18,
-      execution: 3.9,
-      strategy: 3.7,
-      soft: 3.8
-    },
-    {
-      id: '5',
-      session_name: 'Sessione Q3 2023',
-      level_name: 'Livello 1',
-      user_name: 'Laura Bianchi',
-      overall: 4.3,
-      gap: 0.12,
-      execution: 4.4,
-      strategy: 4.2,
-      soft: 4.3
+  const [results, setResults] = useState<UserSessionResult[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await queries.userSessions.getAll()
+        setResults(data)
+      } catch (error) {
+        console.error('Errore nel recupero dei risultati:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchData()
+  }, [])
 
   // Funzione per formattare il gap in percentuale
-  const formatGap = (gap: number) => {
+  const formatGap = (gap: number | null) => {
+    if (gap === null) return '-'
     return `${(gap * 100).toFixed(1)}%`
+  }
+
+  // Funzione per formattare i valori numerici
+  const formatValue = (value: number | null) => {
+    if (value === null) return '-'
+    return value.toFixed(1)
+  }
+
+  // Funzione per formattare i valori con self assessment
+  const formatValueWithSelf = (value: number | null, selfValue: number | null) => {
+    const mainValue = formatValue(value)
+    const self = selfValue !== null ? ` (${formatValue(selfValue)})` : ''
+    return `${mainValue}${self}`
+  }
+
+  // Funzione per formattare il livello con lo standard
+  const formatLevelWithStandard = (levelName: string | null, standard: number | null) => {
+    if (!levelName) return '-'
+    const standardStr = standard !== null ? ` (${standard.toFixed(1)})` : ''
+    return `${levelName}${standardStr}`
   }
 
   const handleDetailClick = (sessionName: string, userName: string) => {
@@ -92,6 +80,11 @@ export const SessionResultsTable = () => {
     router.push(`/admin/feedback-management?${params.toString()}`)
   }
 
+  // Filtra i risultati in base al termine di ricerca
+  const filteredResults = results.filter(result =>
+    result.user_name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   return (
     <>
       <div className="flex flex-col lg:flex-row items-center gap-4">
@@ -99,6 +92,8 @@ export const SessionResultsTable = () => {
           <Input
             placeholder="Cerca Utente"
             className="w-full sm:w-auto bg-white"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <Button variant="outline" className="w-full sm:w-auto whitespace-nowrap">
@@ -107,13 +102,15 @@ export const SessionResultsTable = () => {
       </div>
 
       <div className="text-sm text-gray-500 mt-6 mb-2">
-        {results.length} risultati
+        {filteredResults.length} risultati
       </div>
 
       {/* Vista Mobile */}
       <div className="block sm:hidden space-y-4">
-        {results.map((result) => (
-          <div key={result.id} className="mb-4 bg-white p-4 rounded-lg shadow">
+        {loading ? (
+          <div className="text-center py-4">Caricamento...</div>
+        ) : filteredResults.map((result) => (
+          <div key={`${result.session_id}-${result.user_id}`} className="mb-4 bg-white p-4 rounded-lg shadow">
             <div className="flex justify-between items-start">
               <div className="space-y-2">
                 <div className="font-medium">{result.user_name}</div>
@@ -122,22 +119,22 @@ export const SessionResultsTable = () => {
                     <span className="font-medium">Sessione:</span> {result.session_name}
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Ruolo:</span> {result.level_name}
+                    <span className="font-medium">Ruolo:</span> {formatLevelWithStandard(result.level_name, result.level_standard)}
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Overall:</span> {result.overall}
+                    <span className="font-medium">Overall:</span> {formatValueWithSelf(result.val_overall, result.self_overall)}
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Gap:</span> {formatGap(result.gap)}
+                    <span className="font-medium">Gap:</span> {formatGap(result.val_gap)}
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Execution:</span> {result.execution}
+                    <span className="font-medium">Execution:</span> {formatValueWithSelf(result.val_execution, result.self_execution)}
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Strategy:</span> {result.strategy}
+                    <span className="font-medium">Strategy:</span> {formatValueWithSelf(result.val_strategy, result.self_strategy)}
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Soft:</span> {result.soft}
+                    <span className="font-medium">Soft:</span> {formatValueWithSelf(result.val_soft, result.self_soft)}
                   </div>
                 </div>
               </div>
@@ -170,32 +167,39 @@ export const SessionResultsTable = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {results.map((result) => (
-                <TableRow key={result.id}>
-                  <TableCell>{result.session_name}</TableCell>
-                  <TableCell>{result.user_name}</TableCell>
-                  <TableCell>{result.level_name}</TableCell>
-                  <TableCell>{result.overall}</TableCell>
-                  <TableCell>{formatGap(result.gap)}</TableCell>
-                  <TableCell>{result.execution}</TableCell>
-                  <TableCell>{result.strategy}</TableCell>
-                  <TableCell>{result.soft}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="default"
-                      onClick={() => handleDetailClick(result.session_name, result.user_name)}
-                    >
-                      Dettaglio
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-4">
+                    Caricamento...
                   </TableCell>
                 </TableRow>
-              ))}
-              {results.length === 0 && (
+              ) : filteredResults.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-4">
                     Nessun risultato trovato
                   </TableCell>
                 </TableRow>
+              ) : (
+                filteredResults.map((result) => (
+                  <TableRow key={`${result.session_id}-${result.user_id}`}>
+                    <TableCell>{result.session_name}</TableCell>
+                    <TableCell>{result.user_name}</TableCell>
+                    <TableCell>{formatLevelWithStandard(result.level_name, result.level_standard)}</TableCell>
+                    <TableCell>{formatValueWithSelf(result.val_overall, result.self_overall)}</TableCell>
+                    <TableCell>{formatGap(result.val_gap)}</TableCell>
+                    <TableCell>{formatValueWithSelf(result.val_execution, result.self_execution)}</TableCell>
+                    <TableCell>{formatValueWithSelf(result.val_strategy, result.self_strategy)}</TableCell>
+                    <TableCell>{formatValueWithSelf(result.val_soft, result.self_soft)}</TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="default"
+                        onClick={() => handleDetailClick(result.session_name, result.user_name)}
+                      >
+                        Dettaglio
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
