@@ -6,19 +6,38 @@ import BottomNav from "@/components/navigation/bottom-nav";
 import Header from "@/components/navigation/header";
 import { queries } from "@/lib/supabase/queries";
 import { Session } from "@/lib/types/sessions";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Database } from "@/lib/supabase/database.types";
 
 export default function SessionsPage() {
   const router = useRouter();
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionsWithStatus, setSessionsWithStatus] = useState<(Session & { remainingFeedbacks: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSessions = async () => {
       try {
+        setLoading(true);
+        const supabase = createClientComponentClient<Database>();
         const currentUser = await queries.users.getCurrentUser();
         const userSessions = await queries.sessions.getUserSessions(currentUser.id);
-        setSessions(userSessions);
+        
+        // Carica i feedback per ogni sessione
+        const sessionsWithFeedbacks = await Promise.all(
+          userSessions.map(async (session) => {
+            const { data: feedbacks } = await supabase
+              .from('feedbacks')
+              .select('value')
+              .eq('session_id', session.id)
+              .eq('sender', currentUser.id);
+            
+            const remainingFeedbacks = feedbacks?.filter((f: { value: number | null }) => f.value === null).length || 0;
+            return { ...session, remainingFeedbacks };
+          })
+        );
+        
+        setSessionsWithStatus(sessionsWithFeedbacks);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Errore nel caricamento delle sessioni');
         console.error('Errore nel caricamento delle sessioni:', err);
@@ -81,13 +100,13 @@ export default function SessionsPage() {
       <Header title="Sessioni" />
 
       <main className="container mx-auto max-w-2xl px-4 py-6 mt-[60px]">
-        {sessions.length === 0 ? (
+        {sessionsWithStatus.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
             Nessuna sessione disponibile
           </div>
         ) : (
           <div className="space-y-4">
-            {sessions.map((session) => (
+            {sessionsWithStatus.map((session) => (
               <div
                 key={session.id}
                 className="bg-white rounded-[20px] p-6 cursor-pointer hover:shadow-lg transition-shadow"
@@ -95,16 +114,29 @@ export default function SessionsPage() {
               >
                 <h2 className="text-2xl font-bold mb-2">{session.name}</h2>
                 <div className="flex justify-between items-center">
-                  <div>
+                  <div className="flex flex-col">
                     <p className="text-gray-600">
                       Data di conclusione: {formatDate(session.end_time)}
                     </p>
+                    {session.status === 'In corso' && session.remainingFeedbacks === 0 && (
+                      <p className="text-emerald-500 text-sm mt-1">
+                        Valutazione completata
+                      </p>
+                    )}
                   </div>
                   <button
                     className={`px-6 py-2 rounded-full text-white font-medium
-                      ${session.status === 'In corso' ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                      ${session.status === 'In corso' 
+                        ? session.remainingFeedbacks === 0 
+                          ? 'bg-emerald-600 hover:bg-emerald-700' 
+                          : 'bg-emerald-500 hover:bg-emerald-600'
+                        : 'bg-blue-500 hover:bg-blue-600'}`}
                   >
-                    {session.status === 'In corso' ? 'VAI' : 'ANALISI'}
+                    {session.status === 'In corso' 
+                      ? session.remainingFeedbacks === 0 
+                        ? 'RIVEDI' 
+                        : 'VALUTA'
+                      : 'ANALISI'}
                   </button>
                 </div>
               </div>
