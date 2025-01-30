@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export type SessionStatus = 'In preparazione' | 'In corso' | 'Conclusa';
 type Session = Database['public']['Tables']['sessions']['Row'];
@@ -29,10 +30,36 @@ type Session = Database['public']['Tables']['sessions']['Row'];
 type FeedbackType = 'SOFT' | 'EXECUTION' | 'STRATEGY';
 type FeedbackResponseFilter = 'all' | 'with_response' | 'without_response';
 
+type FeedbackData = {
+  id: string;
+  value: number | null;
+  comment: string | null;
+  sender: { id: string; name: string; surname: string } | null;
+  receiver: { id: string; name: string; surname: string } | null;
+  question: { id: string; description: string; type: string } | null;
+};
+
+type ValidFeedback = {
+  id: string;
+  value: number | null;
+  comment: string | null;
+  sender: { id: string; name: string; surname: string };
+  receiver: { id: string; name: string; surname: string };
+  question: { id: string; description: string; type: string } | null;
+};
+
 type FeedbackWithType = {
   id: string;
-  sender: string;
-  receiver: string;
+  sender: {
+    id: string;
+    name: string;
+    surname: string;
+  };
+  receiver: {
+    id: string;
+    name: string;
+    surname: string;
+  };
   question: string;
   value: number | null;
   comment: string | null;
@@ -109,9 +136,49 @@ export function FeedbackManagementView() {
     const loadFeedbacks = async () => {
       if (selectedSessionId) {
         try {
-          const feedbackData = await queries.feedbacks.getBySession(selectedSessionId);
-          setFeedbacks(feedbackData);
-          setFilteredFeedbacks(feedbackData);
+          const supabase = createClientComponentClient<Database>();
+          const { data: feedbackData, error } = await supabase
+            .from('feedbacks')
+            .select(`
+              id,
+              value,
+              comment,
+              sender:users!feedbacks_sender_fkey (
+                id,
+                name,
+                surname
+              ),
+              receiver:users!feedbacks_receiver_fkey (
+                id,
+                name,
+                surname
+              ),
+              question:questions (
+                id,
+                description,
+                type
+              )
+            `)
+            .eq('session_id', selectedSessionId);
+
+          if (error) throw error;
+
+          const formattedFeedbacks = (feedbackData || [])
+            .filter((feedback: FeedbackData): feedback is ValidFeedback => 
+              feedback.sender !== null && feedback.receiver !== null
+            )
+            .map(feedback => ({
+              id: feedback.id,
+              sender: feedback.sender,
+              receiver: feedback.receiver,
+              question: feedback.question?.description || '',
+              value: feedback.value,
+              comment: feedback.comment,
+              questionType: feedback.question?.type || ''
+            }));
+
+          setFeedbacks(formattedFeedbacks);
+          setFilteredFeedbacks(formattedFeedbacks);
         } catch (error) {
           console.error('Errore nel caricamento dei feedback:', error);
         }
@@ -128,14 +195,14 @@ export function FeedbackManagementView() {
     // Filtro per mittente
     if (senderFilter) {
       filtered = filtered.filter(f => 
-        f.sender.toLowerCase().includes(senderFilter.toLowerCase())
+        `${f.sender.name} ${f.sender.surname}`.toLowerCase().includes(senderFilter.toLowerCase())
       );
     }
 
     // Filtro per destinatario
     if (receiverFilter) {
       filtered = filtered.filter(f => 
-        f.receiver.toLowerCase().includes(receiverFilter.toLowerCase())
+        `${f.receiver.name} ${f.receiver.surname}`.toLowerCase().includes(receiverFilter.toLowerCase())
       );
     }
 
@@ -153,9 +220,9 @@ export function FeedbackManagementView() {
 
     // Ordinamento per mittente e destinatario
     filtered.sort((a, b) => {
-      const senderCompare = a.sender.localeCompare(b.sender);
+      const senderCompare = a.sender.name.localeCompare(b.sender.name);
       if (senderCompare !== 0) return senderCompare;
-      return a.receiver.localeCompare(b.receiver);
+      return a.receiver.name.localeCompare(b.receiver.name);
     });
 
     setFilteredFeedbacks(filtered);
@@ -338,10 +405,16 @@ export function FeedbackManagementView() {
                     <TableBody>
                       {filteredFeedbacks.map((feedback) => (
                         <TableRow key={feedback.id}>
-                          <TableCell>{feedback.sender}</TableCell>
-                          <TableCell>{feedback.receiver}</TableCell>
+                          <TableCell>{`${feedback.sender.name} ${feedback.sender.surname}`}</TableCell>
+                          <TableCell>{`${feedback.receiver.name} ${feedback.receiver.surname}`}</TableCell>
                           <TableCell>{feedback.question}</TableCell>
-                          <TableCell>{feedback.value ?? '-'}</TableCell>
+                          <TableCell>
+                            {feedback.value === null 
+                              ? "Nessuna risposta" 
+                              : feedback.value === 0 
+                                ? "Non lo so" 
+                                : feedback.value}
+                          </TableCell>
                           <TableCell>{feedback.comment || '-'}</TableCell>
                         </TableRow>
                       ))}
