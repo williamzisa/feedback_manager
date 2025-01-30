@@ -1,26 +1,198 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/navigation/bottom-nav";
 import Header from "@/components/navigation/header";
+import { queries } from "@/lib/supabase/queries";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import type { Database } from '@/lib/supabase/database.types';
+
+type SessionOption = {
+  id: string;
+  name: string;
+  end_time: string;
+  gap: number | null;
+};
+
+type UserSessionData = {
+  val_overall: number | null;
+  level_standard: number | null;
+  val_gap: number | null;
+  self_overall: number | null;
+  val_execution: number | null;
+  val_strategy: number | null;
+  val_soft: number | null;
+  weight_execution: number | null;
+  weight_strategy: number | null;
+  weight_soft: number | null;
+};
 
 function SessionResultsContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
   const userName = searchParams.get('userName');
-  const [selectedSession, setSelectedSession] = useState('Sessione terminata il 31/12/24');
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<SessionOption[]>([]);
+  const [userSessionData, setUserSessionData] = useState<UserSessionData | null>(null);
+  const [feedbackCounts, setFeedbackCounts] = useState<{
+    execution: number;
+    strategy: number;
+    soft: number;
+  }>({ execution: 0, strategy: 0, soft: 0 });
+  const [loading, setLoading] = useState(true);
 
-  const handleViewDetails = () => {
-    const queryParams = new URLSearchParams();
-    if (userId && userName) {
-      queryParams.set('userId', userId);
-      queryParams.set('userName', userName);
-    }
-    window.location.href = `/session_results/feedback${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  useEffect(() => {
+    const loadSessions = async () => {
+      try {
+        const supabase = createClientComponentClient<Database>();
+        const targetUserId = userId || (await queries.users.getCurrentUser()).id;
+
+        // Recupera le sessioni concluse dell'utente
+        const { data: userSessions } = await supabase
+          .from('user_sessions')
+          .select(`
+            session_id,
+            val_gap,
+            sessions!inner (
+              id,
+              name,
+              end_time,
+              status
+            )
+          `)
+          .eq('user_id', targetUserId)
+          .eq('sessions.status', 'Conclusa');
+
+        if (userSessions) {
+          const formattedSessions = userSessions.map(us => ({
+            id: us.session_id,
+            name: us.sessions.name,
+            end_time: us.sessions.end_time || '',
+            gap: us.val_gap
+          }));
+
+          setSessions(formattedSessions);
+          if (formattedSessions.length > 0) {
+            setSelectedSessionId(formattedSessions[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento delle sessioni:', error);
+      }
+    };
+
+    loadSessions();
+  }, [userId]);
+
+  useEffect(() => {
+    const loadSessionData = async () => {
+      if (!selectedSessionId) return;
+
+      try {
+        setLoading(true);
+        const supabase = createClientComponentClient<Database>();
+        const targetUserId = userId || (await queries.users.getCurrentUser()).id;
+
+        // Recupera i dati della user_session
+        const { data: userSession } = await supabase
+          .from('user_sessions')
+          .select('*')
+          .eq('session_id', selectedSessionId)
+          .eq('user_id', targetUserId)
+          .single();
+
+        if (userSession) {
+          setUserSessionData(userSession);
+        }
+
+        // Conta i feedback per tipo
+        const { data: feedbacks } = await supabase
+          .from('feedbacks')
+          .select(`
+            value,
+            questions!inner (
+              type
+            )
+          `)
+          .eq('session_id', selectedSessionId)
+          .eq('receiver', targetUserId)
+          .gt('value', 0);
+
+        if (feedbacks) {
+          const counts = {
+            execution: feedbacks.filter(f => f.questions?.type === 'EXECUTION').length,
+            strategy: feedbacks.filter(f => f.questions?.type === 'STRATEGY').length,
+            soft: feedbacks.filter(f => f.questions?.type === 'SOFT').length
+          };
+          setFeedbackCounts(counts);
+        }
+
+      } catch (error) {
+        console.error('Errore nel caricamento dei dati della sessione:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSessionData();
+  }, [selectedSessionId, userId]);
+
+  const handleSessionChange = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
   };
+
+  const handleViewDetails = async () => {
+    try {
+      const supabase = createClientComponentClient<Database>();
+      const targetUserId = userId || (await queries.users.getCurrentUser()).id;
+      
+      // Se non abbiamo l'userId nell'URL, otteniamo anche il nome dell'utente
+      let targetUserName = userName || '';
+      if (!userName) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('name')
+          .eq('id', targetUserId)
+          .single();
+
+        if (userError) throw userError;
+        targetUserName = userData?.name || '';
+      }
+
+      const queryParams = new URLSearchParams();
+      queryParams.set('userId', targetUserId);
+      queryParams.set('userName', targetUserName);
+      if (selectedSessionId) {
+        queryParams.set('sessionId', selectedSessionId);
+      }
+
+      window.location.href = `/session_results/feedback?${queryParams.toString()}`;
+    } catch (error) {
+      console.error('Errore nel recupero dei dati utente:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit'
+    });
+  };
+
+  if (loading && !userSessionData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title={userName ? userName : 'I miei Risultati'} />
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -29,18 +201,23 @@ function SessionResultsContent() {
       <main className="container mx-auto max-w-2xl px-4 py-6 pb-32 mt-[60px]">
         {/* Session Selector */}
         <div className="mb-6">
-          <Select value={selectedSession} onValueChange={setSelectedSession}>
+          <Select value={selectedSessionId || ''} onValueChange={handleSessionChange}>
             <SelectTrigger className="w-full bg-white">
               <div className="flex justify-between items-center w-full">
-                <span>{selectedSession}</span>
-                <span className="text-yellow-600">GAP: -8%</span>
+                <span>
+                  {sessions.find(s => s.id === selectedSessionId)?.name || 'Seleziona una sessione'}
+                </span>
+                <span className="text-yellow-600">
+                  GAP: {userSessionData?.val_gap ? `${(userSessionData.val_gap * 100).toFixed(0)}%` : 'N/A'}
+                </span>
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Sessione terminata il 31/12/24">
-                Sessione terminata il 31/12/24
-              </SelectItem>
-              {/* Altre sessioni qui */}
+              {sessions.map((session) => (
+                <SelectItem key={session.id} value={session.id}>
+                  {`${session.name} - ${formatDate(session.end_time)}`}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -49,21 +226,29 @@ function SessionResultsContent() {
         <div className="bg-white rounded-[20px] p-6 mb-4 space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <span className="text-2xl font-bold">Overall: 4.1</span>
+              <span className="text-2xl font-bold">
+                Overall: {userSessionData?.val_overall?.toFixed(1) || 'N/A'}
+              </span>
             </div>
             <div>
-              <span className="text-2xl font-bold">Standard: 4.2</span>
+              <span className="text-2xl font-bold">
+                Standard: {userSessionData?.level_standard?.toFixed(1) || 'N/A'}
+              </span>
             </div>
           </div>
           <div className="text-center">
-            <span className="text-xl text-yellow-600">GAP: -8% (in linea)</span>
+            <span className="text-xl text-yellow-600">
+              GAP: {userSessionData?.val_gap ? `${(userSessionData.val_gap * 100).toFixed(0)}%` : 'N/A'} (in linea)
+            </span>
           </div>
           <div className="flex justify-between items-center">
             <div>
-              <span className="text-2xl font-bold">Il mio Mentor: 4.0</span>
+              <span className="text-2xl font-bold">Il mio Mentor: N/A</span>
             </div>
             <div>
-              <span className="text-2xl font-bold">Self: 4.0</span>
+              <span className="text-2xl font-bold">
+                Self: {userSessionData?.self_overall?.toFixed(1) || 'N/A'}
+              </span>
             </div>
           </div>
         </div>
@@ -74,11 +259,15 @@ function SessionResultsContent() {
           <div className="bg-[#FFF8F0] rounded-[20px] p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Soft Skills</h2>
-              <span className="bg-[#F5A623] text-white text-xl font-bold px-4 py-1 rounded-full">4.1</span>
+              <span className="bg-[#F5A623] text-white text-xl font-bold px-4 py-1 rounded-full">
+                {userSessionData?.val_soft?.toFixed(1) || 'N/A'}
+              </span>
             </div>
             <div className="space-y-1">
-              <p className="text-[#F5A623]">67 feedback ricevuti</p>
-              <p className="text-[#F5A623]">Peso: 40%</p>
+              <p className="text-[#F5A623]">{feedbackCounts.soft} feedback ricevuti</p>
+              <p className="text-[#F5A623]">
+                Peso: {userSessionData?.weight_soft ? `${userSessionData.weight_soft}%` : 'N/A'}
+              </p>
             </div>
           </div>
 
@@ -86,11 +275,15 @@ function SessionResultsContent() {
           <div className="bg-white rounded-[20px] p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Strategy Skills</h2>
-              <span className="bg-[#00BFA5] text-white text-xl font-bold px-4 py-1 rounded-full">3.9</span>
+              <span className="bg-[#00BFA5] text-white text-xl font-bold px-4 py-1 rounded-full">
+                {userSessionData?.val_strategy?.toFixed(1) || 'N/A'}
+              </span>
             </div>
             <div className="space-y-1">
-              <p className="text-[#00BFA5]">88 feedback ricevuti</p>
-              <p className="text-[#00BFA5]">Peso: 30%</p>
+              <p className="text-[#00BFA5]">{feedbackCounts.strategy} feedback ricevuti</p>
+              <p className="text-[#00BFA5]">
+                Peso: {userSessionData?.weight_strategy ? `${userSessionData.weight_strategy}%` : 'N/A'}
+              </p>
             </div>
           </div>
 
@@ -98,11 +291,15 @@ function SessionResultsContent() {
           <div className="bg-white rounded-[20px] p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Execution Skills</h2>
-              <span className="bg-[#4285F4] text-white text-xl font-bold px-4 py-1 rounded-full">4.0</span>
+              <span className="bg-[#4285F4] text-white text-xl font-bold px-4 py-1 rounded-full">
+                {userSessionData?.val_execution?.toFixed(1) || 'N/A'}
+              </span>
             </div>
             <div className="space-y-1">
-              <p className="text-[#4285F4]">6 feedback ricevuti</p>
-              <p className="text-[#4285F4]">Peso: 30%</p>
+              <p className="text-[#4285F4]">{feedbackCounts.execution} feedback ricevuti</p>
+              <p className="text-[#4285F4]">
+                Peso: {userSessionData?.weight_execution ? `${userSessionData.weight_execution}%` : 'N/A'}
+              </p>
             </div>
           </div>
         </div>
@@ -127,8 +324,18 @@ function SessionResultsContent() {
 
 export default function SessionResultsPage() {
   return (
-    <Suspense fallback={<div>Caricamento...</div>}>
-      <SessionResultsContent />
-    </Suspense>
+    <div className="min-h-screen bg-gray-50">
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-50">
+          <Header title="Caricamento..." />
+          <div className="flex justify-center items-center h-screen">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      }>
+        <SessionResultsContent />
+      </Suspense>
+      <BottomNav />
+    </div>
   );
 } 
