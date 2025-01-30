@@ -92,13 +92,6 @@ function EvaluateContent() {
     ).length;
   }, []);
 
-  const countRemainingByType = useCallback((feedbacks: FeedbackWithRelations[], type: string) => {
-    return feedbacks.filter(f => 
-      f.question?.type.toLowerCase() === type.toLowerCase() && 
-      f.value === null
-    ).length;
-  }, []);
-
   const updatePeopleList = useCallback((feedbacks: FeedbackWithRelations[]) => {
     const peopleMap = new Map<string, { name: string; remaining: number }>();
     
@@ -128,14 +121,34 @@ function EvaluateContent() {
   }, [countRemainingFeedbacks]);
 
   const updateSkillsList = useCallback((feedbacks: FeedbackWithRelations[], personId: string): Skill[] => {
+    // Filtra prima i feedback della persona
     const personFeedbacks = feedbacks.filter(f => f.receiver === personId);
     
+    // Crea un oggetto per tenere traccia dei conteggi per tipo
+    const skillCounts: Record<string, { total: number; remaining: number }> = {
+      'SOFT': { total: 0, remaining: 0 },
+      'EXECUTION': { total: 0, remaining: 0 },
+      'STRATEGY': { total: 0, remaining: 0 }
+    };
+    
+    // Conta i feedback per ogni tipo
+    personFeedbacks.forEach(feedback => {
+      const type = (feedback.question?.type || '').toUpperCase();
+      if (skillCounts[type]) {
+        skillCounts[type].total++;
+        if (feedback.value === null) {
+          skillCounts[type].remaining++;
+        }
+      }
+    });
+
+    // Crea l'array delle skill con i conteggi aggiornati
     return [
-      { type: 'Execution' as const, remainingFeedback: countRemainingByType(personFeedbacks, 'execution') },
-      { type: 'Strategy' as const, remainingFeedback: countRemainingByType(personFeedbacks, 'strategy') },
-      { type: 'Soft' as const, remainingFeedback: countRemainingByType(personFeedbacks, 'soft') }
+      { type: 'Soft' as const, remainingFeedback: skillCounts['SOFT'].remaining },
+      { type: 'Execution' as const, remainingFeedback: skillCounts['EXECUTION'].remaining },
+      { type: 'Strategy' as const, remainingFeedback: skillCounts['STRATEGY'].remaining }
     ];
-  }, [countRemainingByType]);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -144,7 +157,6 @@ function EvaluateContent() {
         const supabase = createClientComponentClient<Database>();
         const currentUser = await queries.users.getCurrentUser();
 
-        // Carica i dati iniziali
         const { data: feedbacks } = await supabase
           .from('feedbacks')
           .select(`
@@ -167,21 +179,35 @@ function EvaluateContent() {
           .eq('sender', currentUser.id);
 
         if (feedbacks) {
-          // Aggiorna la lista delle persone
           const peopleList = updatePeopleList(feedbacks);
           setPeople(peopleList);
 
-          // Se abbiamo un personId, aggiorniamo i conteggi per tipo
           if (personId) {
             const currentPersonData = peopleList.find(p => p.id === personId);
             setCurrentPerson(currentPersonData || null);
 
-            // Aggiorna la lista dei tipi
-            setSkills(updateSkillsList(feedbacks, personId));
+            // Filtra e ordina i feedback per tipo (soft -> execution -> strategy)
+            const personFeedbacks = feedbacks
+              .filter(f => f.receiver === personId)
+              .sort((a, b) => {
+                const typeOrder = { 'SOFT': 0, 'EXECUTION': 1, 'STRATEGY': 2 };
+                const typeA = (a.question?.type || '').toUpperCase();
+                const typeB = (b.question?.type || '').toUpperCase();
+                return (typeOrder[typeA as keyof typeof typeOrder] || 0) - 
+                       (typeOrder[typeB as keyof typeof typeOrder] || 0);
+              });
 
-            // Aggiorna i feedback correnti per tipo
-            const personFeedbacks = feedbacks.filter(f => f.receiver === personId);
-            updateCurrentFeedbacks(personFeedbacks, selectedSkill.toLowerCase());
+            setCurrentFeedbacks(personFeedbacks);
+            
+            if (personFeedbacks.length > 0) {
+              const firstFeedback = personFeedbacks[0];
+              setSelectedSkill(firstFeedback.question?.type as Skill["type"]);
+              setRating(firstFeedback.value as Rating || 0);
+              setComment(firstFeedback.comment || '');
+              setCurrentFeedbackIndex(0);
+            }
+
+            setSkills(updateSkillsList(feedbacks, personId));
           }
         }
 
@@ -232,9 +258,17 @@ function EvaluateContent() {
                   // Aggiorna la lista dei tipi
                   setSkills(updateSkillsList(updatedFeedbacks, personId));
 
-                  // Aggiorna i feedback correnti per tipo
-                  const personFeedbacks = updatedFeedbacks.filter(f => f.receiver === personId);
-                  updateCurrentFeedbacks(personFeedbacks, selectedSkill.toLowerCase());
+                  // Aggiorna i feedback correnti
+                  const personFeedbacks = updatedFeedbacks
+                    .filter(f => f.receiver === personId)
+                    .sort((a, b) => {
+                      const typeOrder = { 'SOFT': 0, 'EXECUTION': 1, 'STRATEGY': 2 };
+                      const typeA = (a.question?.type || '').toUpperCase();
+                      const typeB = (b.question?.type || '').toUpperCase();
+                      return (typeOrder[typeA as keyof typeof typeOrder] || 0) - 
+                             (typeOrder[typeB as keyof typeof typeOrder] || 0);
+                    });
+                  setCurrentFeedbacks(personFeedbacks);
                 }
               }
             }
@@ -249,22 +283,11 @@ function EvaluateContent() {
     };
 
     loadData();
-  }, [sessionId, personId, selectedSkill, updatePeopleList, updateSkillsList]);
+  }, [sessionId, personId, updatePeopleList, updateSkillsList]);
 
-  const updateCurrentFeedbacks = (allFeedbacks: FeedbackData[], type: string) => {
-    const feedbacksForType = allFeedbacks.filter(f => 
-      f.question?.type.toLowerCase() === type.toLowerCase()
-    );
-    setCurrentFeedbacks(feedbacksForType);
-    setCurrentFeedbackIndex(0);
-    
-    // Reset form state for new feedback
-    const currentFeedback = feedbacksForType[0];
-    if (currentFeedback) {
-      setRating(currentFeedback.value as Rating || 0);
-      setComment(currentFeedback.comment || '');
-    }
-  };
+  useEffect(() => {
+    console.log('Skills in dropdown:', skills);
+  }, [selectedSkill, skills]);
 
   const handlePersonSelect = (person: Person) => {
     router.push(
@@ -274,35 +297,24 @@ function EvaluateContent() {
     setIsSkillMenuOpen(false);
   };
 
-  const handleSkillSelect = async (skill: Skill) => {
+  const handleSkillSelect = useCallback((skill: Skill) => {
     setSelectedSkill(skill.type);
     setIsSkillMenuOpen(false);
     setIsPersonMenuOpen(false);
     
-    // Aggiorna i feedback per il nuovo tipo
-    if (personId) {
-      const supabase = createClientComponentClient<Database>();
-      const { data: feedbacks } = await supabase
-        .from('feedbacks')
-        .select(`
-          id,
-          value,
-          receiver,
-          comment,
-          question:questions (
-            id,
-            type,
-            description
-          )
-        `)
-        .eq('session_id', sessionId)
-        .eq('receiver', personId);
-
-      if (feedbacks) {
-        updateCurrentFeedbacks(feedbacks, skill.type);
-      }
+    // Trova il primo feedback del tipo selezionato
+    const firstIndexOfType = currentFeedbacks.findIndex(
+      f => (f.question?.type || '').toUpperCase() === skill.type.toUpperCase()
+    );
+    
+    if (firstIndexOfType !== -1) {
+      setCurrentFeedbackIndex(firstIndexOfType);
+      const selectedFeedback = currentFeedbacks[firstIndexOfType];
+      setRating(selectedFeedback.value as Rating || 0);
+      setComment(selectedFeedback.comment || '');
+      setHasCommentChanged(false);
     }
-  };
+  }, [currentFeedbacks]);
 
   const handleRatingChange = async (newRating: Rating) => {
     if (!currentFeedbacks[currentFeedbackIndex]) return;
@@ -539,25 +551,41 @@ function EvaluateContent() {
     }
   };
 
-  const handlePrevious = () => {
-    if (currentFeedbackIndex > 0) {
-      const newIndex = currentFeedbackIndex - 1;
-      setCurrentFeedbackIndex(newIndex);
-      const prevFeedback = currentFeedbacks[newIndex];
-      setRating(prevFeedback.value as Rating || 0);
-      setComment(prevFeedback.comment || '');
-    }
-  };
-
-  const handleNext = () => {
-    if (currentFeedbackIndex < currentFeedbacks.length - 1) {
-      const newIndex = currentFeedbackIndex + 1;
-      setCurrentFeedbackIndex(newIndex);
-      const nextFeedback = currentFeedbacks[newIndex];
+  const handleNext = useCallback(() => {
+    if (!currentFeedbacks.length) return;
+    
+    // Passa semplicemente al feedback successivo, la sequenza è già ordinata
+    const nextIndex = currentFeedbackIndex + 1;
+    if (nextIndex < currentFeedbacks.length) {
+      const nextFeedback = currentFeedbacks[nextIndex];
+      // Aggiorna il tipo selezionato se cambia
+      if ((nextFeedback.question?.type || '').toUpperCase() !== selectedSkill.toUpperCase()) {
+        setSelectedSkill(nextFeedback.question?.type as Skill["type"]);
+      }
+      setCurrentFeedbackIndex(nextIndex);
       setRating(nextFeedback.value as Rating || 0);
       setComment(nextFeedback.comment || '');
+      setHasCommentChanged(false);
     }
-  };
+  }, [currentFeedbacks, currentFeedbackIndex, selectedSkill]);
+
+  const handlePrevious = useCallback(() => {
+    if (!currentFeedbacks.length) return;
+    
+    // Passa semplicemente al feedback precedente, la sequenza è già ordinata
+    const prevIndex = currentFeedbackIndex - 1;
+    if (prevIndex >= 0) {
+      const prevFeedback = currentFeedbacks[prevIndex];
+      // Aggiorna il tipo selezionato se cambia
+      if ((prevFeedback.question?.type || '').toUpperCase() !== selectedSkill.toUpperCase()) {
+        setSelectedSkill(prevFeedback.question?.type as Skill["type"]);
+      }
+      setCurrentFeedbackIndex(prevIndex);
+      setRating(prevFeedback.value as Rating || 0);
+      setComment(prevFeedback.comment || '');
+      setHasCommentChanged(false);
+    }
+  }, [currentFeedbacks, currentFeedbackIndex, selectedSkill]);
 
   // Modifica dei click handler per i dropdown
   const handlePersonMenuClick = () => {
@@ -569,6 +597,20 @@ function EvaluateContent() {
     setIsSkillMenuOpen(!isSkillMenuOpen);
     setIsPersonMenuOpen(false);
   };
+
+  const handleNextPerson = useCallback(() => {
+    if (!people.length) return;
+    
+    // Trova l'indice della persona corrente
+    const currentPersonIndex = people.findIndex(p => p.id === personId);
+    
+    // Trova la prossima persona con feedback rimanenti
+    const nextIndex = (currentPersonIndex + 1) % people.length;
+    const nextPerson = people[nextIndex];
+    
+    // Naviga alla prossima persona
+    router.push(`/session/${sessionId}/evaluate?person=${encodeURIComponent(nextPerson.id)}`);
+  }, [people, personId, sessionId, router]);
 
   if (loading) {
     return (
@@ -599,7 +641,6 @@ function EvaluateContent() {
     );
   }
 
-  const currentSkill = skills.find(s => s.type === selectedSkill);
   const currentFeedback = currentFeedbacks[currentFeedbackIndex];
 
   return (
@@ -619,9 +660,24 @@ function EvaluateContent() {
           >
             <span className="text-lg font-medium">{currentPerson?.name || 'Seleziona persona'}</span>
             <div className="flex items-center gap-2">
-              <span className="text-red-500 text-sm">
-                {currentPerson?.remainingAnswers} rimanenti
-              </span>
+              {currentPerson?.remainingAnswers === 0 ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNextPerson();
+                  }}
+                  className="flex items-center gap-1 text-green-500 hover:text-green-600 transition-colors text-sm bg-green-50 px-3 py-1.5 rounded-full"
+                >
+                  <span>Passa al successivo</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ) : (
+                <span className="text-red-500 text-sm">
+                  {currentPerson?.remainingAnswers} rimanenti
+                </span>
+              )}
               <svg
                 className={`w-5 h-5 transition-transform ${
                   isPersonMenuOpen ? "rotate-180" : ""
@@ -671,7 +727,7 @@ function EvaluateContent() {
             <span className="text-lg font-medium">{selectedSkill}</span>
             <div className="flex items-center gap-2">
               <span className="text-[#F4B400] text-sm">
-                {currentSkill?.remainingFeedback} rimanenti
+                {skills.find(s => s.type.toUpperCase() === selectedSkill.toUpperCase())?.remainingFeedback} rimanenti
               </span>
               <svg
                 className={`w-5 h-5 transition-transform ${
@@ -694,7 +750,13 @@ function EvaluateContent() {
           {isSkillMenuOpen && (
             <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-[20px] shadow-lg z-10">
               {skills
-                .sort((a, b) => b.remainingFeedback - a.remainingFeedback)
+                .sort((a, b) => {
+                  const typeOrder = { 'SOFT': 0, 'EXECUTION': 1, 'STRATEGY': 2 };
+                  const typeA = a.type.toUpperCase();
+                  const typeB = b.type.toUpperCase();
+                  return (typeOrder[typeA as keyof typeof typeOrder] || 0) - 
+                         (typeOrder[typeB as keyof typeof typeOrder] || 0);
+                })
                 .map((skill) => (
                   <div
                     key={skill.type}
@@ -784,30 +846,31 @@ function EvaluateContent() {
               </div>
 
               {/* Comment Box */}
-              {currentFeedback && currentFeedback.value !== null && (
-                <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-4 sm:mb-6">
-                  <div className="relative">
-                    <textarea
-                      ref={textareaRef}
-                      value={comment}
-                      onChange={handleCommentChange}
-                      placeholder="Aggiungi un commento qui.."
-                      className="w-full min-h-[80px] resize-none focus:outline-none text-gray-700 p-2 pb-12 bg-white overflow-hidden"
-                      rows={1}
-                    />
-                    <div className="absolute bottom-3 right-2">
-                      {hasCommentChanged && (
-                        <button
-                          onClick={handleSaveComment}
-                          className="px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors text-base shadow-sm"
-                        >
-                          Salva
-                        </button>
-                      )}
-                    </div>
+              <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-4 sm:mb-6">
+                <div className="relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={comment}
+                    onChange={handleCommentChange}
+                    placeholder={currentFeedback.value === null ? "Inserisci prima una valutazione per aggiungere un commento..." : "Aggiungi un commento qui.."}
+                    className={`w-full min-h-[80px] resize-none focus:outline-none text-gray-700 p-2 pb-12 bg-white overflow-hidden ${
+                      currentFeedback.value === null ? 'cursor-not-allowed bg-gray-50' : ''
+                    }`}
+                    rows={1}
+                    disabled={currentFeedback.value === null}
+                  />
+                  <div className="absolute bottom-3 right-2">
+                    {hasCommentChanged && currentFeedback.value !== null && (
+                      <button
+                        onClick={handleSaveComment}
+                        className="px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors text-base shadow-sm"
+                      >
+                        Salva
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Question Counter */}
               <div className="text-left text-gray-600 mb-4">
@@ -816,22 +879,44 @@ function EvaluateContent() {
 
               {/* Navigation Buttons */}
               <div className="flex gap-4">
-                {currentFeedbackIndex > 0 && (
-                  <button
-                    onClick={handlePrevious}
-                    className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                <button
+                  onClick={handlePrevious}
+                  className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center justify-center"
+                >
+                  <svg 
+                    className="w-6 h-6 mr-2" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
                   >
-                    INDIETRO
-                  </button>
-                )}
-                {currentFeedbackIndex < currentFeedbacks.length - 1 && (
-                  <button 
-                    onClick={handleNext}
-                    className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-[#4285F4] text-white hover:bg-[#3367D6]"
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  INDIETRO
+                </button>
+                <button 
+                  onClick={handleNext}
+                  className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-[#4285F4] text-white hover:bg-[#3367D6] flex items-center justify-center"
+                >
+                  AVANTI
+                  <svg 
+                    className="w-6 h-6 ml-2" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
                   >
-                    AVANTI
-                  </button>
-                )}
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
               </div>
             </>
           )}
