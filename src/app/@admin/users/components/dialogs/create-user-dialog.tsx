@@ -40,13 +40,24 @@ export function CreateUserDialog({
         throw new Error('Company non configurata per l\'utente corrente');
       }
 
-      await queries.users.create({
+      // 1. Creiamo l'utente
+      const newUser = await queries.users.create({
         ...data,
         auth_id: null, // Sarà impostato quando l'utente farà il primo accesso
         company: currentUser.company,
         status: 'active',
         admin: false
       });
+
+      // 2. Se ci sono processi selezionati, creiamo le associazioni user_processes
+      if (data.processes.length > 0) {
+        await Promise.all(data.processes.map(processId => 
+          queries.userProcesses.create({
+            userId: newUser.id,
+            processId
+          })
+        ));
+      }
 
       onSuccess();
       onOpenChange(false);

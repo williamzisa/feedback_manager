@@ -153,14 +153,19 @@ export const queries = {
       admin: boolean;
       status: string;
       auth_id: string | null;
+      processes: string[];
     }>) => {
       const supabase = createClientComponentClient<Database>();
       try {
         console.log('Tentativo di aggiornamento utente:', { id, userData });
         
+        // Estrai i processi dai dati dell'utente
+        const { processes, ...userDataWithoutProcesses } = userData;
+        
+        // Aggiorna i dati dell'utente
         const { data, error } = await supabase
           .from('users')
-          .update(userData)
+          .update(userDataWithoutProcesses)
           .eq('id', id)
           .select()
           .single();
@@ -178,6 +183,17 @@ export const queries = {
         if (!data) {
           console.error('Nessun dato ricevuto dopo l\'aggiornamento');
           throw new Error('Nessun dato ricevuto dopo l\'aggiornamento');
+        }
+
+        // Se sono stati forniti i processi, aggiorna le associazioni
+        if (processes) {
+          // Prima elimina tutte le associazioni esistenti
+          await queries.userProcesses.deleteByUserId(id);
+
+          // Poi crea le nuove associazioni
+          for (const processId of processes) {
+            await queries.userProcesses.create({ userId: id, processId });
+          }
         }
 
         console.log('Aggiornamento utente completato:', data);
@@ -949,35 +965,30 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        console.log('Esecuzione query getAll processi');
         const { data, error } = await supabase
           .from('processes')
           .select(`
-            *,
+            id,
+            name,
+            company,
+            created_at,
+            linked_question_id,
             user_processes (
-              id,
-              user_id
-            ),
-            questions!processes_linked_question_id_fkey (
-              id,
-              description
+              id
             )
-          `)
-          .order('name');
+          `);
 
         if (error) {
           console.error('Errore nel recupero dei processi:', error);
           throw error;
         }
 
-        return data.map(process => ({
-          id: process.id,
-          name: process.name,
-          linked_question_id: process.linked_question_id,
-          linked_question: process.questions,
-          user_count: process.user_processes?.length || 0,
-          company: process.company,
-          created_at: process.created_at
-        }));
+        console.log('Processi recuperati dal database:', data);
+        return data?.map(process => ({
+          ...process,
+          user_count: process.user_processes?.length || 0
+        })) || [];
       } catch (err) {
         console.error('Errore nel recupero dei processi:', err);
         throw err;
@@ -1855,6 +1866,87 @@ export const queries = {
         }));
       } catch (err) {
         console.error('Errore nel recupero degli user_sessions:', err);
+        throw err;
+      }
+    }
+  },
+
+  // User Processes
+  userProcesses: {
+    create: async ({ userId, processId }: { userId: string; processId: string }) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('user_processes')
+          .insert({
+            id: crypto.randomUUID(),
+            user_id: userId,
+            process_id: processId
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Errore nella creazione dell\'associazione user-process:', error);
+          throw error;
+        }
+
+        return data;
+      } catch (err) {
+        console.error('Errore nella creazione dell\'associazione user-process:', err);
+        throw err;
+      }
+    },
+
+    getByUserId: async (userId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('user_processes')
+          .select('process_id')
+          .eq('user_id', userId);
+
+        if (error) throw error;
+        return data.map(up => up.process_id).filter((id): id is string => id !== null);
+      } catch (err) {
+        console.error('Errore nel recupero dei processi dell\'utente:', err);
+        throw err;
+      }
+    },
+
+    deleteByUserAndProcess: async (userId: string, processId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { error } = await supabase
+          .from('user_processes')
+          .delete()
+          .eq('user_id', userId)
+          .eq('process_id', processId);
+
+        if (error) {
+          console.error('Errore nell\'eliminazione dell\'associazione user-process:', error);
+          throw error;
+        }
+      } catch (err) {
+        console.error('Errore nell\'eliminazione dell\'associazione user-process:', err);
+        throw err;
+      }
+    },
+
+    deleteByUserId: async (userId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { error } = await supabase
+          .from('user_processes')
+          .delete()
+          .eq('user_id', userId);
+
+        if (error) {
+          console.error('Errore nell\'eliminazione delle associazioni user-process:', error);
+          throw error;
+        }
+      } catch (err) {
+        console.error('Errore nell\'eliminazione delle associazioni user-process:', err);
         throw err;
       }
     }

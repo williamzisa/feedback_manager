@@ -3,10 +3,11 @@
 import * as React from 'react'
 import { X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
+import { Command, CommandEmpty, CommandGroup, CommandInput } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export interface Option {
   value: string
@@ -24,32 +25,42 @@ interface MultiSelectProps {
 
 export function MultiSelect({
   options,
-  selected,
+  selected = [],
   onChange,
   className,
   disabled = false,
   placeholder = "Seleziona opzioni..."
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false)
+  const [inputValue, setInputValue] = React.useState("")
+
+  const filteredOptions = React.useMemo(() => {
+    const search = inputValue.toLowerCase().trim()
+    if (!search) return options
+    return options.filter(option =>
+      option.label.toLowerCase().includes(search)
+    )
+  }, [options, inputValue])
 
   const selectedItems = options.filter((option) => selected.includes(option.value))
 
-  const handleUnselect = React.useCallback((value: string) => {
+  const handleUnselect = (value: string) => {
     onChange(selected.filter((v) => v !== value))
-  }, [onChange, selected])
+  }
 
-  const handleSelect = React.useCallback((value: string) => {
-    if (selected.includes(value)) {
-      handleUnselect(value)
-    } else {
+  const handleSelect = (value: string, checked: boolean) => {
+    if (checked) {
       onChange([...selected, value])
+    } else {
+      onChange(selected.filter((v) => v !== value))
     }
-  }, [handleUnselect, onChange, selected])
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          type="button"
           variant="outline"
           role="combobox"
           aria-expanded={open}
@@ -66,73 +77,59 @@ export function MultiSelect({
                 <Badge
                   key={option.value}
                   variant="secondary"
-                  className="mr-1 mb-1"
+                  className="mr-1 mb-1 flex items-center gap-1"
                 >
                   {option.label}
-                  <button
-                    className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleUnselect(option.value)
-                      }
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                    }}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="ml-1 cursor-pointer rounded-full outline-none hover:bg-gray-400/20 focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     onClick={(e) => {
-                      e.preventDefault()
                       e.stopPropagation()
                       handleUnselect(option.value)
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleUnselect(option.value)
+                      }
+                    }}
                   >
                     <X className="h-3 w-3" />
-                  </button>
+                  </span>
                 </Badge>
               ))
             ) : (
               <span className="text-muted-foreground">{placeholder}</span>
             )}
           </div>
+          <div className="shrink-0 opacity-50">▼</div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Cerca opzione..." className="h-9" />
+      <PopoverContent className="w-[200px] p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput 
+            placeholder="Cerca opzione..." 
+            value={inputValue}
+            onValueChange={setInputValue}
+          />
           <CommandEmpty>Nessuna opzione trovata.</CommandEmpty>
           <CommandGroup className="max-h-64 overflow-auto">
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                value={option.value}
-                onSelect={() => {
-                  handleSelect(option.value)
-                }}
-              >
-                <div
-                  className={cn(
-                    'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                    selected.includes(option.value)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'opacity-50 [&_svg]:invisible'
-                  )}
+            {filteredOptions.map((option) => (
+              <div key={option.value} className="flex items-center space-x-2 p-2">
+                <Checkbox
+                  id={option.value}
+                  checked={selected.includes(option.value)}
+                  onCheckedChange={(checked) => handleSelect(option.value, checked as boolean)}
+                />
+                <label
+                  htmlFor={option.value}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  <svg
-                    className={cn('h-4 w-4')}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <span>{option.label}</span>
-              </CommandItem>
+                  {option.label}
+                </label>
+              </div>
             ))}
           </CommandGroup>
         </Command>

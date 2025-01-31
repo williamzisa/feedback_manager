@@ -9,5 +9,6 @@ export const userSchema = z.object({
   company: z.string().nullable(),
   admin: z.boolean(),
   status: z.string(),
-  auth_id: z.string().nullable()
+  auth_id: z.string().nullable(),
+  processes: z.array(z.string()).default([])
 });

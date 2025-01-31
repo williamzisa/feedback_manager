@@ -27,4 +27,5 @@ export type UserFormData = {
   admin: boolean;
   status: string;
   auth_id: string | null;
+  processes: string[];
 } 
