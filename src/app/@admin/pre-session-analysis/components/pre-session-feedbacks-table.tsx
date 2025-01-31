@@ -130,7 +130,8 @@ export const PreSessionFeedbacksTable = ({ sessionId }: PreSessionFeedbacksTable
                     <div className="mt-1 break-words">{feedback.question}</div>
                   </div>
                   <div className="mb-2">
-                    <span className="font-medium">Regola:</span> {feedback.rule}
+                    <span className="font-medium">Regola:</span>
+                    <div className="mt-1">{feedback.rule_number || '-'}</div>
                   </div>
                   <div>
                     <span className="font-medium">Tags:</span>
@@ -175,7 +176,7 @@ export const PreSessionFeedbacksTable = ({ sessionId }: PreSessionFeedbacksTable
                   <TableCell>{feedback.sender}</TableCell>
                   <TableCell>{feedback.receiver}</TableCell>
                   <TableCell className="max-w-md truncate">{feedback.question}</TableCell>
-                  <TableCell>{feedback.rule}</TableCell>
+                  <TableCell>{feedback.rule_number || '-'}</TableCell>
                   <TableCell>
                     <div 
                       className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs inline-block"

@@ -78,6 +78,7 @@ export type Database = {
           question_id: string | null
           receiver: string | null
           rule_id: string | null
+          rule_number: number | null
           sender: string | null
           session_id: string
           value: number | null
@@ -90,6 +91,7 @@ export type Database = {
           question_id?: string | null
           receiver?: string | null
           rule_id?: string | null
+          rule_number?: number | null
           sender?: string | null
           session_id: string
           value?: number | null
@@ -102,6 +104,7 @@ export type Database = {
           question_id?: string | null
           receiver?: string | null
           rule_id?: string | null
+          rule_number?: number | null
           sender?: string | null
           session_id?: string
           value?: number | null

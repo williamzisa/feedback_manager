@@ -1576,8 +1576,13 @@ export const queries = {
             value,
             sender,
             receiver,
-            question:questions!inner (
+            question_id,
+            comment,
+            rule_id,
+            rule_number,
+            questions (
               id,
+              description,
               type
             )
           `)
@@ -1604,7 +1609,7 @@ export const queries = {
               .filter(hasValidValue)
               .filter(f => 
                 f.receiver === userId && 
-                f.question?.type?.toLowerCase() === type.toLowerCase() &&
+                f.questions?.type?.toLowerCase() === type.toLowerCase() &&
                 (isSelf ? f.sender === userId : f.sender !== userId)
               );
             
@@ -1704,10 +1709,19 @@ export const queries = {
             value,
             comment,
             rule_id,
-            questions!feedbacks_question_id_fkey (
+            rule_number,
+            questions (
               id,
               description,
               type
+            ),
+            sender_user:users!feedbacks_sender_fkey (
+              name,
+              surname
+            ),
+            receiver_user:users!feedbacks_receiver_fkey (
+              name,
+              surname
             )
           `)
           .eq('session_id', sessionId)
@@ -1721,12 +1735,13 @@ export const queries = {
         // Map dei risultati al tipo Feedback
         const mappedFeedbacks: Feedback[] = data?.map(feedback => ({
           id: feedback.id,
-          sender: feedback.sender || '',
-          receiver: feedback.receiver || '',
+          sender: feedback.sender_user ? `${feedback.sender_user.name} ${feedback.sender_user.surname}` : '-',
+          receiver: feedback.receiver_user ? `${feedback.receiver_user.name} ${feedback.receiver_user.surname}` : '-',
           question: feedback.questions?.description || '',
           value: feedback.value,
           comment: feedback.comment,
           rule: Number(feedback.rule_id) || 0,
+          rule_number: feedback.rule_number,
           tags: [], // TODO: implementare i tags quando necessario
           questionType: feedback.questions?.type || 'strategy'
         })) || [];

@@ -4,6 +4,7 @@ export type Feedback = {
   receiver: string
   question: string
   rule: number
+  rule_number: number | null
   tags: string[]
   value: number | null
   comment: string | null

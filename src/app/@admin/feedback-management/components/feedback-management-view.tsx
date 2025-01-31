@@ -37,6 +37,7 @@ type FeedbackData = {
   sender: { id: string; name: string; surname: string } | null;
   receiver: { id: string; name: string; surname: string } | null;
   question: { id: string; description: string; type: string } | null;
+  rule_number: number | null;
 };
 
 type ValidFeedback = {
@@ -46,6 +47,7 @@ type ValidFeedback = {
   sender: { id: string; name: string; surname: string };
   receiver: { id: string; name: string; surname: string };
   question: { id: string; description: string; type: string } | null;
+  rule_number: number | null;
 };
 
 type FeedbackWithType = {
@@ -64,6 +66,7 @@ type FeedbackWithType = {
   value: number | null;
   comment: string | null;
   questionType: string;
+  rule_number: number | null;
 };
 
 export function FeedbackManagementView() {
@@ -157,7 +160,8 @@ export function FeedbackManagementView() {
                 id,
                 description,
                 type
-              )
+              ),
+              rule_number
             `)
             .eq('session_id', selectedSessionId);
 
@@ -174,7 +178,8 @@ export function FeedbackManagementView() {
               question: feedback.question?.description || '',
               value: feedback.value,
               comment: feedback.comment,
-              questionType: feedback.question?.type || ''
+              questionType: feedback.question?.type || '',
+              rule_number: feedback.rule_number
             }));
 
           setFeedbacks(formattedFeedbacks);
