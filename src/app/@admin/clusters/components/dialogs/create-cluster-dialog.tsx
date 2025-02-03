@@ -29,10 +29,16 @@ export function CreateClusterDialog({
         throw new Error('Il nome del cluster è obbligatorio')
       }
 
+      const currentUser = await queries.users.getCurrentUser()
+      if (!currentUser.company) {
+        throw new Error('Company non configurata per questo utente')
+      }
+
       await queries.clusters.create({
         name: data.name.trim(),
         level: data.level,
-        leader: data.leader
+        leader: data.leader,
+        company: currentUser.company
       })
       
       onOpenChange(false)

@@ -15,9 +15,20 @@ import { queries } from "@/lib/supabase/queries";
 import { Session } from "@/lib/types/sessions";
 import { useQuery } from "@tanstack/react-query";
 import { PreSessionFeedbacksTable } from "./pre-session-feedbacks-table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Feedback } from "@/lib/types/feedbacks";
 
 export function PreSessionAnalysisView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const [filteredFeedbacks, setFilteredFeedbacks] = useState<Feedback[]>([]);
+  const [stats, setStats] = useState<PreSessionStats>({
+    totalFeedbacks: 0,
+    duplicateFeedbacks: 0,
+    usersWithNoFeedbacks: 0,
+    totalUsers: 0,
+    avgFeedbacksPerUser: 0,
+    usersWithNoFeedbacksDetails: []
+  });
   
   // Ottieni l'utente corrente
   const { data: currentUser } = useQuery({
@@ -35,18 +46,68 @@ export function PreSessionAnalysisView() {
     enabled: !!currentUser?.company
   });
 
-  // Ottieni le statistiche per la sessione selezionata
-  const { data: stats, isLoading: isLoadingStats } = useQuery<PreSessionStats>({
-    queryKey: ['sessionStats', selectedSessionId],
-    queryFn: () => queries.sessionStats.getStats(selectedSessionId),
-    enabled: !!selectedSessionId,
-    initialData: {
-      totalFeedbacks: 0,
-      avgFeedbacksPerUser: 0,
-      usersWithNoFeedbacks: 0,
-      totalUsers: 0
+  // Calcola le statistiche dai feedback filtrati
+  const calculateStats = (feedbacks: Feedback[]): PreSessionStats => {
+    // Calcola i feedback duplicati
+    const feedbackMap = new Map<string, number>();
+    let duplicateFeedbacks = 0;
+
+    feedbacks.forEach(feedback => {
+      const key = `${feedback.sender}-${feedback.receiver}-${feedback.question}`;
+      feedbackMap.set(key, (feedbackMap.get(key) || 0) + 1);
+    });
+
+    feedbackMap.forEach(count => {
+      if (count > 1) {
+        duplicateFeedbacks += (count - 1);
+      }
+    });
+
+    // Ottieni tutti gli utenti unici
+    const uniqueUsers = new Set<string>();
+    const uniqueReceivers = new Set<string>();
+    const usersDetails = new Map<string, { name: string; surname: string }>();
+
+    feedbacks.forEach(feedback => {
+      const [senderName, senderSurname] = feedback.sender.split(' ');
+      const [receiverName, receiverSurname] = feedback.receiver.split(' ');
+      
+      if (feedback.sender) {
+        uniqueUsers.add(feedback.sender);
+        usersDetails.set(feedback.sender, { name: senderName, surname: senderSurname });
+      }
+      if (feedback.receiver) {
+        uniqueUsers.add(feedback.receiver);
+        uniqueReceivers.add(feedback.receiver);
+        usersDetails.set(feedback.receiver, { name: receiverName, surname: receiverSurname });
+      }
+    });
+
+    // Trova gli utenti senza feedback
+    const usersWithNoFeedbacksDetails = Array.from(uniqueUsers)
+      .filter(user => !uniqueReceivers.has(user))
+      .map(user => usersDetails.get(user)!)
+      .filter(details => details);
+
+    const totalUsers = uniqueUsers.size;
+    const avgFeedbacksPerUser = totalUsers > 0 ? feedbacks.length / totalUsers : 0;
+
+    return {
+      totalFeedbacks: feedbacks.length,
+      duplicateFeedbacks,
+      usersWithNoFeedbacks: usersWithNoFeedbacksDetails.length,
+      totalUsers,
+      avgFeedbacksPerUser,
+      usersWithNoFeedbacksDetails
+    };
+  };
+
+  useEffect(() => {
+    if (filteredFeedbacks.length > 0) {
+      const newStats = calculateStats(filteredFeedbacks);
+      setStats(newStats);
     }
-  });
+  }, [filteredFeedbacks]);
 
   const preparationSessions = sessions.filter(
     (s) => s.status === "In preparazione"
@@ -58,6 +119,11 @@ export function PreSessionAnalysisView() {
       setSelectedSessionId(preparationSessions[0].id);
     }
   }, [preparationSessions, selectedSessionId]);
+
+  // Debug log per vedere quando cambia la sessione selezionata
+  useEffect(() => {
+    console.log('Selected session changed to:', selectedSessionId);
+  }, [selectedSessionId]);
 
   const handleSessionChange = (sessionId: string) => {
     setSelectedSessionId(sessionId);
@@ -127,31 +193,43 @@ export function PreSessionAnalysisView() {
             <StatCard 
               title="FEEDBACK TOTALI" 
               value={stats.totalFeedbacks}
-              isLoading={isLoadingStats}
             />
             <StatCard
-              title="MEDIA PER UTENTE"
-              value={stats.avgFeedbacksPerUser}
-              className="bg-blue-100"
-              isLoading={isLoadingStats}
+              title="FEEDBACK DUPLICATI"
+              value={stats.duplicateFeedbacks}
+              className="bg-red-100"
             />
-            <StatCard
-              title="UTENTI SENZA FEEDBACK"
-              value={stats.usersWithNoFeedbacks}
-              className="bg-yellow-100"
-              isLoading={isLoadingStats}
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <StatCard
+                      title="UTENTI SENZA FEEDBACK"
+                      value={stats.usersWithNoFeedbacks}
+                      className="bg-yellow-100"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[300px] max-h-[200px] overflow-y-auto">
+                  <div className="p-2">
+                    {stats.usersWithNoFeedbacksDetails?.map((user, index) => (
+                      <div key={index} className="whitespace-nowrap">
+                        {user.name} {user.surname}
+                      </div>
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <StatCard
               title="UTENTI TOTALI"
               value={stats.totalUsers}
               className="bg-green-100"
-              isLoading={isLoadingStats}
             />
           </div>
 
           {selectedSessionId && (
             <div className="mt-6">
-              {/* Pre Session Analysis Content */}
               <div className="rounded-lg bg-white shadow-sm">
                 <div className="px-4 py-3 border-b">
                   <p className="text-sm text-gray-500">Analisi Feedback</p>
@@ -159,6 +237,7 @@ export function PreSessionAnalysisView() {
                 <div className="p-4 overflow-x-auto">
                   <PreSessionFeedbacksTable 
                     sessionId={selectedSessionId}
+                    onFilteredDataChange={setFilteredFeedbacks}
                   />
                 </div>
               </div>

@@ -11,9 +11,11 @@ export type Feedback = {
   questionType: string
 }
 
-export type PreSessionStats = {
-  totalFeedbacks: number
-  avgFeedbacksPerUser: number
-  usersWithNoFeedbacks: number
-  totalUsers: number
+export interface PreSessionStats {
+  totalFeedbacks: number;
+  duplicateFeedbacks: number;
+  usersWithNoFeedbacks: number;
+  totalUsers: number;
+  avgFeedbacksPerUser: number;
+  usersWithNoFeedbacksDetails?: { name: string; surname: string }[];
 } 

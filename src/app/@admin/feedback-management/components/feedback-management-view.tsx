@@ -75,9 +75,10 @@ export function FeedbackManagementView() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [stats, setStats] = useState<PreSessionStats>({
     totalFeedbacks: 0,
-    avgFeedbacksPerUser: 0,
+    duplicateFeedbacks: 0,
     usersWithNoFeedbacks: 0,
     totalUsers: 0,
+    avgFeedbacksPerUser: 0
   });
 
   // Filtri

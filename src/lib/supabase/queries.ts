@@ -737,7 +737,7 @@ export const queries = {
       }
     },
 
-    create: async (cluster: { name: string; level: number | null; leader: string | null }) => {
+    create: async (cluster: { name: string; level: number | null; leader: string | null; company: string }) => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
@@ -746,7 +746,8 @@ export const queries = {
             id: crypto.randomUUID(),
             name: cluster.name,
             level: cluster.level,
-            leader: cluster.leader
+            leader: cluster.leader,
+            company: cluster.company
           }])
           .select(`
             id,
@@ -1714,54 +1715,81 @@ export const queries = {
     getBySession: async (sessionId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        const { data, error } = await supabase
+        // Prima otteniamo il conteggio totale dei feedback
+        const { count, error: countError } = await supabase
           .from('feedbacks')
-          .select(`
-            id,
-            sender,
-            receiver,
-            question_id,
-            value,
-            comment,
-            rule_id,
-            rule_number,
-            questions (
-              id,
-              description,
-              type
-            ),
-            sender_user:users!feedbacks_sender_fkey (
-              name,
-              surname
-            ),
-            receiver_user:users!feedbacks_receiver_fkey (
-              name,
-              surname
-            )
-          `)
-          .eq('session_id', sessionId)
-          .order('created_at', { ascending: false });
+          .select('*', { count: 'exact', head: true })
+          .eq('session_id', sessionId);
 
-        if (error) {
-          console.error('Errore nel recupero dei feedback:', error);
-          throw error;
+        if (countError) {
+          console.error('Errore nel conteggio dei feedback:', countError);
+          throw countError;
         }
 
-        // Map dei risultati al tipo Feedback
-        const mappedFeedbacks: Feedback[] = data?.map(feedback => ({
-          id: feedback.id,
-          sender: feedback.sender_user ? `${feedback.sender_user.name} ${feedback.sender_user.surname}` : '-',
-          receiver: feedback.receiver_user ? `${feedback.receiver_user.name} ${feedback.receiver_user.surname}` : '-',
-          question: feedback.questions?.description || '',
-          value: feedback.value,
-          comment: feedback.comment,
-          rule: Number(feedback.rule_id) || 0,
-          rule_number: feedback.rule_number,
-          tags: [], // TODO: implementare i tags quando necessario
-          questionType: feedback.questions?.type || 'strategy'
-        })) || [];
+        const totalCount = count || 0;
+        const batchSize = 1000;
+        const allFeedbacks: Feedback[] = [];
 
-        return mappedFeedbacks;
+        // Recuperiamo i feedback in batch
+        for (let from = 0; from < totalCount; from += batchSize) {
+          const { data, error } = await supabase
+            .from('feedbacks')
+            .select(`
+              id,
+              sender,
+              receiver,
+              question_id,
+              value,
+              comment,
+              rule_id,
+              rule_number,
+              questions!inner (
+                id,
+                description,
+                type
+              ),
+              sender_user:users!feedbacks_sender_fkey!inner (
+                name,
+                surname
+              ),
+              receiver_user:users!feedbacks_receiver_fkey!inner (
+                name,
+                surname
+              )
+            `)
+            .eq('session_id', sessionId)
+            .order('created_at', { ascending: false })
+            .range(from, from + batchSize - 1);
+
+          if (error) {
+            console.error(`Errore nel recupero del batch ${from}-${from + batchSize}:`, error);
+            throw error;
+          }
+
+          if (data) {
+            // Map dei risultati al tipo Feedback con controlli null-safety
+            const mappedBatch = data
+              .filter(feedback => feedback.sender_user && feedback.receiver_user && feedback.questions)
+              .map(feedback => ({
+                id: feedback.id,
+                sender: `${feedback.sender_user!.name} ${feedback.sender_user!.surname}`,
+                receiver: `${feedback.receiver_user!.name} ${feedback.receiver_user!.surname}`,
+                question: feedback.questions!.description,
+                value: feedback.value,
+                comment: feedback.comment,
+                rule: Number(feedback.rule_id) || 0,
+                rule_number: feedback.rule_number,
+                tags: [] as string[],
+                questionType: feedback.questions!.type
+              }));
+
+            allFeedbacks.push(...mappedBatch);
+          }
+
+          console.log(`Recuperati ${allFeedbacks.length}/${totalCount} feedback`);
+        }
+
+        return allFeedbacks;
       } catch (err) {
         console.error('Errore nel recupero dei feedback:', err);
         throw err;
@@ -1791,44 +1819,84 @@ export const queries = {
     getStats: async (sessionId: string): Promise<PreSessionStats> => {
       const supabase = createClientComponentClient<Database>();
       try {
-        // Ottieni il numero totale di feedback
-        const { count: totalFeedbacks, error: feedbackError } = await supabase
+        console.log('Getting stats for session:', sessionId);
+        
+        // Ottieni tutti i feedback con le informazioni necessarie
+        const { data: allFeedbacks, error: allFeedbacksError } = await supabase
           .from('feedbacks')
-          .select('*', { count: 'exact', head: true })
+          .select(`
+            sender,
+            receiver,
+            question_id,
+            sender_user:users!feedbacks_sender_fkey (
+              name,
+              surname
+            ),
+            receiver_user:users!feedbacks_receiver_fkey (
+              name,
+              surname
+            )
+          `)
           .eq('session_id', sessionId);
 
-        if (feedbackError) throw feedbackError;
+        if (allFeedbacksError) {
+          console.error('Error fetching feedbacks:', allFeedbacksError);
+          throw allFeedbacksError;
+        }
 
-        // Ottieni il numero di utenti coinvolti nella sessione
-        const { data: userSessions, error: userSessionsError } = await supabase
-          .from('user_sessions')
-          .select('user_id')
-          .eq('session_id', sessionId);
+        console.log('Received feedbacks:', allFeedbacks?.length, 'feedbacks');
 
-        if (userSessionsError) throw userSessionsError;
+        // Calcola i feedback duplicati
+        const feedbackMap = new Map<string, number>();
+        let duplicateFeedbacks = 0;
 
-        const totalUsers = userSessions.length;
+        allFeedbacks.forEach(feedback => {
+          const key = `${feedback.sender}-${feedback.receiver}-${feedback.question_id}`;
+          feedbackMap.set(key, (feedbackMap.get(key) || 0) + 1);
+        });
 
-        // Ottieni il numero di utenti senza feedback
-        const { data: usersWithFeedback, error: usersError } = await supabase
-          .from('feedbacks')
-          .select('receiver')
-          .eq('session_id', sessionId)
-          .not('receiver', 'is', null);
+        // Conta i duplicati (feedback con count > 1)
+        feedbackMap.forEach(count => {
+          if (count > 1) {
+            duplicateFeedbacks += (count - 1);
+          }
+        });
 
-        if (usersError) throw usersError;
+        // Ottieni tutti gli utenti unici (sender e receiver) dai feedback con i loro dettagli
+        const uniqueUsers = new Map<string, { name: string; surname: string }>();
+        allFeedbacks.forEach(feedback => {
+          if (feedback.sender && feedback.sender_user) {
+            uniqueUsers.set(feedback.sender, {
+              name: feedback.sender_user.name,
+              surname: feedback.sender_user.surname
+            });
+          }
+          if (feedback.receiver && feedback.receiver_user) {
+            uniqueUsers.set(feedback.receiver, {
+              name: feedback.receiver_user.name,
+              surname: feedback.receiver_user.surname
+            });
+          }
+        });
 
-        const uniqueUsersWithFeedback = new Set(usersWithFeedback.map(f => f.receiver)).size;
-        const usersWithNoFeedbacks = totalUsers - uniqueUsersWithFeedback;
+        // Ottieni gli utenti che hanno ricevuto feedback
+        const receiversSet = new Set(allFeedbacks.filter(f => f.receiver).map(f => f.receiver));
+        
+        // Trova gli utenti senza feedback
+        const usersWithNoFeedbacksDetails = Array.from(uniqueUsers.entries())
+          .filter(([userId]) => !receiversSet.has(userId))
+          .map(([, userDetails]) => userDetails);
 
-        // Calcola la media di feedback per utente
-        const avgFeedbacksPerUser = totalUsers > 0 ? (totalFeedbacks || 0) / totalUsers : 0;
+        const totalUsers = uniqueUsers.size;
+        const avgFeedbacksPerUser = totalUsers > 0 ? allFeedbacks.length / totalUsers : 0;
 
         return {
-          totalFeedbacks: totalFeedbacks || 0,
-          avgFeedbacksPerUser: Number(avgFeedbacksPerUser.toFixed(1)),
-          usersWithNoFeedbacks,
-          totalUsers
+          totalFeedbacks: allFeedbacks.length,
+          duplicateFeedbacks,
+          usersWithNoFeedbacks: usersWithNoFeedbacksDetails.length,
+          totalUsers,
+          avgFeedbacksPerUser,
+          usersWithNoFeedbacksDetails
         };
       } catch (err) {
         console.error('Errore nel calcolo delle statistiche:', err);

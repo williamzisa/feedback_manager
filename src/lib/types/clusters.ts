@@ -12,4 +12,5 @@ export type ClusterFormData = {
   name: string
   level: number | null
   leader: string | null
+  company?: string | null
 }
