@@ -87,7 +87,7 @@ export type Database = {
           comment?: string | null
           company: string
           created_at?: string
-          id: string
+          id?: string
           question_id?: string | null
           receiver?: string | null
           rule_id?: string | null
@@ -250,7 +250,7 @@ export type Database = {
           company: string
           created_at?: string
           description: string
-          id: string
+          id?: string
           question_id: string
           score: number
         }
@@ -660,7 +660,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          id: string
+          id?: string
           team_id?: string | null
           user_id?: string | null
         }
@@ -759,7 +759,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_rule1_feedbacks: {
+        Args: {
+          session_id: string
+        }
+        Returns: undefined
+      }
+      generate_rule2_feedbacks: {
+        Args: {
+          session_id: string
+        }
+        Returns: undefined
+      }
+      generate_rule3_feedbacks: {
+        Args: {
+          session_id: string
+        }
+        Returns: undefined
+      }
+      generate_rule3a_feedbacks:
+        | {
+            Args: {
+              session_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              session_id: string
+              company_id: string
+            }
+            Returns: undefined
+          }
+      generate_rule3b_feedbacks: {
+        Args: {
+          session_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
