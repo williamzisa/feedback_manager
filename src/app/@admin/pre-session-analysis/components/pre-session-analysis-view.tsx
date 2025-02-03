@@ -13,14 +13,20 @@ import { PreSessionStats } from "@/lib/types/feedbacks";
 import { Badge } from "@/components/ui/badge";
 import { queries } from "@/lib/supabase/queries";
 import { Session } from "@/lib/types/sessions";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PreSessionFeedbacksTable } from "./pre-session-feedbacks-table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Feedback } from "@/lib/types/feedbacks";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export function PreSessionAnalysisView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [filteredFeedbacks, setFilteredFeedbacks] = useState<Feedback[]>([]);
+  const [generatingRule, setGeneratingRule] = useState<string | null>(null);
+  const [removingDuplicates, setRemovingDuplicates] = useState(false);
+  const queryClient = useQueryClient();
   const [stats, setStats] = useState<PreSessionStats>({
     totalFeedbacks: 0,
     duplicateFeedbacks: 0,
@@ -129,6 +135,73 @@ export function PreSessionAnalysisView() {
     setSelectedSessionId(sessionId);
   };
 
+  const removeDuplicates = async () => {
+    if (!selectedSessionId) return;
+    try {
+      setRemovingDuplicates(true);
+      const deletedCount = await queries.feedbacks.removeDuplicateFeedbacks(selectedSessionId);
+      await queryClient.invalidateQueries({ queryKey: ['feedbacks', selectedSessionId] });
+      toast.success(`${deletedCount} feedback duplicati rimossi con successo`);
+    } catch (error) {
+      const err = error as Error;
+      console.error('Errore nella rimozione dei feedback duplicati:', err);
+      toast.error(`Errore nella rimozione dei feedback duplicati: ${err.message}`);
+    } finally {
+      setRemovingDuplicates(false);
+    }
+  };
+
+  // Funzione per verificare se una regola è già stata applicata
+  const hasRuleBeenApplied = (ruleNumber: number) => {
+    return filteredFeedbacks.some(f => f.rule_number === ruleNumber);
+  };
+
+  // Funzioni per generare i feedback per ogni regola
+  const generateRule1 = async () => {
+    if (!selectedSessionId) return;
+    try {
+      setGeneratingRule('1');
+      await queries.feedbacks.generateRule1(selectedSessionId);
+      await queryClient.invalidateQueries({ queryKey: ['feedbacks', selectedSessionId] });
+      toast.success('Feedback generati con successo per la Regola 1');
+    } catch (error) {
+      console.error('Errore nella generazione dei feedback:', error);
+      toast.error('Errore nella generazione dei feedback per la Regola 1');
+    } finally {
+      setGeneratingRule(null);
+    }
+  };
+
+  const generateRule2 = async () => {
+    if (!selectedSessionId) return;
+    try {
+      setGeneratingRule('2');
+      await queries.feedbacks.generateRule2(selectedSessionId);
+      await queryClient.invalidateQueries({ queryKey: ['feedbacks', selectedSessionId] });
+      toast.success('Feedback generati con successo per la Regola 2');
+    } catch (error) {
+      console.error('Errore nella generazione dei feedback:', error);
+      toast.error('Errore nella generazione dei feedback per la Regola 2');
+    } finally {
+      setGeneratingRule(null);
+    }
+  };
+
+  const generateRule3 = async () => {
+    if (!selectedSessionId) return;
+    try {
+      setGeneratingRule('3');
+      await queries.feedbacks.generateRule3(selectedSessionId);
+      await queryClient.invalidateQueries({ queryKey: ['feedbacks', selectedSessionId] });
+      toast.success('Feedback generati con successo per la Regola 3');
+    } catch (error) {
+      console.error('Errore nella generazione dei feedback:', error);
+      toast.error('Errore nella generazione dei feedback per la Regola 3');
+    } finally {
+      setGeneratingRule(null);
+    }
+  };
+
   if (isLoadingSessions) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -161,30 +234,95 @@ export function PreSessionAnalysisView() {
           </h1>
         </div>
 
-        {/* Session Selector */}
-        <div className="mb-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-          <div className="w-full sm:w-96">
-            <Select
-              value={selectedSessionId}
-              onValueChange={handleSessionChange}
-            >
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Seleziona una sessione in preparazione" />
-              </SelectTrigger>
-              <SelectContent>
-                {preparationSessions.map((session) => (
-                  <SelectItem key={session.id} value={session.id}>
-                    {session.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedSession && (
-              <div className="mt-2">
-                <Badge variant="default">{selectedSession.status}</Badge>
-              </div>
-            )}
+        {/* Session Selector and Rule Buttons */}
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="w-full sm:w-96">
+              <Select
+                value={selectedSessionId}
+                onValueChange={handleSessionChange}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Seleziona una sessione in preparazione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {preparationSessions.map((session) => (
+                    <SelectItem key={session.id} value={session.id}>
+                      {session.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedSession && (
+                <div className="mt-2">
+                  <Badge variant="default">{selectedSession.status}</Badge>
+                </div>
+              )}
+            </div>
           </div>
+
+          {selectedSessionId && (
+            <div className="flex flex-wrap gap-2">
+              {stats.duplicateFeedbacks > 0 && (
+                <Button
+                  variant="destructive"
+                  onClick={removeDuplicates}
+                  disabled={removingDuplicates}
+                >
+                  {removingDuplicates ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Rimozione...
+                    </>
+                  ) : (
+                    'Elimina duplicati'
+                  )}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={generateRule1}
+                disabled={!selectedSessionId || generatingRule !== null || hasRuleBeenApplied(1)}
+              >
+                {generatingRule === '1' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generazione...
+                  </>
+                ) : (
+                  'Genera Regola 1'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={generateRule2}
+                disabled={!selectedSessionId || generatingRule !== null || hasRuleBeenApplied(2)}
+              >
+                {generatingRule === '2' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generazione...
+                  </>
+                ) : (
+                  'Genera Regola 2'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={generateRule3}
+                disabled={!selectedSessionId || generatingRule !== null || hasRuleBeenApplied(3)}
+              >
+                {generatingRule === '3' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generazione...
+                  </>
+                ) : (
+                  'Genera Regola 3'
+                )}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Stats Section */}

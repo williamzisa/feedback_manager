@@ -797,6 +797,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      remove_duplicate_feedbacks: {
+        Args: {
+          session_id: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

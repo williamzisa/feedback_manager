@@ -1811,7 +1811,90 @@ export const queries = {
         console.error('Errore nella generazione dei feedback:', err);
         throw err;
       }
-    }
+    },
+
+    generateRule1: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .rpc('generate_rule1_feedbacks', { session_id: sessionId });
+
+        if (error) {
+          console.error('Errore nella generazione dei feedback per la regola 1:', error);
+          throw error;
+        }
+
+        return data;
+      } catch (err) {
+        console.error('Errore nella generazione dei feedback per la regola 1:', err);
+        throw err;
+      }
+    },
+
+    generateRule2: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .rpc('generate_rule2_feedbacks', { session_id: sessionId });
+
+        if (error) {
+          console.error('Errore nella generazione dei feedback per la regola 2:', error);
+          throw error;
+        }
+
+        return data;
+      } catch (err) {
+        console.error('Errore nella generazione dei feedback per la regola 2:', err);
+        throw err;
+      }
+    },
+
+    generateRule3: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Prima esegue la regola 3a per generare i feedback
+        const { error: error3a } = await supabase
+          .rpc('generate_rule3a_feedbacks', { session_id: sessionId });
+
+        if (error3a) {
+          console.error('Errore nella generazione dei feedback per la regola 3a:', error3a);
+          throw error3a;
+        }
+
+        // Poi esegue la regola 3b per la pulizia
+        const { error: error3b } = await supabase
+          .rpc('generate_rule3b_feedbacks', { session_id: sessionId });
+
+        if (error3b) {
+          console.error('Errore nella generazione dei feedback per la regola 3b:', error3b);
+          throw error3b;
+        }
+
+        return true;
+      } catch (err) {
+        console.error('Errore nella generazione dei feedback per la regola 3:', err);
+        throw err;
+      }
+    },
+
+    removeDuplicateFeedbacks: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .rpc('remove_duplicate_feedbacks', { session_id: sessionId });
+
+        if (error) {
+          console.error('Errore nella rimozione dei feedback duplicati:', error.message);
+          throw new Error(error.message);
+        }
+
+        return data;
+      } catch (err) {
+        const error = err as Error;
+        console.error('Errore nella rimozione dei feedback duplicati:', error.message);
+        throw error;
+      }
+    },
   },
 
   // Session Stats
