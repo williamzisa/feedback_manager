@@ -974,6 +974,10 @@ export const queries = {
             company,
             created_at,
             linked_question_id,
+            linked_question:questions!processes_linked_question_id_fkey (
+              id,
+              description
+            ),
             user_processes (
               id
             )

@@ -112,26 +112,14 @@ export function UserForm({
 
   const handleSubmit = async (data: UserFormData) => {
     try {
+      // Assicuriamoci che processes sia sempre un array
       const formattedData = {
         ...data,
         processes: Array.isArray(data.processes) ? data.processes : []
       };
       
-      // Esegui tutte le operazioni in sequenza
+      // Esegui l'operazione principale
       await onSubmit(formattedData);
-      
-      if (userId) {
-        // Elimina le associazioni esistenti
-        await queries.userProcesses.deleteByUserId(userId);
-        
-        // Crea le nuove associazioni
-        for (const processId of formattedData.processes) {
-          await queries.userProcesses.create({ 
-            userId: userId, 
-            processId: processId 
-          });
-        }
-      }
       
       // Invalida solo la query principale degli utenti
       await queryClient.invalidateQueries({ 
