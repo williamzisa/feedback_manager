@@ -14,15 +14,14 @@ export function EditSessionDialog({ session, onSuccess, open, onOpenChange }: Ed
         </DialogHeader>
         <SessionForm 
           initialData={session}
-          readOnlyFields={session.status !== 'In preparazione' ? ['clusters', 'rules'] : []}
+          readOnlyFields={session.status !== 'In preparazione' ? ['clusters'] : []}
           onSubmit={async (data: SessionFormData) => {
             await queries.sessions.update(session.id, {
               ...data,
               status: session.status,
-              // Se la sessione non è in preparazione, manteniamo i cluster e le regole esistenti
+              // Se la sessione non è in preparazione, manteniamo i cluster esistenti
               ...(session.status !== 'In preparazione' && {
-                clusters: session.session_clusters?.map(sc => sc.cluster.id) || [],
-                rules: session.session_rules?.map(sr => sr.rule.id) || []
+                clusters: session.session_clusters?.map(sc => sc.cluster.id) || []
               })
             })
             await onSuccess()

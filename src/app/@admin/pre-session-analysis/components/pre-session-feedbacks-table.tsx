@@ -4,22 +4,83 @@ import { useState, useEffect } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { FileEdit, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileDown, Trash2 } from 'lucide-react'
 import { Feedback } from '@/lib/types/feedbacks'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { queries } from '@/lib/supabase/queries'
+import { toast } from 'sonner'
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 interface PreSessionFeedbacksTableProps {
   sessionId: string;
-  onFilteredDataChange?: (filteredData: Feedback[]) => void;
+  feedbacks: Feedback[];
 }
 
 const ITEMS_PER_PAGE = 50;
 
-export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: PreSessionFeedbacksTableProps) => {
+// Funzione per convertire i feedback in CSV
+const exportToCSV = (feedbacks: Feedback[]) => {
+  const headers = ['ID FEEDBACK', 'MITTENTE', 'DESTINATARIO', 'DOMANDA', 'TYPE', 'REGOLA', 'TAG'];
+  const csvContent = [
+    headers.join(','),
+    ...feedbacks.map(feedback => [
+      feedback.id,
+      `"${feedback.sender}"`,
+      `"${feedback.receiver}"`,
+      `"${feedback.question}"`,
+      `"${feedback.questionType.toLowerCase()}"`,
+      feedback.rule_number || '',
+      `"${feedback.tags.join(', ')}"`,
+    ].join(','))
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'feedback_export.csv';
+  link.click();
+};
+
+// Funzione per convertire i feedback in XLSX
+const exportToXLSX = async (feedbacks: Feedback[]) => {
+  try {
+    const XLSX = await import('xlsx');
+    const worksheet = XLSX.utils.json_to_sheet(feedbacks.map(feedback => ({
+      'ID FEEDBACK': feedback.id,
+      'MITTENTE': feedback.sender,
+      'DESTINATARIO': feedback.receiver,
+      'DOMANDA': feedback.question,
+      'TYPE': feedback.questionType.toLowerCase(),
+      'REGOLA': feedback.rule_number || '',
+      'TAG': feedback.tags.join(', ')
+    })));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Feedback');
+    XLSX.writeFile(workbook, 'feedback_export.xlsx');
+  } catch (error) {
+    console.error('Errore durante l\'esportazione XLSX:', error);
+    toast.error('Errore durante l\'esportazione in Excel');
+  }
+};
+
+export function PreSessionFeedbacksTable({ sessionId, feedbacks }: PreSessionFeedbacksTableProps) {
   // Filtri
   const [senderFilter, setSenderFilter] = useState('')
   const [receiverFilter, setReceiverFilter] = useState('')
@@ -33,19 +94,9 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  // Ottieni i feedback per la sessione corrente
-  const { data: feedbacks = [], isLoading } = useQuery<Feedback[]>({
-    queryKey: ['feedbacks', sessionId],
-    queryFn: async () => {
-      const result = await queries.feedbacks.getBySession(sessionId);
-      // Deduplicazione per UUID
-      const uniqueFeedbacks = Array.from(
-        new Map(result.map(item => [item.id, item])).values()
-      );
-      return uniqueFeedbacks;
-    },
-    enabled: !!sessionId
-  });
+  const [selectedFeedbacks, setSelectedFeedbacks] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const queryClient = useQueryClient();
 
   // Notifica il parent component dei dati filtrati solo quando cambiano i filtri o i feedback
   useEffect(() => {
@@ -114,7 +165,6 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
       setFilteredResults(filtered);
       setTotalPages(Math.ceil(filtered.length / ITEMS_PER_PAGE));
       setCurrentPage(1);
-      onFilteredDataChange?.(filtered);
     }, 0);
     return () => clearTimeout(timeoutId);
   }, [
@@ -124,8 +174,7 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
     questionFilter,
     typeFilter,
     ruleFilter,
-    filterDuplicates,
-    onFilteredDataChange
+    filterDuplicates
   ]);
 
   // Reset dei filtri quando cambia la sessione
@@ -157,13 +206,67 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="py-8 text-center text-gray-500">
-        Caricamento feedback...
-      </div>
-    );
-  }
+  // Funzione per gestire la selezione di tutti i feedback
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const newSelected = new Set(filteredResults.map(f => f.id));
+      setSelectedFeedbacks(newSelected);
+    } else {
+      setSelectedFeedbacks(new Set());
+    }
+  };
+
+  // Funzione per gestire la selezione singola
+  const handleSelect = (feedbackId: string, checked: boolean) => {
+    const newSelected = new Set(selectedFeedbacks);
+    if (checked) {
+      newSelected.add(feedbackId);
+    } else {
+      newSelected.delete(feedbackId);
+    }
+    setSelectedFeedbacks(newSelected);
+  };
+
+  // Funzione per eliminare i feedback selezionati
+  const deleteSelectedFeedbacks = async () => {
+    try {
+      const MAX_DELETIONS = 1000;
+      const selectedArray = Array.from(selectedFeedbacks);
+      
+      if (selectedArray.length > MAX_DELETIONS) {
+        const shouldLimit = window.confirm(
+          `Non è possibile eliminare più di ${MAX_DELETIONS} feedback contemporaneamente. ` +
+          `Vuoi selezionare automaticamente i primi ${MAX_DELETIONS} feedback?`
+        );
+        
+        if (shouldLimit) {
+          // Seleziona solo i primi 1000 feedback
+          const limitedSelection = new Set(selectedArray.slice(0, MAX_DELETIONS));
+          setSelectedFeedbacks(limitedSelection);
+          // Non chiudere il dialog in questo caso
+          return;
+        } else {
+          setShowDeleteDialog(false);
+          return;
+        }
+      }
+
+      // Procedi con l'eliminazione
+      await Promise.all(selectedArray.map(id => 
+        queries.feedbacks.delete(id)
+      ));
+      
+      // Aggiorna la cache e resetta la selezione
+      await queryClient.invalidateQueries({ queryKey: ['feedbacks', sessionId] });
+      setSelectedFeedbacks(new Set());
+      toast.success('Feedback eliminati con successo');
+    } catch (error) {
+      console.error('Errore nell\'eliminazione dei feedback:', error);
+      toast.error('Errore nell\'eliminazione dei feedback');
+    } finally {
+      setShowDeleteDialog(false);
+    }
+  };
 
   return (
     <>
@@ -235,10 +338,55 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
             <Label htmlFor="filterDuplicates" className="leading-none">Filtra duplicati</Label>
           </div>
         </div>
-        <Button variant="outline" className="w-full sm:w-auto whitespace-nowrap">
-          Export .csv
-        </Button>
+        <div className="flex gap-2">
+          {selectedFeedbacks.size > 0 && (
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Elimina selezionati ({selectedFeedbacks.size})
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto whitespace-nowrap">
+                <FileDown className="mr-2 h-4 w-4" />
+                Esporta
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => exportToCSV(filteredResults)}>
+                Esporta CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToXLSX(filteredResults)}>
+                Esporta Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+
+      {/* Dialog di conferma eliminazione */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Conferma eliminazione</DialogTitle>
+            <DialogDescription>
+              Sei sicuro di voler eliminare {selectedFeedbacks.size} feedback? Questa azione non può essere annullata.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Annulla
+            </Button>
+            <Button variant="destructive" onClick={deleteSelectedFeedbacks}>
+              Elimina
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex items-center justify-between mt-6 mb-2">
         <div className="text-sm text-gray-500">
@@ -264,70 +412,35 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
         </div>
       </div>
 
-      {/* Vista Mobile */}
-      <div className="block sm:hidden space-y-4">
-        {paginatedFeedbacks.map((feedback, index) => (
-          <div 
-            key={`${feedback.id}-${index}`} 
-            className="bg-white p-4 rounded-lg shadow"
-          >
-            <div className="flex justify-between items-start">
-              <div className="space-y-2 flex-1">
-                <div className="font-medium">ID: {feedback.id}</div>
-                <div className="text-sm text-gray-600">
-                  <div className="mb-2">
-                    <span className="font-medium">Mittente:</span> {feedback.sender}
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-medium">Destinatario:</span> {feedback.receiver}
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-medium">Domanda:</span>
-                    <div className="mt-1 break-words">{feedback.question}</div>
-                  </div>
-                  <div className="mb-2">
-                    <span className="font-medium">Regola:</span>
-                    <div className="mt-1">{feedback.rule_number || '-'}</div>
-                  </div>
-                  <div>
-                    <span className="font-medium">Tags:</span>
-                    <div className="mt-1">
-                      <div 
-                        className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
-                        title={feedback.tags.join(', ')}
-                      >
-                        {feedback.tags.length} tag{feedback.tags.length !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" className="shrink-0">
-                <FileEdit className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Vista Desktop */}
       <div className="hidden sm:block overflow-x-auto">
         <div className="rounded-md border min-w-full">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">
+                  <Checkbox 
+                    checked={selectedFeedbacks.size === filteredResults.length && filteredResults.length > 0}
+                    onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                  />
+                </TableHead>
                 <TableHead>ID FEEDBACK</TableHead>
                 <TableHead>MITTENTE</TableHead>
                 <TableHead>DESTINATARIO</TableHead>
                 <TableHead>DOMANDA</TableHead>
                 <TableHead>REGOLA</TableHead>
                 <TableHead>TAG</TableHead>
-                <TableHead className="w-[50px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedFeedbacks.map((feedback, index) => (
                 <TableRow key={`${feedback.id}-${index}`}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedFeedbacks.has(feedback.id)}
+                      onCheckedChange={(checked) => handleSelect(feedback.id, checked as boolean)}
+                    />
+                  </TableCell>
                   <TableCell>{feedback.id}</TableCell>
                   <TableCell>{feedback.sender}</TableCell>
                   <TableCell>{feedback.receiver}</TableCell>
@@ -341,11 +454,6 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
                       {feedback.tags.length} tag{feedback.tags.length !== 1 ? 's' : ''}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="shrink-0">
-                      <FileEdit className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
                 </TableRow>
               ))}
               {paginatedFeedbacks.length === 0 && (
@@ -358,6 +466,55 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
             </TableBody>
           </Table>
         </div>
+      </div>
+
+      {/* Vista Mobile */}
+      <div className="block sm:hidden space-y-4">
+        {paginatedFeedbacks.map((feedback, index) => (
+          <div 
+            key={`${feedback.id}-${index}`} 
+            className="bg-white p-4 rounded-lg shadow"
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={selectedFeedbacks.has(feedback.id)}
+                  onCheckedChange={(checked) => handleSelect(feedback.id, checked as boolean)}
+                />
+                <div className="space-y-2">
+                  <div className="font-medium">ID: {feedback.id}</div>
+                  <div className="text-sm text-gray-600">
+                    <div className="mb-2">
+                      <span className="font-medium">Mittente:</span> {feedback.sender}
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium">Destinatario:</span> {feedback.receiver}
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium">Domanda:</span>
+                      <div className="mt-1 break-words">{feedback.question}</div>
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium">Regola:</span>
+                      <div className="mt-1">{feedback.rule_number || '-'}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium">Tags:</span>
+                      <div className="mt-1">
+                        <div 
+                          className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs"
+                          title={feedback.tags.join(', ')}
+                        >
+                          {feedback.tags.length} tag{feedback.tags.length !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </>
   )

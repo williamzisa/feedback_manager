@@ -18,8 +18,7 @@ const formSchema = z.object({
   name: z.string().min(1, "Il nome della sessione è obbligatorio"),
   start_time: z.string().nullable(),
   end_time: z.string().nullable(),
-  clusters: z.array(z.string()).min(1, "Seleziona almeno un cluster"),
-  rules: z.array(z.string()).min(1, "Seleziona almeno una regola")
+  clusters: z.array(z.string()).min(1, "Seleziona almeno un cluster")
 })
 
 interface SessionFormProps {
@@ -52,13 +51,6 @@ export function SessionForm({
     enabled: !!currentUser?.company
   })
 
-  // Otteniamo le regole della company
-  const { data: rules = [] } = useQuery({
-    queryKey: ['rules', currentUser?.company],
-    queryFn: () => currentUser?.company ? queries.rules.getByCompany(currentUser.company) : Promise.resolve([]),
-    enabled: !!currentUser?.company
-  })
-
   const formatDateForInput = (date: string | null | undefined) => {
     if (!date) return null
     return new Date(date).toISOString().split('T')[0]
@@ -68,8 +60,7 @@ export function SessionForm({
     name: initialData?.name || '',
     start_time: formatDateForInput(initialData?.start_time),
     end_time: formatDateForInput(initialData?.end_time),
-    clusters: initialData?.session_clusters?.map(sc => sc.cluster.id) || [],
-    rules: initialData?.session_rules?.map(sr => sr.rule.id) || []
+    clusters: initialData?.session_clusters?.map(sc => sc.cluster.id) || []
   }
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -137,60 +128,6 @@ export function SessionForm({
                       {clusters.map((cluster) => (
                         <SelectItem key={cluster.id} value={cluster.id}>
                           {cluster.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="rules"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Regole</FormLabel>
-              <div className={`border rounded-md ${readOnlyFields.includes('rules') ? 'p-2 bg-muted' : 'p-4'}`}>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {field.value.map((ruleId) => {
-                    const rule = rules.find(r => r.id === ruleId)
-                    return rule ? (
-                      <Badge key={rule.id} variant="secondary" className={readOnlyFields.includes('rules') ? '' : 'gap-1'}>
-                        {rule.name}
-                        {!readOnlyFields.includes('rules') && (
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() => {
-                              field.onChange(field.value.filter(id => id !== rule.id))
-                            }}
-                          />
-                        )}
-                      </Badge>
-                    ) : null
-                  })}
-                </div>
-                {!readOnlyFields.includes('rules') && (
-                  <Select
-                    value="none"
-                    onValueChange={(value) => {
-                      if (value !== "none" && !field.value.includes(value)) {
-                        field.onChange([...field.value, value])
-                      }
-                    }}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Aggiungi regola" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {rules.map((rule) => (
-                        <SelectItem key={rule.id} value={rule.id}>
-                          {rule.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -59,7 +59,6 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
         start_time: confirmDialog.session.start_time,
         end_time: confirmDialog.session.end_time,
         clusters: confirmDialog.session.session_clusters?.map(sc => sc.cluster.id) || [],
-        rules: confirmDialog.session.session_rules?.map(sr => sr.rule.id) || [],
         status: 'Conclusa'
       });
 

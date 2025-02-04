@@ -1263,34 +1263,31 @@ export const queries = {
       start_time: string | null;
       end_time: string | null;
       clusters: string[];
-      rules: string[];
       status?: string;
     }) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        // Otteniamo la company dell'utente corrente
-        const currentUser = await queries.users.getCurrentUser();
-        if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
-        }
-
         // 1. Creiamo la sessione
-        const { data: session, error: sessionError } = await supabase
+        const { data: session, error } = await supabase
           .from('sessions')
-          .insert({
+          .insert([{
             id: crypto.randomUUID(),
             name: sessionData.name,
             start_time: sessionData.start_time,
             end_time: sessionData.end_time,
             status: sessionData.status || 'In preparazione',
-            company: currentUser.company
-          })
+            created_at: new Date().toISOString()
+          }])
           .select()
           .single();
 
-        if (sessionError) {
-          console.error('Errore nella creazione della sessione:', sessionError);
-          throw sessionError;
+        if (error) {
+          console.error('Errore nella creazione della sessione:', error);
+          throw error;
+        }
+
+        if (!session) {
+          throw new Error('Errore durante la creazione della sessione');
         }
 
         // 2. Creiamo le associazioni session_clusters
@@ -1311,24 +1308,6 @@ export const queries = {
           }
         }
 
-        // 3. Creiamo le associazioni session_rules
-        if (sessionData.rules.length > 0) {
-          const { error: rulesError } = await supabase
-            .from('session_rules')
-            .insert(
-              sessionData.rules.map(ruleId => ({
-                id: crypto.randomUUID(),
-                session_id: session.id,
-                rule_id: ruleId
-              }))
-            );
-
-          if (rulesError) {
-            console.error('Errore nella creazione delle associazioni session_rules:', rulesError);
-            throw rulesError;
-          }
-        }
-
         return session;
       } catch (err) {
         console.error('Errore nella creazione della sessione:', err);
@@ -1341,7 +1320,6 @@ export const queries = {
       start_time: string | null;
       end_time: string | null;
       clusters: string[];
-      rules: string[];
       status?: string;
     }) => {
       const supabase = createClientComponentClient<Database>()
@@ -1381,27 +1359,6 @@ export const queries = {
             }))
           )
         if (clustersError) throw clustersError
-      }
-
-      // Aggiorniamo le associazioni con le regole
-      // Prima eliminiamo tutte le associazioni esistenti
-      const { error: deleteRulesError } = await supabase
-        .from('session_rules')
-        .delete()
-        .eq('session_id', sessionId)
-      if (deleteRulesError) throw deleteRulesError
-
-      // Poi creiamo le nuove associazioni
-      if (sessionData.rules.length > 0) {
-        const { error: rulesError } = await supabase
-          .from('session_rules')
-          .insert(
-            sessionData.rules.map(ruleId => ({
-              session_id: sessionId,
-              rule_id: ruleId
-            }))
-          )
-        if (rulesError) throw rulesError
       }
 
       return session
@@ -1875,6 +1832,78 @@ export const queries = {
         return true;
       } catch (err) {
         console.error('Errore nella generazione dei feedback per la regola 3:', err);
+        throw err;
+      }
+    },
+
+    generateRule4: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { error } = await supabase
+          .rpc('generate_rule4_feedbacks', { session_id_input: sessionId });
+
+        if (error) {
+          console.error('Errore nella generazione dei feedback per la regola 4:', error);
+          throw error;
+        }
+
+        return true;
+      } catch (err) {
+        console.error('Errore nella generazione dei feedback per la regola 4:', err);
+        throw err;
+      }
+    },
+
+    generateRule5: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { error } = await supabase
+          .rpc('generate_rule5_feedbacks', { session_uuid: sessionId });
+
+        if (error) {
+          console.error('Errore nella generazione dei feedback per la regola 5:', error);
+          throw error;
+        }
+
+        return true;
+      } catch (err) {
+        console.error('Errore nella generazione dei feedback per la regola 5:', err);
+        throw err;
+      }
+    },
+
+    generateRule6: async (sessionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { error } = await supabase
+          .rpc('generate_rule6_feedbacks', { session_uuid: sessionId });
+
+        if (error) {
+          console.error('Errore nella generazione dei feedback per la regola 6:', error);
+          throw error;
+        }
+
+        return true;
+      } catch (err) {
+        console.error('Errore nella generazione dei feedback per la regola 6:', err);
+        throw err;
+      }
+    },
+
+    delete: async (id: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { error } = await supabase
+          .from('feedbacks')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Errore nell\'eliminazione del feedback:', error);
+          throw error;
+        }
+      } catch (err) {
+        console.error('Errore nell\'eliminazione del feedback:', err);
         throw err;
       }
     },

@@ -783,6 +783,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      generate_rule4_feedbacks: {
+        Args: {
+          session_id_input: string
+        }
+        Returns: undefined
+      }
+      generate_rule5_feedbacks: {
+        Args: {
+          session_uuid: string
+        }
+        Returns: undefined
+      }
+      generate_rule6_feedbacks: {
+        Args: {
+          session_uuid: string
+        }
+        Returns: undefined
+      }
       remove_duplicate_feedbacks: {
         Args: {
           session_id: string
