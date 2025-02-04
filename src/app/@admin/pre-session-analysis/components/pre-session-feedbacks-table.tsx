@@ -38,7 +38,11 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
     queryKey: ['feedbacks', sessionId],
     queryFn: async () => {
       const result = await queries.feedbacks.getBySession(sessionId);
-      return result;
+      // Deduplicazione per UUID
+      const uniqueFeedbacks = Array.from(
+        new Map(result.map(item => [item.id, item])).values()
+      );
+      return uniqueFeedbacks;
     },
     enabled: !!sessionId
   });
@@ -46,12 +50,14 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
   // Notifica il parent component dei dati filtrati solo quando cambiano i filtri o i feedback
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      // Funzione per trovare i feedback duplicati
       const findDuplicates = (feedbacks: Feedback[]): Set<string> => {
         const feedbackMap = new Map<string, { count: number; ids: string[] }>();
         const duplicateIds = new Set<string>();
 
         // Prima passata: raggruppa i feedback e conta le occorrenze
         feedbacks.forEach(feedback => {
+          // Rimuovo rule_number dalla chiave per identificare i veri duplicati
           const key = `${feedback.sender}-${feedback.receiver}-${feedback.question}`;
           if (!feedbackMap.has(key)) {
             feedbackMap.set(key, { count: 0, ids: [] });
@@ -61,7 +67,7 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
           entry.ids.push(feedback.id);
         });
 
-        // Seconda passata: aggiungi tutti gli ID dei feedback che hanno duplicati
+        // Seconda passata: aggiungi gli ID dei feedback che sono effettivamente duplicati
         feedbackMap.forEach(({ count, ids }) => {
           if (count > 1) {
             ids.forEach(id => duplicateIds.add(id));
@@ -71,36 +77,43 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
         return duplicateIds;
       };
 
-      const filtered = feedbacks.filter(feedback => {
-        if (senderFilter && !feedback.sender.toLowerCase().includes(senderFilter.toLowerCase())) {
-          return false;
-        }
-        if (receiverFilter && !feedback.receiver.toLowerCase().includes(receiverFilter.toLowerCase())) {
-          return false;
-        }
-        if (questionFilter && !feedback.question.toLowerCase().includes(questionFilter.toLowerCase())) {
-          return false;
-        }
-        if (typeFilter !== 'all' && feedback.questionType.toLowerCase() !== typeFilter.toLowerCase()) {
-          return false;
-        }
-        if (ruleFilter !== 'all') {
-          if (ruleFilter === 'no_rule' && feedback.rule_number !== null) {
-            return false;
-          } else if (ruleFilter !== 'no_rule' && feedback.rule_number !== Number(ruleFilter)) {
+      let filtered = feedbacks;
+
+      // Applica i filtri di ricerca
+      if (senderFilter || receiverFilter || questionFilter || typeFilter !== 'all' || ruleFilter !== 'all') {
+        filtered = feedbacks.filter(feedback => {
+          if (senderFilter && !feedback.sender.toLowerCase().includes(senderFilter.toLowerCase())) {
             return false;
           }
-        }
-        if (filterDuplicates) {
-          const duplicateIds = findDuplicates(feedbacks);
-          return duplicateIds.has(feedback.id);
-        }
-        return true;
-      });
+          if (receiverFilter && !feedback.receiver.toLowerCase().includes(receiverFilter.toLowerCase())) {
+            return false;
+          }
+          if (questionFilter && !feedback.question.toLowerCase().includes(questionFilter.toLowerCase())) {
+            return false;
+          }
+          if (typeFilter !== 'all' && feedback.questionType.toLowerCase() !== typeFilter.toLowerCase()) {
+            return false;
+          }
+          if (ruleFilter !== 'all') {
+            if (ruleFilter === 'no_rule' && feedback.rule_number !== null) {
+              return false;
+            } else if (ruleFilter !== 'no_rule' && feedback.rule_number !== Number(ruleFilter)) {
+              return false;
+            }
+          }
+          return true;
+        });
+      }
+
+      // Se il filtro duplicati è attivo, mostra solo i feedback che hanno duplicati
+      if (filterDuplicates) {
+        const duplicateIds = findDuplicates(filtered);
+        filtered = filtered.filter(feedback => duplicateIds.has(feedback.id));
+      }
 
       setFilteredResults(filtered);
       setTotalPages(Math.ceil(filtered.length / ITEMS_PER_PAGE));
-      setCurrentPage(1); // Reset to first page when filters change
+      setCurrentPage(1);
       onFilteredDataChange?.(filtered);
     }, 0);
     return () => clearTimeout(timeoutId);
@@ -253,8 +266,11 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
 
       {/* Vista Mobile */}
       <div className="block sm:hidden space-y-4">
-        {paginatedFeedbacks.map((feedback) => (
-          <div key={feedback.id} className="bg-white p-4 rounded-lg shadow">
+        {paginatedFeedbacks.map((feedback, index) => (
+          <div 
+            key={`${feedback.id}-${index}`} 
+            className="bg-white p-4 rounded-lg shadow"
+          >
             <div className="flex justify-between items-start">
               <div className="space-y-2 flex-1">
                 <div className="font-medium">ID: {feedback.id}</div>
@@ -310,8 +326,8 @@ export const PreSessionFeedbacksTable = ({ sessionId, onFilteredDataChange }: Pr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedFeedbacks.map((feedback) => (
-                <TableRow key={feedback.id}>
+              {paginatedFeedbacks.map((feedback, index) => (
+                <TableRow key={`${feedback.id}-${index}`}>
                   <TableCell>{feedback.id}</TableCell>
                   <TableCell>{feedback.sender}</TableCell>
                   <TableCell>{feedback.receiver}</TableCell>

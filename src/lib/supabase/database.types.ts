@@ -771,26 +771,12 @@ export type Database = {
         }
         Returns: undefined
       }
-      generate_rule3_feedbacks: {
+      generate_rule3a_feedbacks: {
         Args: {
           session_id: string
         }
         Returns: undefined
       }
-      generate_rule3a_feedbacks:
-        | {
-            Args: {
-              session_id: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              session_id: string
-              company_id: string
-            }
-            Returns: undefined
-          }
       generate_rule3b_feedbacks: {
         Args: {
           session_id: string

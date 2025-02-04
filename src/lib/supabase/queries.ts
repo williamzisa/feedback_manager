@@ -1732,6 +1732,9 @@ export const queries = {
 
         // Recuperiamo i feedback in batch
         for (let from = 0; from < totalCount; from += batchSize) {
+          const to = Math.min(from + batchSize - 1, totalCount - 1);
+          console.log(`Recupero batch ${from}-${to} di ${totalCount} feedback`);
+          
           const { data, error } = await supabase
             .from('feedbacks')
             .select(`
@@ -1758,11 +1761,10 @@ export const queries = {
               )
             `)
             .eq('session_id', sessionId)
-            .order('created_at', { ascending: false })
-            .range(from, from + batchSize - 1);
+            .range(from, to);
 
           if (error) {
-            console.error(`Errore nel recupero del batch ${from}-${from + batchSize}:`, error);
+            console.error(`Errore nel recupero del batch ${from}-${to}:`, error);
             throw error;
           }
 
@@ -1911,6 +1913,7 @@ export const queries = {
             sender,
             receiver,
             question_id,
+            rule_number,
             sender_user:users!feedbacks_sender_fkey (
               name,
               surname
@@ -1934,7 +1937,7 @@ export const queries = {
         let duplicateFeedbacks = 0;
 
         allFeedbacks.forEach(feedback => {
-          const key = `${feedback.sender}-${feedback.receiver}-${feedback.question_id}`;
+          const key = `${feedback.sender}-${feedback.receiver}-${feedback.question_id}-${feedback.rule_number}`;
           feedbackMap.set(key, (feedbackMap.get(key) || 0) + 1);
         });
 
