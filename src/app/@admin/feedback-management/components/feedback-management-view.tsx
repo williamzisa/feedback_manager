@@ -9,10 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PreSessionStats } from "@/lib/types/feedbacks";
-import { queries } from "@/lib/supabase/queries";
 import { Badge } from "@/components/ui/badge";
-import type { Database } from "@/lib/supabase/database.types";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -22,280 +19,152 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useQuery } from "@tanstack/react-query";
+import { managementQueries } from "@/lib/queries/feedback-management.queries";
+import { queryKeys } from "@/lib/query-keys";
+import { FeedbackType, SessionStatus } from "@/lib/types/feedback.types";
+import type { FeedbackManagementFilters } from "@/lib/types/feedback-management.types";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { Database } from "@/lib/supabase/database.types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export type SessionStatus = 'In preparazione' | 'In corso' | 'Conclusa';
-type Session = Database['public']['Tables']['sessions']['Row'];
-
-type FeedbackType = 'SOFT' | 'EXECUTION' | 'STRATEGY';
 type FeedbackResponseFilter = 'all' | 'with_response' | 'without_response';
 
-type FeedbackData = {
-  id: string;
-  value: number | null;
-  comment: string | null;
-  sender: { id: string; name: string; surname: string } | null;
-  receiver: { id: string; name: string; surname: string } | null;
-  question: { id: string; description: string; type: string } | null;
-  rule_number: number | null;
-};
-
-type ValidFeedback = {
-  id: string;
-  value: number | null;
-  comment: string | null;
-  sender: { id: string; name: string; surname: string };
-  receiver: { id: string; name: string; surname: string };
-  question: { id: string; description: string; type: string } | null;
-  rule_number: number | null;
-};
-
-type FeedbackWithType = {
-  id: string;
-  sender: {
-    id: string;
-    name: string;
-    surname: string;
-  };
-  receiver: {
-    id: string;
-    name: string;
-    surname: string;
-  };
-  question: string;
-  value: number | null;
-  comment: string | null;
-  questionType: string;
-  rule_number: number | null;
-};
+const ITEMS_PER_PAGE = 10;
 
 export function FeedbackManagementView() {
-  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("In corso");
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [stats, setStats] = useState<PreSessionStats>({
-    totalFeedbacks: 0,
-    duplicateFeedbacks: 0,
-    usersWithNoFeedbacks: 0,
-    totalUsers: 0,
-    avgFeedbacksPerUser: 0
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>(SessionStatus.PREPARATION);
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Query per le sessioni
+  const { data: sessions = [] } = useQuery({
+    queryKey: queryKeys.sessions.all(),
+    queryFn: async () => {
+      const supabase = createClientComponentClient<Database>();
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .or('status.eq.In corso,status.eq.Conclusa')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
   });
 
+  // Seleziona automaticamente la prima sessione disponibile
+  useEffect(() => {
+    if (sessions.length > 0 && !selectedSessionId) {
+      const firstSession = sessions[0];
+      setSelectedSessionId(firstSession.id);
+      setSessionStatus(firstSession.status as SessionStatus);
+    }
+  }, [sessions, selectedSessionId]);
+  
   // Filtri
-  const [senderFilter, setSenderFilter] = useState("");
-  const [receiverFilter, setReceiverFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState<FeedbackType | "all">("all");
-  const [responseFilter, setResponseFilter] = useState<FeedbackResponseFilter>("all");
+  const [senderFilter, setSenderFilter] = useState('');
+  const [receiverFilter, setReceiverFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<FeedbackType | 'all'>('all');
+  const [responseFilter, setResponseFilter] = useState<FeedbackResponseFilter>('all');
 
-  // Feedback
-  const [feedbacks, setFeedbacks] = useState<FeedbackWithType[]>([]);
-  const [filteredFeedbacks, setFilteredFeedbacks] = useState<FeedbackWithType[]>([]);
-
-  // Carica le sessioni all'avvio
-  useEffect(() => {
-    const loadSessions = async () => {
-      try {
-        const currentUser = await queries.users.getCurrentUser();
-        if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
-        }
-        
-        const sessionsData = await queries.sessions.getByCompany(currentUser.company);
-        const filteredSessions = sessionsData.filter(s => 
-          s.status === "In corso" || s.status === "Conclusa"
-        );
-        setSessions(filteredSessions);
-
-        if (filteredSessions.length > 0 && !selectedSessionId) {
-          const firstSession = filteredSessions[0];
-          setSelectedSessionId(firstSession.id);
-          setSessionStatus(mapSessionStatus(firstSession.status));
-        }
-      } catch (error) {
-        console.error('Errore nel caricamento delle sessioni:', error);
-      }
-    };
-
-    loadSessions();
-  }, [selectedSessionId]);
-
-  // Carica le statistiche quando viene selezionata una sessione
-  useEffect(() => {
-    const loadStats = async () => {
-      if (selectedSessionId) {
-        try {
-          const sessionStats = await queries.sessionStats.getStats(selectedSessionId);
-          setStats(sessionStats);
-        } catch (error) {
-          console.error('Errore nel caricamento delle statistiche:', error);
-        }
-      }
-    };
-
-    loadStats();
-  }, [selectedSessionId]);
-
-  // Carica i feedback quando viene selezionata una sessione
-  useEffect(() => {
-    const loadFeedbacks = async () => {
-      if (selectedSessionId) {
-        try {
-          const supabase = createClientComponentClient<Database>();
-          const { data: feedbackData, error } = await supabase
-            .from('feedbacks')
-            .select(`
-              id,
-              value,
-              comment,
-              sender:users!feedbacks_sender_fkey (
-                id,
-                name,
-                surname
-              ),
-              receiver:users!feedbacks_receiver_fkey (
-                id,
-                name,
-                surname
-              ),
-              question:questions (
-                id,
-                description,
-                type
-              ),
-              rule_number
-            `)
-            .eq('session_id', selectedSessionId);
-
-          if (error) throw error;
-
-          const formattedFeedbacks = (feedbackData || [])
-            .filter((feedback: FeedbackData): feedback is ValidFeedback => 
-              feedback.sender !== null && feedback.receiver !== null
-            )
-            .map(feedback => ({
-              id: feedback.id,
-              sender: feedback.sender,
-              receiver: feedback.receiver,
-              question: feedback.question?.description || '',
-              value: feedback.value,
-              comment: feedback.comment,
-              questionType: feedback.question?.type || '',
-              rule_number: feedback.rule_number
-            }));
-
-          setFeedbacks(formattedFeedbacks);
-          setFilteredFeedbacks(formattedFeedbacks);
-        } catch (error) {
-          console.error('Errore nel caricamento dei feedback:', error);
-        }
-      }
-    };
-
-    loadFeedbacks();
-  }, [selectedSessionId]);
-
-  // Applica i filtri quando cambiano
-  useEffect(() => {
-    let filtered = [...feedbacks];
-
-    // Filtro per mittente
-    if (senderFilter) {
-      filtered = filtered.filter(f => 
-        `${f.sender.name} ${f.sender.surname}`.toLowerCase().includes(senderFilter.toLowerCase())
-      );
+  // Query per le statistiche
+  const { data: feedbackStats = { 
+    totalResponses: 0, 
+    responseRate: 0, 
+    averageScore: 0, 
+    feedbacksByType: {
+      [FeedbackType.SOFT]: 0,
+      [FeedbackType.EXECUTION]: 0,
+      [FeedbackType.STRATEGY]: 0
     }
+  } } = useQuery({
+    queryKey: queryKeys.management.feedbacks.stats(selectedSessionId),
+    queryFn: () => managementQueries.getStats(selectedSessionId),
+    enabled: !!selectedSessionId
+  });
 
-    // Filtro per destinatario
-    if (receiverFilter) {
-      filtered = filtered.filter(f => 
-        `${f.receiver.name} ${f.receiver.surname}`.toLowerCase().includes(receiverFilter.toLowerCase())
-      );
-    }
+  // Query per i feedback filtrati
+  const { data: filteredFeedbacks = [] } = useQuery({
+    queryKey: queryKeys.management.feedbacks.filtered(selectedSessionId, {
+      sender: senderFilter,
+      receiver: receiverFilter,
+      type: typeFilter,
+      responseStatus: responseFilter
+    }),
+    queryFn: () => managementQueries.getFilteredFeedbacks(selectedSessionId, {
+      sender: senderFilter,
+      receiver: receiverFilter,
+      type: typeFilter,
+      responseStatus: responseFilter
+    } as FeedbackManagementFilters),
+    enabled: !!selectedSessionId,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false
+  });
 
-    // Filtro per tipo
-    if (typeFilter !== "all") {
-      filtered = filtered.filter(f => f.questionType.toLowerCase() === typeFilter.toLowerCase());
-    }
+  // Calcola i feedback paginati
+  const totalPages = Math.ceil(filteredFeedbacks.length / ITEMS_PER_PAGE);
+  const paginatedFeedbacks = filteredFeedbacks.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
-    // Filtro per risposta
-    if (responseFilter !== "all") {
-      filtered = filtered.filter(f => 
-        responseFilter === "with_response" ? f.value !== null : f.value === null
-      );
-    }
-
-    // Ordinamento per mittente e destinatario
-    filtered.sort((a, b) => {
-      const senderCompare = a.sender.name.localeCompare(b.sender.name);
-      if (senderCompare !== 0) return senderCompare;
-      return a.receiver.name.localeCompare(b.receiver.name);
-    });
-
-    setFilteredFeedbacks(filtered);
-  }, [feedbacks, senderFilter, receiverFilter, typeFilter, responseFilter]);
-
-  const handleSessionChange = (sessionId: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (session) {
-      setSelectedSessionId(sessionId);
-      setSessionStatus(mapSessionStatus(session.status));
+  // Gestione paginazione
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
     }
   };
 
-  const mapSessionStatus = (status: string): SessionStatus => {
-    switch (status) {
-      case "In corso":
-        return "In corso";
-      case "Conclusa":
-        return "Conclusa";
-      case "In preparazione":
-        return "In preparazione";
-      default:
-        return "In corso";
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
+  // Reset paginazione quando cambiano i filtri
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [senderFilter, receiverFilter, typeFilter, responseFilter]);
+
+  // Funzione per ottenere la variante del badge in base allo stato
   const getStatusBadgeVariant = (status: SessionStatus) => {
     switch (status) {
-      case "In corso":
-        return "secondary";
-      case "Conclusa":
-        return "outline";
-      case "In preparazione":
+      case SessionStatus.ACTIVE:
         return "default";
-      default:
+      case SessionStatus.COMPLETED:
         return "secondary";
+      default:
+        return "outline";
     }
   };
 
-  const getStatusLabel = (status: SessionStatus) => {
-    return status;
+  // Funzione per ottenere l'etichetta dello stato
+  const getStatusLabel = (status: SessionStatus) => status;
+
+  // Gestione cambio sessione
+  const handleSessionChange = (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    setSelectedSessionId(sessionId);
+    if (session) {
+      setSessionStatus(session.status as SessionStatus);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="mx-auto max-w-full px-4 sm:px-8 py-8">
-        {/* Header Section */}
-        <div className="mb-6 flex items-center">
-          <svg
-            className="mr-2 h-5 w-5 text-gray-600"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-          </svg>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Gestione Feedback
-          </h1>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Gestione Feedback</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Gestisci e monitora i feedback per le sessioni attive
+          </p>
         </div>
 
         {/* Session Selector */}
-        <div className="mb-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <div>
           <div className="w-full sm:w-96">
             <Select
               value={selectedSessionId}
@@ -324,96 +193,124 @@ export function FeedbackManagementView() {
 
         {/* Stats Section */}
         {selectedSessionId && (
-          <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-              <StatCard title="FEEDBACK TOTALI" value={stats.totalFeedbacks} />
-              <StatCard
-                title="MEDIA PER UTENTE"
-                value={stats.avgFeedbacksPerUser}
-                className="bg-blue-100"
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard 
+                title="FEEDBACK TOTALI" 
+                value={filteredFeedbacks.length} 
+                className="bg-white"
               />
               <StatCard
-                title="UTENTI SENZA FEEDBACK"
-                value={stats.usersWithNoFeedbacks}
-                className="bg-yellow-100"
+                title="TASSO DI RISPOSTA"
+                value={Math.round(feedbackStats.responseRate)}
+                className="bg-blue-50"
               />
               <StatCard
-                title="UTENTI TOTALI"
-                value={stats.totalUsers}
-                className="bg-green-100"
+                title="MEDIA VALUTAZIONI"
+                value={Number(feedbackStats.averageScore.toFixed(1))}
+                className="bg-yellow-50"
+              />
+              <StatCard
+                title="FEEDBACK SOFT"
+                value={feedbackStats.feedbacksByType[FeedbackType.SOFT]}
+                className="bg-green-50"
               />
             </div>
 
-            <div className="mt-6">
-              <div className="rounded-lg bg-white shadow-sm">
-                <div className="px-4 py-3 border-b">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-500">Gestione Feedback</p>
-                    <span className="text-sm text-gray-500">{filteredFeedbacks.length} risultati</span>
-                  </div>
-                </div>
+            {/* Filtri e Tabella */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-sm font-medium text-gray-500">Gestione Feedback</h2>
+                <span className="text-sm text-gray-500">{filteredFeedbacks.length} risultati</span>
+              </div>
 
-                {/* Filtri */}
-                <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Input
-                    placeholder="Filtra per mittente..."
-                    value={senderFilter}
-                    onChange={(e) => setSenderFilter(e.target.value)}
-                    className="w-full"
-                  />
-                  <Input
-                    placeholder="Filtra per destinatario..."
-                    value={receiverFilter}
-                    onChange={(e) => setReceiverFilter(e.target.value)}
-                    className="w-full"
-                  />
-                  <Select
-                    value={typeFilter}
-                    onValueChange={(value) => setTypeFilter(value as FeedbackType | "all")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tipo di feedback" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tutti i tipi</SelectItem>
-                      <SelectItem value="SOFT">Soft</SelectItem>
-                      <SelectItem value="EXECUTION">Execution</SelectItem>
-                      <SelectItem value="STRATEGY">Strategy</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={responseFilter}
-                    onValueChange={(value) => setResponseFilter(value as FeedbackResponseFilter)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Stato risposta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tutte le risposte</SelectItem>
-                      <SelectItem value="with_response">Con risposta</SelectItem>
-                      <SelectItem value="without_response">Senza risposta</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Filtri */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Input
+                  placeholder="Filtra per mittente..."
+                  value={senderFilter}
+                  onChange={(e) => setSenderFilter(e.target.value)}
+                  className="bg-white"
+                />
+                <Input
+                  placeholder="Filtra per destinatario..."
+                  value={receiverFilter}
+                  onChange={(e) => setReceiverFilter(e.target.value)}
+                  className="bg-white"
+                />
+                <Select
+                  value={typeFilter}
+                  onValueChange={(value) => setTypeFilter(value as FeedbackType | "all")}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Tutti i tipi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutti i tipi</SelectItem>
+                    <SelectItem value="SOFT">Soft</SelectItem>
+                    <SelectItem value="EXECUTION">Execution</SelectItem>
+                    <SelectItem value="STRATEGY">Strategy</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={responseFilter}
+                  onValueChange={(value) => setResponseFilter(value as FeedbackResponseFilter)}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Tutte le risposte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutte le risposte</SelectItem>
+                    <SelectItem value="with_response">Con risposta</SelectItem>
+                    <SelectItem value="without_response">Senza risposta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                {/* Tabella Feedback */}
-                <div className="p-4 overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Mittente</TableHead>
-                        <TableHead>Destinatario</TableHead>
-                        <TableHead>Domanda</TableHead>
-                        <TableHead>Valore</TableHead>
-                        <TableHead>Commento</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredFeedbacks.map((feedback) => (
+              {/* Paginazione */}
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  Pagina {currentPage} di {totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tabella Feedback */}
+              <div className="rounded-lg border bg-white">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Mittente</TableHead>
+                      <TableHead>Destinatario</TableHead>
+                      <TableHead>Domanda</TableHead>
+                      <TableHead>Valore</TableHead>
+                      <TableHead>Commento</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedFeedbacks.length > 0 ? (
+                      paginatedFeedbacks.map((feedback) => (
                         <TableRow key={feedback.id}>
                           <TableCell>{`${feedback.sender.name} ${feedback.sender.surname}`}</TableCell>
                           <TableCell>{`${feedback.receiver.name} ${feedback.receiver.surname}`}</TableCell>
-                          <TableCell>{feedback.question}</TableCell>
+                          <TableCell>{feedback.question.description}</TableCell>
                           <TableCell>
                             {feedback.value === null 
                               ? "Nessuna risposta" 
@@ -423,15 +320,21 @@ export function FeedbackManagementView() {
                           </TableCell>
                           <TableCell>{feedback.comment || '-'}</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-4">
+                          Nessun feedback trovato
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </div>
-          </>
+          </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
