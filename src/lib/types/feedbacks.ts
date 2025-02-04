@@ -1,14 +1,19 @@
-export type Feedback = {
-  id: string
-  sender: string
-  receiver: string
-  question: string
-  rule: number
-  rule_number: number | null
-  tags: string[]
-  value: number | null
-  comment: string | null
-  questionType: string
+export type FeedbackType = 'EXECUTION' | 'STRATEGY' | 'SOFT';
+
+export type BaseFeedback = {
+  id: string;
+  value: number | null;
+  comment: string | null;
+  rule_number: number | null;
+}
+
+export type Feedback = BaseFeedback & {
+  sender: string;
+  receiver: string;
+  question: string;
+  rule: number;
+  tags: string[];
+  questionType: string;
 }
 
 export interface PreSessionStats {
@@ -18,4 +23,12 @@ export interface PreSessionStats {
   totalUsers: number;
   avgFeedbacksPerUser: number;
   usersWithNoFeedbacksDetails?: { name: string; surname: string }[];
-} 
+}
+
+// Tipo per il contesto della pre-session
+export interface PreSessionContext {
+  sessionId: string;
+  currentRule: number | null;
+  isGenerating: boolean;
+  hasUnsavedChanges: boolean;
+}
