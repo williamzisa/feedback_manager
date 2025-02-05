@@ -2,7 +2,6 @@
 
 import { useSearchParams, useRouter, useParams } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
-import BottomNav from "@/components/navigation/bottom-nav";
 import Header from "@/components/navigation/header";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "@/lib/supabase/database.types";
@@ -621,7 +620,6 @@ function EvaluateContent() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         </main>
-        <BottomNav />
       </div>
     );
   }
@@ -636,7 +634,6 @@ function EvaluateContent() {
             <span className="block sm:inline"> {error}</span>
           </div>
         </main>
-        <BottomNav />
       </div>
     );
   }
@@ -922,8 +919,6 @@ function EvaluateContent() {
           )}
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 }

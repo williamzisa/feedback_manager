@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import BottomNav from "@/components/navigation/bottom-nav";
 import Header from "@/components/navigation/header";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "@/lib/supabase/database.types";
@@ -141,7 +140,6 @@ export default function SessionPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         </main>
-        <BottomNav />
       </div>
     );
   }
@@ -156,7 +154,6 @@ export default function SessionPage() {
             <span className="block sm:inline"> {error}</span>
           </div>
         </main>
-        <BottomNav />
       </div>
     );
   }
@@ -234,8 +231,6 @@ export default function SessionPage() {
           ))}
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 }

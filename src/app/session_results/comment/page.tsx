@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import BottomNav from "@/components/navigation/bottom-nav";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import Header from "@/components/navigation/header";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -22,7 +21,6 @@ function LoadingSpinner() {
       <div className="flex justify-center items-center h-[calc(100vh-180px)]">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
       </div>
-      <BottomNav />
     </div>
   );
 }
@@ -135,7 +133,6 @@ function CommentsContent() {
             </button>
           </div>
         </div>
-        <BottomNav />
       </div>
     );
   }
@@ -225,8 +222,6 @@ function CommentsContent() {
           </button>
         </div>
       </main>
-
-      <BottomNav />
     </div>
   );
 }

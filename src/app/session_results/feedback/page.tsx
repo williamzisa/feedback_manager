@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import BottomNav from "@/components/navigation/bottom-nav";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import Header from "@/components/navigation/header";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -18,13 +17,15 @@ type FeedbackData = {
   question_id: string;
   question_type: string;
   question_description: string;
-  feedbacks: {
-    value: number;
-    sender_type: 'mentor' | 'self' | 'other';
-  }[];
+  feedbacks: Array<{
+    value: number | null;
+    comment: string | null;
+    sender: string | null;
+  }>;
   overall: number | null;
   mentor_value: number | null;
   self_value: number | null;
+  comment_count: number;
 };
 
 function FeedbackContent() {
@@ -41,6 +42,8 @@ function FeedbackContent() {
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [selectedType, setSelectedType] = useState<string>('SOFT');
+  const [filteredFeedbacks, setFilteredFeedbacks] = useState<FeedbackData[]>([]);
 
   // Carica il current user se necessario
   useEffect(() => {
@@ -167,10 +170,7 @@ function FeedbackContent() {
   // Carica i feedback quando viene selezionata una sessione
   useEffect(() => {
     const loadFeedbacks = async () => {
-      if (!selectedSession) {
-        console.log('Nessuna sessione selezionata');
-        return;
-      }
+      if (!selectedSession || isInitializing) return;
       
       const targetUserId = userId || currentUserId;
       if (!targetUserId) {
@@ -187,20 +187,23 @@ function FeedbackContent() {
           .select(`
             id,
             value,
+            comment,
             sender,
+            receiver,
             question:questions!inner (
               id,
               type,
               description
             ),
-            users!feedbacks_sender_fkey (
+            sender_user:users!feedbacks_sender_fkey (
               id,
+              name,
+              surname,
               mentor
             )
           `)
           .eq('session_id', selectedSession)
-          .eq('receiver', targetUserId)
-          .gt('value', 0);
+          .eq('receiver', targetUserId);
 
         if (feedbacksError) {
           console.error('Errore specifico:', feedbacksError);
@@ -210,6 +213,8 @@ function FeedbackContent() {
         if (!feedbacksData) {
           throw new Error('Nessun dato ricevuto');
         }
+
+        console.log('Feedback ricevuti:', feedbacksData);
 
         // Raggruppa i feedback per domanda
         const feedbacksByQuestion = feedbacksData.reduce((acc: Record<string, FeedbackData>, curr) => {
@@ -224,37 +229,48 @@ function FeedbackContent() {
               feedbacks: [],
               overall: null,
               mentor_value: null,
-              self_value: null
+              self_value: null,
+              comment_count: 0
             };
           }
 
-          // Determina il tipo di sender
-          let sender_type: 'mentor' | 'self' | 'other' = 'other';
-          if (curr.users?.mentor) {
-            sender_type = 'mentor';
-          } else if (curr.sender === targetUserId) {
-            sender_type = 'self';
-          }
-
+          // Aggiungi il feedback
           acc[questionId].feedbacks.push({
-            value: curr.value || 0,
-            sender_type
+            value: curr.value,
+            comment: curr.comment,
+            sender: curr.sender
           });
+
+          // Incrementa il contatore dei commenti solo se c'è un commento non nullo e non vuoto
+          // e non è un self-feedback (il sender è diverso dal receiver)
+          if (curr.comment && 
+              curr.comment.trim() !== '' && 
+              curr.sender !== curr.receiver) {
+            console.log('Incremento contatore commenti per domanda:', questionId);
+            acc[questionId].comment_count++;
+          }
 
           return acc;
         }, {});
 
+        console.log('Feedback raggruppati:', feedbacksByQuestion);
+
         // Calcola le medie e i valori specifici
         const processedFeedbacks = Object.values(feedbacksByQuestion).map(fb => {
           // Separa i feedback per tipo
-          const selfFeedbacks = fb.feedbacks.filter(f => f.sender_type === 'self');
-          const mentorFeedbacks = fb.feedbacks.filter(f => f.sender_type === 'mentor');
-          const otherFeedbacks = fb.feedbacks.filter(f => f.sender_type === 'other');
+          const selfFeedbacks = fb.feedbacks.filter(f => f.sender === targetUserId);
+          const mentorFeedbacks = fb.feedbacks.filter(f => f.sender && feedbacksData.some(fd => 
+            fd.sender_user?.mentor === f.sender
+          ));
+          const otherFeedbacks = fb.feedbacks.filter(f => 
+            f.sender !== targetUserId && 
+            !feedbacksData.some(fd => fd.sender_user?.mentor === f.sender)
+          );
 
           // Calcola overall (media dei feedback validi, escludendo self)
-          const validFeedbacks = [...mentorFeedbacks, ...otherFeedbacks].filter(f => f.value > 0);
+          const validFeedbacks = [...mentorFeedbacks, ...otherFeedbacks].filter(f => f.value && f.value > 0);
           const overall = validFeedbacks.length > 0
-            ? validFeedbacks.reduce((sum, f) => sum + f.value, 0) / validFeedbacks.length
+            ? validFeedbacks.reduce((sum, f) => sum + (f.value || 0), 0) / validFeedbacks.length
             : null;
 
           // Trova il voto del mentor
@@ -281,6 +297,11 @@ function FeedbackContent() {
         });
 
         setFeedbacks(sortedFeedbacks);
+        if (sortedFeedbacks.length > 0) {
+          const firstType = sortedFeedbacks[0].question_type;
+          setSelectedType(firstType);
+          setFilteredFeedbacks(sortedFeedbacks.filter(fb => fb.question_type === firstType));
+        }
         setCurrentIndex(0);
       } catch (err) {
         console.error('Errore nel caricamento dei feedback:', err);
@@ -291,17 +312,45 @@ function FeedbackContent() {
     };
 
     loadFeedbacks();
-  }, [selectedSession, userId, currentUserId]);
+  }, [selectedSession, userId, currentUserId, isInitializing]);
+
+  // Aggiorna il filtro quando cambia il tipo selezionato
+  useEffect(() => {
+    const filtered = feedbacks.filter(fb => fb.question_type === selectedType);
+    setFilteredFeedbacks(filtered);
+    setCurrentIndex(0);
+  }, [selectedType, feedbacks]);
 
   const handleNext = () => {
-    if (currentIndex < feedbacks.length - 1) {
+    if (currentIndex < filteredFeedbacks.length - 1) {
       setCurrentIndex(currentIndex + 1);
+    } else {
+      // Se siamo all'ultimo feedback del tipo corrente, passa al tipo successivo
+      const types = Array.from(new Set(feedbacks.map(fb => fb.question_type)));
+      const currentTypeIndex = types.indexOf(selectedType);
+      
+      if (currentTypeIndex < types.length - 1) {
+        const nextType = types[currentTypeIndex + 1];
+        setSelectedType(nextType);
+        setCurrentIndex(0);
+      }
     }
   };
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
+    } else {
+      // Se siamo al primo feedback del tipo corrente, passa al tipo precedente
+      const types = Array.from(new Set(feedbacks.map(fb => fb.question_type)));
+      const currentTypeIndex = types.indexOf(selectedType);
+      
+      if (currentTypeIndex > 0) {
+        const prevType = types[currentTypeIndex - 1];
+        const prevTypeFeedbacks = feedbacks.filter(fb => fb.question_type === prevType);
+        setSelectedType(prevType);
+        setCurrentIndex(prevTypeFeedbacks.length - 1);
+      }
     }
   };
 
@@ -314,7 +363,7 @@ function FeedbackContent() {
     });
   };
 
-  const currentFeedback = feedbacks[currentIndex];
+  const currentFeedback = filteredFeedbacks[currentIndex];
 
   const pageTitle = userId ? (userName || 'I miei Risultati') : 'I miei Risultati';
 
@@ -339,7 +388,6 @@ function FeedbackContent() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         </main>
-        <BottomNav />
       </div>
     );
   }
@@ -353,7 +401,6 @@ function FeedbackContent() {
             {error}
           </div>
         </main>
-        <BottomNav />
       </div>
     );
   }
@@ -420,13 +467,23 @@ function FeedbackContent() {
           </Select>
         </div>
 
-        {/* Skill Type */}
+        {/* Skill Type Selector */}
         {currentFeedback && (
           <div className="mb-6">
-            <Select value={currentFeedback.question_type} onValueChange={() => {}}>
+            <Select 
+              value={selectedType} 
+              onValueChange={(value) => setSelectedType(value)}
+            >
               <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
-                <span className="text-gray-900">{currentFeedback.question_type} Skills</span>
+                <span className="text-gray-900">{selectedType} Skills</span>
               </SelectTrigger>
+              <SelectContent>
+                {Array.from(new Set(feedbacks.map(fb => fb.question_type))).map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type} Skills
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         )}
@@ -475,7 +532,7 @@ function FeedbackContent() {
               onClick={handleViewComments}
             >
               <h3 className="text-lg font-semibold">
-                Hai ricevuto {currentFeedback.feedbacks.length} commenti, guardali qui:
+                Clicca qui per vedere i commenti
               </h3>
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -490,14 +547,14 @@ function FeedbackContent() {
         {currentFeedback && (
           <div>
             <div className="text-left text-gray-600 mb-4">
-              Domanda {currentIndex + 1} di {feedbacks.length}
+              Domanda {currentIndex + 1} di {filteredFeedbacks.length}
             </div>
 
             <div className="flex gap-4">
               <button
                 onClick={handlePrevious}
                 className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center justify-center"
-                disabled={currentIndex === 0}
+                disabled={currentIndex === 0 && selectedType === 'SOFT'}
               >
                 <svg 
                   className="w-6 h-6 mr-2" 
@@ -517,7 +574,7 @@ function FeedbackContent() {
               <button 
                 onClick={handleNext}
                 className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-[#4285F4] text-white hover:bg-[#3367D6] flex items-center justify-center"
-                disabled={currentIndex === feedbacks.length - 1}
+                disabled={currentIndex === filteredFeedbacks.length - 1 && selectedType === 'STRATEGY'}
               >
                 AVANTI
                 <svg 
@@ -538,8 +595,6 @@ function FeedbackContent() {
           </div>
         )}
       </main>
-
-      <BottomNav />
     </div>
   );
 }
@@ -551,7 +606,6 @@ export default function FeedbackPage() {
       <Suspense fallback={<div className="flex-1 flex items-center justify-center">Caricamento...</div>}>
         <FeedbackContent />
       </Suspense>
-      <BottomNav />
     </div>
   );
 } 
