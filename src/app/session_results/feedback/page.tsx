@@ -368,11 +368,12 @@ function FeedbackContent() {
   const pageTitle = userId ? (userName || 'I miei Risultati') : 'I miei Risultati';
 
   const handleViewComments = () => {
-    if (!sessionId || !userId) return;
+    if (!sessionId || !userId || !currentFeedback) return;
     
     const queryParams = new URLSearchParams();
     queryParams.set('sessionId', sessionId);
     queryParams.set('userId', userId);
+    queryParams.set('questionId', currentFeedback.question_id);
     if (userName) {
       queryParams.set('userName', userName);
     }
@@ -526,73 +527,89 @@ function FeedbackContent() {
               </div>
             </div>
 
-            {/* Comments Link */}
-            <div 
-              className="mt-6 flex justify-between items-center cursor-pointer hover:opacity-80"
-              onClick={handleViewComments}
-            >
-              <h3 className="text-lg font-semibold">
-                Clicca qui per vedere i commenti
-              </h3>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+            {/* Comments Link - Show only if there are comments */}
+            {currentFeedback && currentFeedback.comment_count > 0 && (
+              <div 
+                className="mt-6 flex justify-between items-center cursor-pointer hover:opacity-80"
+                onClick={handleViewComments}
+              >
+                <h3 className="text-lg font-semibold">
+                  {currentFeedback.comment_count === 1 
+                    ? "Visualizza 1 commento" 
+                    : `Visualizza ${currentFeedback.comment_count} commenti`}
+                </h3>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
         {/* Navigation */}
         {currentFeedback && (
-          <div>
+          <>
+            {/* Indicatore di progresso */}
             <div className="text-left text-gray-600 mb-4">
               Domanda {currentIndex + 1} di {filteredFeedbacks.length}
             </div>
 
-            <div className="flex gap-4">
-              <button
-                onClick={handlePrevious}
-                className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center justify-center"
-                disabled={currentIndex === 0 && selectedType === 'SOFT'}
-              >
-                <svg 
-                  className="w-6 h-6 mr-2" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                INDIETRO
-              </button>
-              <button 
-                onClick={handleNext}
-                className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-[#4285F4] text-white hover:bg-[#3367D6] flex items-center justify-center"
-                disabled={currentIndex === filteredFeedbacks.length - 1 && selectedType === 'STRATEGY'}
-              >
-                AVANTI
-                <svg 
-                  className="w-6 h-6 ml-2" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
+            {/* Navigation Buttons - Fixed at bottom */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-4">
+              <div className="container mx-auto max-w-2xl flex gap-4">
+                {currentIndex > 0 && (
+                  <button
+                    onClick={handlePrevious}
+                    className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center justify-center"
+                  >
+                    <svg 
+                      className="w-6 h-6 mr-2" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                    INDIETRO
+                  </button>
+                )}
+                {(currentIndex < filteredFeedbacks.length - 1 || 
+                  (() => {
+                    const types = Array.from(new Set(feedbacks.map(fb => fb.question_type)));
+                    const currentTypeIndex = types.indexOf(selectedType);
+                    return currentTypeIndex < types.length - 1;
+                  })()
+                ) && (
+                  <button 
+                    onClick={handleNext}
+                    className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-[#4285F4] text-white hover:bg-[#3367D6] flex items-center justify-center"
+                  >
+                    AVANTI
+                    <svg 
+                      className="w-6 h-6 ml-2" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </main>
     </div>

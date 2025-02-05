@@ -154,6 +154,58 @@ export type Database = {
           },
         ]
       }
+      initiatives: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          question_id: string | null
+          session_id: string | null
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          question_id?: string | null
+          session_id?: string | null
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          question_id?: string | null
+          session_id?: string | null
+          type?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "initiatives_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initiatives_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initiatives_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       levels: {
         Row: {
           company: string
