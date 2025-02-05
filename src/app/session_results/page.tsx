@@ -30,6 +30,34 @@ type UserSessionData = {
   weight_soft: number | null;
 };
 
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Caricamento..." />
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+      <BottomNav />
+    </div>
+  );
+}
+
+function NoSessionsMessage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header title="I miei Risultati" />
+      <div className="flex flex-col justify-center items-center h-[calc(100vh-180px)] px-4">
+        <div className="bg-white rounded-[20px] p-8 text-center max-w-md w-full shadow-sm">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Nessuna Sessione Disponibile</h2>
+          <p className="text-gray-600 mb-2">Non ci sono ancora sessioni concluse disponibili per la visualizzazione.</p>
+          <p className="text-gray-500 text-sm">Le sessioni appariranno qui una volta completate.</p>
+        </div>
+      </div>
+      <BottomNav />
+    </div>
+  );
+}
+
 function SessionResultsContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
@@ -47,10 +75,10 @@ function SessionResultsContent() {
   useEffect(() => {
     const loadSessions = async () => {
       try {
+        setLoading(true);
         const supabase = createClientComponentClient<Database>();
         const targetUserId = userId || (await queries.users.getCurrentUser()).id;
 
-        // Recupera le sessioni concluse dell'utente
         const { data: userSessions } = await supabase
           .from('user_sessions')
           .select(`
@@ -66,7 +94,7 @@ function SessionResultsContent() {
           .eq('user_id', targetUserId)
           .eq('sessions.status', 'Conclusa');
 
-        if (userSessions) {
+        if (userSessions && userSessions.length > 0) {
           const formattedSessions = userSessions.map(us => ({
             id: us.session_id,
             name: us.sessions.name,
@@ -75,12 +103,17 @@ function SessionResultsContent() {
           }));
 
           setSessions(formattedSessions);
-          if (formattedSessions.length > 0) {
-            setSelectedSessionId(formattedSessions[0].id);
-          }
+          setSelectedSessionId(formattedSessions[0].id);
+        } else {
+          setSessions([]);
+          setSelectedSessionId(null);
         }
       } catch (error) {
         console.error('Errore nel caricamento delle sessioni:', error);
+        setSessions([]);
+        setSelectedSessionId(null);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -183,15 +216,12 @@ function SessionResultsContent() {
     });
   };
 
-  if (loading && !userSessionData) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title={userName ? userName : 'I miei Risultati'} />
-        <div className="flex justify-center items-center h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (sessions.length === 0) {
+    return <NoSessionsMessage />;
   }
 
   return (
@@ -324,18 +354,8 @@ function SessionResultsContent() {
 
 export default function SessionResultsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Suspense fallback={
-        <div className="min-h-screen bg-gray-50">
-          <Header title="Caricamento..." />
-          <div className="flex justify-center items-center h-screen">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        </div>
-      }>
-        <SessionResultsContent />
-      </Suspense>
-      <BottomNav />
-    </div>
+    <Suspense fallback={<LoadingSpinner />}>
+      <SessionResultsContent />
+    </Suspense>
   );
 } 

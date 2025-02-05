@@ -318,6 +318,18 @@ function FeedbackContent() {
 
   const pageTitle = userId ? (userName || 'I miei Risultati') : 'I miei Risultati';
 
+  const handleViewComments = () => {
+    if (!sessionId || !userId) return;
+    
+    const queryParams = new URLSearchParams();
+    queryParams.set('sessionId', sessionId);
+    queryParams.set('userId', userId);
+    if (userName) {
+      queryParams.set('userName', userName);
+    }
+    window.location.href = `/session_results/comment?${queryParams.toString()}`;
+  };
+
   if (isInitializing || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -460,7 +472,7 @@ function FeedbackContent() {
             {/* Comments Link */}
             <div 
               className="mt-6 flex justify-between items-center cursor-pointer hover:opacity-80"
-              onClick={() => window.location.href = `/session_results/comment?skill=${currentFeedback.question_type}&questionId=${currentFeedback.question_id}`}
+              onClick={handleViewComments}
             >
               <h3 className="text-lg font-semibold">
                 Hai ricevuto {currentFeedback.feedbacks.length} commenti, guardali qui:
