@@ -13,7 +13,11 @@
 ## Non modificare da <START STRUCTURE> a <END STRUCTURE>
 <!-- START STRUCTURE -->
 
-``|-- public
+``|-- .cursor
+|   \-- rules
+|       |-- database.mdc
+|       \-- feedback-generation.mdc
+|-- public
 |   |-- file.svg
 |   |-- globe.svg
 |   |-- next.svg
@@ -203,6 +207,8 @@
 |   |-- lib
 |   |   |-- data
 |   |   |   \-- mock-people.ts
+|   |   |-- queries
+|   |   |   \-- feedback-management.queries.ts
 |   |   |-- supabase
 |   |   |   |-- client.ts
 |   |   |   |-- config.ts
@@ -212,6 +218,8 @@
 |   |   |   \-- server.ts
 |   |   |-- types
 |   |   |   |-- clusters.ts
+|   |   |   |-- feedback-management.types.ts
+|   |   |   |-- feedback.types.ts
 |   |   |   |-- feedbacks.ts
 |   |   |   |-- levels.ts
 |   |   |   |-- memberships.ts
@@ -221,6 +229,7 @@
 |   |   |   |-- sessions.ts
 |   |   |   |-- teams.ts
 |   |   |   \-- users.ts
+|   |   |-- query-keys.ts
 |   |   \-- utils.ts
 |   \-- middleware.ts
 |-- .cursorignore
@@ -284,6 +293,7 @@ e correlate, prenditi la libertÃ  di decidere autonomamente modifiche alla UI 
 - **Scalability**:
   - Queries and components must scale for new fields
   - Middleware extensible for new roles/permissions
+
 
 
 
