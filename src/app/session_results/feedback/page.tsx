@@ -6,6 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import Header from "@/components/navigation/header";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { Database } from "@/lib/supabase/database.types";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import CreateInitiativeDialog from "@/app/@admin/feedback-management/components/dialogs/create-initiative-dialog";
+import { queries } from "@/lib/queries";
 
 type Session = {
   id: string;
@@ -28,11 +32,26 @@ type FeedbackData = {
   comment_count: number;
 };
 
+type Initiative = {
+  id: string;
+  description: string | null;
+  created_at: string;
+  question_id: string | null;
+  session_id: string | null;
+  type: string | null;
+  user_id: string | null;
+  user: {
+    name: string;
+    surname: string;
+  } | null;
+};
+
 function FeedbackContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
   const userName = searchParams.get('userName');
   const sessionId = searchParams.get('sessionId');
+  const typeFromUrl = searchParams.get('type')?.toUpperCase();
   
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<string | null>(sessionId);
@@ -42,8 +61,14 @@ function FeedbackContent() {
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [selectedType, setSelectedType] = useState<string>('SOFT');
-  const [filteredFeedbacks, setFilteredFeedbacks] = useState<FeedbackData[]>([]);
+  const [selectedType, setSelectedType] = useState<string>(typeFromUrl || 'EXECUTION');
+  const [initiatives, setInitiatives] = useState<Initiative[]>([]);
+  const [showInitiativeDialog, setShowInitiativeDialog] = useState(false);
+  const [editingInitiative, setEditingInitiative] = useState<Initiative | null>(null);
+  const { toast } = useToast();
+
+  const filteredFeedbacks = feedbacks.filter(fb => fb.question_type === selectedType);
+  const currentFeedback = filteredFeedbacks[currentIndex];
 
   // Carica il current user se necessario
   useEffect(() => {
@@ -70,7 +95,7 @@ function FeedbackContent() {
           if (userError) throw userError;
 
           // Redirect con tutti i parametri necessari
-          const newUrl = `/session_results/feedback?userId=${user.id}&userName=${encodeURIComponent(userData?.name || '')}&sessionId=${sessionId}`;
+          const newUrl = `/session_results/feedback?userId=${user.id}&userName=${encodeURIComponent(userData?.name || '')}&sessionId=${sessionId}${typeFromUrl ? `&type=${typeFromUrl}` : ''}`;
           window.location.href = newUrl;
           return;
         }
@@ -85,7 +110,7 @@ function FeedbackContent() {
 
           if (userError) throw userError;
 
-          const newUrl = `/session_results/feedback?userId=${user.id}&userName=${encodeURIComponent(userData?.name || '')}`;
+          const newUrl = `/session_results/feedback?userId=${user.id}&userName=${encodeURIComponent(userData?.name || '')}${typeFromUrl ? `&type=${typeFromUrl}` : ''}`;
           window.location.href = newUrl;
           return;
         }
@@ -98,7 +123,7 @@ function FeedbackContent() {
     };
 
     loadCurrentUser();
-  }, [userId, sessionId]);
+  }, [userId, sessionId, typeFromUrl]);
 
   // Determina il backUrl in base alla presenza dell'userId e se è l'utente corrente
   const backUrl = userId === currentUserId || !userId || userId === 'null'
@@ -298,11 +323,13 @@ function FeedbackContent() {
 
         setFeedbacks(sortedFeedbacks);
         if (sortedFeedbacks.length > 0) {
-          const firstType = sortedFeedbacks[0].question_type;
-          setSelectedType(firstType);
-          setFilteredFeedbacks(sortedFeedbacks.filter(fb => fb.question_type === firstType));
+          // Se non c'è un tipo nell'URL, usa il primo tipo disponibile
+          if (!typeFromUrl) {
+            const firstType = sortedFeedbacks[0].question_type;
+            setSelectedType(firstType);
+          }
+          setCurrentIndex(0);
         }
-        setCurrentIndex(0);
       } catch (err) {
         console.error('Errore nel caricamento dei feedback:', err);
         setError(err instanceof Error ? err.message : 'Errore nel caricamento dei feedback');
@@ -312,14 +339,7 @@ function FeedbackContent() {
     };
 
     loadFeedbacks();
-  }, [selectedSession, userId, currentUserId, isInitializing]);
-
-  // Aggiorna il filtro quando cambia il tipo selezionato
-  useEffect(() => {
-    const filtered = feedbacks.filter(fb => fb.question_type === selectedType);
-    setFilteredFeedbacks(filtered);
-    setCurrentIndex(0);
-  }, [selectedType, feedbacks]);
+  }, [selectedSession, userId, currentUserId, isInitializing, selectedType, typeFromUrl]);
 
   const handleNext = () => {
     if (currentIndex < filteredFeedbacks.length - 1) {
@@ -363,8 +383,6 @@ function FeedbackContent() {
     });
   };
 
-  const currentFeedback = filteredFeedbacks[currentIndex];
-
   const pageTitle = userId ? (userName || 'I miei Risultati') : 'I miei Risultati';
 
   const handleViewComments = () => {
@@ -378,6 +396,68 @@ function FeedbackContent() {
       queryParams.set('userName', userName);
     }
     window.location.href = `/session_results/comment?${queryParams.toString()}`;
+  };
+
+  // Carica le iniziative quando cambia il feedback
+  useEffect(() => {
+    const loadInitiatives = async () => {
+      if (!selectedSession || !currentFeedback) return;
+
+      try {
+        const loadedInitiatives = await queries.initiatives.getBySessionAndQuestion(
+          selectedSession,
+          currentFeedback.question_id
+        );
+        setInitiatives(loadedInitiatives || []);
+      } catch (err) {
+        console.error('Errore nel caricamento delle iniziative:', err);
+        setInitiatives([]);
+      }
+    };
+
+    loadInitiatives();
+  }, [selectedSession, currentFeedback]);
+
+  const handleCreateInitiative = () => {
+    if (!selectedSession || !currentFeedback || !userId) return;
+    setEditingInitiative(null);
+    setShowInitiativeDialog(true);
+  };
+
+  const handleEditInitiative = (initiative: Initiative) => {
+    setEditingInitiative(initiative);
+    setShowInitiativeDialog(true);
+  };
+
+  const handleInitiativeSuccess = () => {
+    if (!currentFeedback) return;
+    
+    // Ricarica le iniziative
+    queries.initiatives.getBySessionAndQuestion(
+      selectedSession!,
+      currentFeedback.question_id
+    ).then((data) => setInitiatives(data || []));
+  };
+
+  const handleDeleteInitiative = async (initiativeId: string) => {
+    try {
+      await queries.initiatives.delete(initiativeId);
+      setInitiatives(prevInitiatives => 
+        prevInitiatives.filter(init => init.id !== initiativeId)
+      );
+      toast({
+        title: "Iniziativa eliminata",
+        description: "L'iniziativa è stata eliminata con successo",
+        variant: "success"
+      });
+    } catch (err) {
+      console.error('Errore nell\'eliminazione dell\'iniziativa:', err);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante l'eliminazione dell'iniziativa",
+        variant: "destructive"
+      });
+    }
   };
 
   if (isInitializing || loading) {
@@ -527,6 +607,59 @@ function FeedbackContent() {
               </div>
             </div>
 
+            {/* Initiative Section */}
+            <div className="mt-6 border-t pt-4">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-semibold">Iniziative</h3>
+                <Button 
+                  onClick={handleCreateInitiative}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  Nuova Iniziativa
+                </Button>
+              </div>
+              
+              {initiatives.length > 0 ? (
+                <div className="space-y-4">
+                  {initiatives.map((initiative) => (
+                    <div 
+                      key={initiative.id} 
+                      className="p-4 border rounded-lg bg-white shadow-sm"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600 mb-1">
+                            {initiative.user?.name} {initiative.user?.surname} - {new Date(initiative.created_at).toLocaleDateString('it-IT')}
+                          </p>
+                          <p className="text-gray-900">{initiative.description}</p>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditInitiative(initiative)}
+                          >
+                            Modifica
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteInitiative(initiative.id)}
+                          >
+                            Elimina
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">
+                  Nessuna iniziativa presente
+                </p>
+              )}
+            </div>
+
             {/* Comments Link - Show only if there are comments */}
             {currentFeedback && currentFeedback.comment_count > 0 && (
               <div 
@@ -612,6 +745,23 @@ function FeedbackContent() {
           </>
         )}
       </main>
+
+      {/* Initiative Dialog */}
+      {currentFeedback && (
+        <CreateInitiativeDialog
+          isOpen={showInitiativeDialog}
+          onClose={() => {
+            setShowInitiativeDialog(false);
+            setEditingInitiative(null);
+          }}
+          sessionId={selectedSession!}
+          userId={userId!}
+          questionId={currentFeedback.question_id}
+          questionType={currentFeedback.question_type}
+          onSuccess={handleInitiativeSuccess}
+          initiative={editingInitiative}
+        />
+      )}
     </div>
   );
 }

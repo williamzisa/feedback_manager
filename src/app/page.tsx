@@ -10,6 +10,7 @@ import { Session } from "@/lib/types/sessions";
 export default function HomePage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [menteeCount, setMenteeCount] = useState<number>(0);
+  const [userSessionsCount, setUserSessionsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +26,11 @@ export default function HomePage() {
         // Carica conteggio mentee
         const { data: mentees } = await queries.users.getMentees(currentUser.id);
         setMenteeCount(mentees?.length || 0);
+
+        // Carica conteggio user_sessions
+        const userSessionsData = await queries.userSessions.getAll();
+        setUserSessionsCount(userSessionsData.filter(session => session.user_id === currentUser.id).length);
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Errore nel caricamento dei dati');
         console.error('Errore nel caricamento dei dati:', err);
@@ -94,7 +100,7 @@ export default function HomePage() {
         {/* I miei Risultati */}
         <div className="bg-white rounded-[20px] shadow-sm p-6">
           <h2 className="text-[24px] font-bold text-gray-900 mb-2">I miei Risultati</h2>
-          <p className="text-blue-500 mb-4">3 risultati disponibili</p>
+          <p className="text-blue-500 mb-4">{userSessionsCount} risultati disponibili</p>
           <Link 
             href="/session_results"
             className="inline-block px-6 py-2 bg-emerald-500 text-white text-sm font-medium rounded-full hover:bg-emerald-600 transition-colors"

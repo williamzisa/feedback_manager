@@ -1,18 +1,24 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: 'Feedback Manager',
-  description: 'Gestione feedback per team e organizzazioni',
+  description: 'Gestisci i feedback del tuo team',
+}
+
+interface RootLayoutProps {
+  children: React.ReactNode;
+  admin: React.ReactNode;
+  params?: Promise<Record<string, unknown>>;
 }
 
 export default function RootLayout({
   children,
   admin,
-}: LayoutProps): React.ReactElement {
+}: RootLayoutProps) {
   return (
     <html lang="it">
       <body className={inter.className}>
@@ -22,10 +28,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
-
-// Definiamo esplicitamente l'interfaccia LayoutProps
-export interface LayoutProps {
-  children: React.ReactNode;
-  admin: React.ReactNode;
 }

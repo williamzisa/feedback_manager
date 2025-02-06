@@ -177,12 +177,11 @@ function SessionResultsContent() {
     setSelectedSessionId(sessionId);
   };
 
-  const handleViewDetails = async () => {
+  const handleViewDetails = async (skillType?: 'SOFT' | 'STRATEGY' | 'EXECUTION') => {
     try {
       const supabase = createClientComponentClient<Database>();
       const targetUserId = userId || (await queries.users.getCurrentUser()).id;
       
-      // Se non abbiamo l'userId nell'URL, otteniamo anche il nome dell'utente
       let targetUserName = userName || '';
       if (!userName) {
         const { data: userData, error: userError } = await supabase
@@ -200,6 +199,9 @@ function SessionResultsContent() {
       queryParams.set('userName', targetUserName);
       if (selectedSessionId) {
         queryParams.set('sessionId', selectedSessionId);
+      }
+      if (skillType) {
+        queryParams.set('type', skillType);
       }
 
       window.location.href = `/session_results/feedback?${queryParams.toString()}`;
@@ -286,7 +288,10 @@ function SessionResultsContent() {
         {/* Skills Cards */}
         <div className="space-y-4 mb-6">
           {/* Soft Skills */}
-          <div className="bg-[#FFF8F0] rounded-[20px] p-6">
+          <div 
+            className="bg-[#FFF8F0] rounded-[20px] p-6 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => handleViewDetails('SOFT')}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Soft Skills</h2>
               <span className="bg-[#F5A623] text-white text-xl font-bold px-4 py-1 rounded-full">
@@ -302,7 +307,10 @@ function SessionResultsContent() {
           </div>
 
           {/* Strategy Skills */}
-          <div className="bg-white rounded-[20px] p-6">
+          <div 
+            className="bg-white rounded-[20px] p-6 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => handleViewDetails('STRATEGY')}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Strategy Skills</h2>
               <span className="bg-[#00BFA5] text-white text-xl font-bold px-4 py-1 rounded-full">
@@ -318,7 +326,10 @@ function SessionResultsContent() {
           </div>
 
           {/* Execution Skills */}
-          <div className="bg-white rounded-[20px] p-6">
+          <div 
+            className="bg-white rounded-[20px] p-6 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => handleViewDetails('EXECUTION')}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Execution Skills</h2>
               <span className="bg-[#4285F4] text-white text-xl font-bold px-4 py-1 rounded-full">
@@ -339,7 +350,7 @@ function SessionResultsContent() {
           <div className="container mx-auto max-w-2xl">
             <Button 
               className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white py-6 rounded-full text-lg"
-              onClick={handleViewDetails}
+              onClick={() => handleViewDetails()}
             >
               Vedi Dettaglio
             </Button>
