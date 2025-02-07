@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import { queries } from '@/lib/supabase/queries'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ArrowUpDown } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 
 interface UserSessionResult {
   session_id: string
@@ -28,8 +29,6 @@ interface UserSessionResult {
 
 export const SessionResultsTable = () => {
   const router = useRouter()
-  const [results, setResults] = useState<UserSessionResult[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [sessionFilter, setSessionFilter] = useState('')
   const [sortConfig, setSortConfig] = useState<{
@@ -37,20 +36,18 @@ export const SessionResultsTable = () => {
     direction: 'asc' | 'desc';
   } | null>(null)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await queries.userSessions.getAll()
-        setResults(data)
-      } catch (error) {
-        console.error('Errore nel recupero dei risultati:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Otteniamo prima l'utente corrente per avere la company
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: queries.users.getCurrentUser
+  });
 
-    fetchData()
-  }, [])
+  // Query per ottenere i risultati delle sessioni
+  const { data: results = [], isLoading } = useQuery<UserSessionResult[]>({
+    queryKey: ['userSessions'],
+    queryFn: queries.userSessions.getAll,
+    enabled: !!currentUser?.company // Esegui la query solo se abbiamo la company dell'utente
+  });
 
   // Funzione per l'ordinamento
   const sortResults = (key: 'user_name' | 'val_overall' | 'val_gap') => {
@@ -61,23 +58,24 @@ export const SessionResultsTable = () => {
     }
 
     setSortConfig({ key, direction });
-
-    const sortedResults = [...results].sort((a, b) => {
-      if (key === 'user_name') {
-        return direction === 'asc' 
-          ? a[key].localeCompare(b[key])
-          : b[key].localeCompare(a[key]);
-      } else {
-        const aValue = a[key] ?? -Infinity;
-        const bValue = b[key] ?? -Infinity;
-        return direction === 'asc'
-          ? (aValue as number) - (bValue as number)
-          : (bValue as number) - (aValue as number);
-      }
-    });
-
-    setResults(sortedResults);
   };
+
+  // Ordina i risultati in base alla configurazione corrente
+  const sortedResults = sortConfig 
+    ? [...results].sort((a, b) => {
+        if (sortConfig.key === 'user_name') {
+          return sortConfig.direction === 'asc' 
+            ? a[sortConfig.key].localeCompare(b[sortConfig.key])
+            : b[sortConfig.key].localeCompare(a[sortConfig.key]);
+        } else {
+          const aValue = a[sortConfig.key] ?? -Infinity;
+          const bValue = b[sortConfig.key] ?? -Infinity;
+          return sortConfig.direction === 'asc'
+            ? (aValue as number) - (bValue as number)
+            : (bValue as number) - (aValue as number);
+        }
+      })
+    : results;
 
   // Funzione per il rendering dell'header ordinabile
   const SortableHeader = ({ 
@@ -138,7 +136,7 @@ export const SessionResultsTable = () => {
   }
 
   // Filtra i risultati in base al termine di ricerca e alla sessione
-  const filteredResults = results.filter(result =>
+  const filteredResults = sortedResults.filter(result =>
     result.user_name.toLowerCase().includes(searchTerm.toLowerCase()) &&
     result.session_name.toLowerCase().includes(sessionFilter.toLowerCase())
   )
@@ -180,7 +178,7 @@ export const SessionResultsTable = () => {
 
       {/* Vista Mobile */}
       <div className="block sm:hidden space-y-4">
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-4">Caricamento...</div>
         ) : filteredResults.map((result) => (
           <div key={`${result.session_id}-${result.user_id}`} className="mb-4 bg-white p-4 rounded-lg shadow">
@@ -240,7 +238,7 @@ export const SessionResultsTable = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-4">
                     Caricamento...

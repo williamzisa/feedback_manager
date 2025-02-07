@@ -57,7 +57,7 @@ export function MultiSelect({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -107,8 +107,13 @@ export function MultiSelect({
           <div className="shrink-0 opacity-50">▼</div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0" align="start">
-        <Command shouldFilter={false}>
+      <PopoverContent 
+        className="w-[200px] p-0" 
+        align="start"
+        style={{ zIndex: 9999 }}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
+        <Command shouldFilter={false} className="overflow-visible">
           <CommandInput 
             placeholder="Cerca opzione..." 
             value={inputValue}
@@ -117,7 +122,15 @@ export function MultiSelect({
           <CommandEmpty>Nessuna opzione trovata.</CommandEmpty>
           <CommandGroup className="max-h-64 overflow-auto">
             {filteredOptions.map((option) => (
-              <div key={option.value} className="flex items-center space-x-2 p-2">
+              <div
+                key={option.value}
+                className="flex items-center space-x-2 p-2 hover:bg-accent cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleSelect(option.value, !selected.includes(option.value))
+                }}
+              >
                 <Checkbox
                   id={option.value}
                   checked={selected.includes(option.value)}
@@ -125,7 +138,8 @@ export function MultiSelect({
                 />
                 <label
                   htmlFor={option.value}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="flex-grow text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {option.label}
                 </label>

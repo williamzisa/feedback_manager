@@ -143,7 +143,7 @@ export function EditUserDialog({
 
   return (
     <Dialog open={!!user} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="overflow-visible">
         <DialogHeader>
           <DialogTitle>Modifica User</DialogTitle>
         </DialogHeader>

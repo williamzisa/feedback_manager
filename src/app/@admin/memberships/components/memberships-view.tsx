@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -16,21 +16,39 @@ export function MembershipsView() {
   const [userFilter, setUserFilter] = useState('')
   const [teamFilter, setTeamFilter] = useState('')
 
+  // Otteniamo prima l'utente corrente per avere la company
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: queries.users.getCurrentUser
+  });
+
   const { data: memberships = [], refetch } = useQuery({
     queryKey: ['memberships'],
-    queryFn: queries.userTeams.getAll
+    queryFn: queries.userTeams.getAll,
+    enabled: !!currentUser?.company // Esegui la query solo se abbiamo la company dell'utente
   })
 
-  // Filtra le membership in base ai criteri di ricerca
-  const filteredMemberships = memberships.filter(membership => {
-    const userName = membership.users ? `${membership.users.name} ${membership.users.surname}`.toLowerCase() : ''
-    const teamName = membership.teams?.name?.toLowerCase() ?? ''
-    const searchUser = userFilter.toLowerCase()
-    const searchTeam = teamFilter.toLowerCase()
+  // Filtriamo prima per company
+  const companyMemberships = useMemo(() => {
+    if (!currentUser?.company) return [];
+    return memberships.filter(m => 
+      m.teams?.company === currentUser.company && 
+      m.users?.company === currentUser.company
+    );
+  }, [memberships, currentUser?.company]);
 
-    return (!userFilter || userName.includes(searchUser)) && 
-           (!teamFilter || teamName.includes(searchTeam))
-  })
+  // Poi applichiamo i filtri di ricerca
+  const filteredMemberships = useMemo(() => {
+    return companyMemberships.filter(membership => {
+      const userName = membership.users ? `${membership.users.name} ${membership.users.surname}`.toLowerCase() : ''
+      const teamName = membership.teams?.name?.toLowerCase() ?? ''
+      const searchUser = userFilter.toLowerCase()
+      const searchTeam = teamFilter.toLowerCase()
+
+      return (!userFilter || userName.includes(searchUser)) && 
+             (!teamFilter || teamName.includes(searchTeam))
+    })
+  }, [companyMemberships, userFilter, teamFilter])
 
   const handleEdit = (membership: UserTeam) => {
     setEditingMembership(membership)

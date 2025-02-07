@@ -90,6 +90,12 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
         const { data, error } = await supabase
           .from('users')
           .select(`
@@ -106,6 +112,7 @@ export const queries = {
             created_at,
             last_login
           `)
+          .eq('company', currentUser.company)
           .order('name');
 
         if (error) {
@@ -383,6 +390,12 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
         console.log('Iniziando il recupero dei team...');
         
         const { data, error } = await supabase
@@ -412,6 +425,7 @@ export const queries = {
               )
             )
           `)
+          .eq('company', currentUser.company)
           .order('name');
 
         if (error) {
@@ -608,21 +622,31 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
         const { data, error } = await supabase
           .from('user_teams')
           .select(`
             *,
-            users (
+            users!user_teams_user_id_fkey (
               id,
               name,
               surname,
-              email
+              email,
+              company
             ),
-            teams (
+            teams!user_teams_team_id_fkey (
               id,
-              name
+              name,
+              company
             )
           `)
+          .eq('teams.company', currentUser.company)
+          .eq('users.company', currentUser.company)
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -640,6 +664,34 @@ export const queries = {
     create: async (userTeam: { userId: string; teamId: string }) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Verifica che l'utente e il team appartengano alla stessa company
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
+        // Verifica team
+        const { data: teamData, error: teamError } = await supabase
+          .from('teams')
+          .select('company')
+          .eq('id', userTeam.teamId)
+          .single();
+
+        if (teamError || !teamData || teamData.company !== currentUser.company) {
+          throw new Error('Team non valido o non appartenente alla tua company');
+        }
+
+        // Verifica utente
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('company')
+          .eq('id', userTeam.userId)
+          .single();
+
+        if (userError || !userData || userData.company !== currentUser.company) {
+          throw new Error('Utente non valido o non appartenente alla tua company');
+        }
+
         const { data, error } = await supabase
           .from('user_teams')
           .insert([{
@@ -735,6 +787,12 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
         const { data, error } = await supabase
           .from('clusters')
           .select(`
@@ -749,6 +807,7 @@ export const queries = {
               team_id
             )
           `)
+          .eq('company', currentUser.company)
           .order('name');
 
         if (error) {
@@ -995,7 +1054,12 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Esecuzione query getAll processi');
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
         const { data, error } = await supabase
           .from('processes')
           .select(`
@@ -1011,14 +1075,15 @@ export const queries = {
             user_processes (
               id
             )
-          `);
+          `)
+          .eq('company', currentUser.company)
+          .order('created_at', { ascending: false });
 
         if (error) {
           console.error('Errore nel recupero dei processi:', error);
           throw error;
         }
 
-        console.log('Processi recuperati dal database:', data);
         return data?.map(process => ({
           ...process,
           user_count: process.user_processes?.length || 0
@@ -1157,9 +1222,16 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
         const { data, error } = await supabase
           .from('questions')
           .select('id, description, type, created_at, company')
+          .eq('company', currentUser.company)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -1701,11 +1773,29 @@ export const queries = {
     getBySession: async (sessionId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
+        // Verifica che la sessione appartenga alla company corretta
+        const { data: sessionData, error: sessionError } = await supabase
+          .from('sessions')
+          .select('company')
+          .eq('id', sessionId)
+          .single();
+
+        if (sessionError || !sessionData || sessionData.company !== currentUser.company) {
+          throw new Error('Sessione non valida o non appartenente alla tua company');
+        }
+
         // Prima otteniamo il conteggio totale dei feedback
         const { count, error: countError } = await supabase
           .from('feedbacks')
           .select('*', { count: 'exact', head: true })
-          .eq('session_id', sessionId);
+          .eq('session_id', sessionId)
+          .eq('company', currentUser.company);
 
         if (countError) {
           console.error('Errore nel conteggio dei feedback:', countError);
@@ -1719,7 +1809,6 @@ export const queries = {
         // Recuperiamo i feedback in batch
         for (let from = 0; from < totalCount; from += batchSize) {
           const to = Math.min(from + batchSize - 1, totalCount - 1);
-          console.log(`Recupero batch ${from}-${to} di ${totalCount} feedback`);
           
           const { data, error } = await supabase
             .from('feedbacks')
@@ -1732,6 +1821,7 @@ export const queries = {
               comment,
               rule_id,
               rule_number,
+              company,
               questions!inner (
                 id,
                 description,
@@ -1739,14 +1829,19 @@ export const queries = {
               ),
               sender_user:users!feedbacks_sender_fkey!inner (
                 name,
-                surname
+                surname,
+                company
               ),
               receiver_user:users!feedbacks_receiver_fkey!inner (
                 name,
-                surname
+                surname,
+                company
               )
             `)
             .eq('session_id', sessionId)
+            .eq('company', currentUser.company)
+            .eq('sender_user.company', currentUser.company)
+            .eq('receiver_user.company', currentUser.company)
             .range(from, to);
 
           if (error) {
@@ -1755,7 +1850,6 @@ export const queries = {
           }
 
           if (data) {
-            // Map dei risultati al tipo Feedback con controlli null-safety
             const mappedBatch = data
               .filter(feedback => feedback.sender_user && feedback.receiver_user && feedback.questions)
               .map(feedback => ({
@@ -1773,8 +1867,6 @@ export const queries = {
 
             allFeedbacks.push(...mappedBatch);
           }
-
-          console.log(`Recuperati ${allFeedbacks.length}/${totalCount} feedback`);
         }
 
         return allFeedbacks;
@@ -2054,20 +2146,30 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
         const { data, error } = await supabase
           .from('user_sessions')
           .select(`
             *,
-            session:sessions (
-              id,
-              name
-            ),
-            user:users (
+            session:sessions!inner (
               id,
               name,
-              surname
+              company
+            ),
+            user:users!inner (
+              id,
+              name,
+              surname,
+              company
             )
           `)
+          .eq('session.company', currentUser.company)
+          .eq('user.company', currentUser.company)
           .order('created_at', { ascending: false });
 
         if (error) {

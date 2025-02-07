@@ -1,20 +1,37 @@
 "use client";
 
+import { useMemo } from "react";
 import { StatCard } from "@/components/stats/stat-card";
 import { MembershipsView } from "@/app/@admin/memberships/components/memberships-view";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/lib/supabase/queries";
 
 export default function MembershipsPage() {
-  const { data: memberships = [] } = useQuery({
-    queryKey: ['memberships'],
-    queryFn: queries.userTeams.getAll
+  // Otteniamo prima l'utente corrente per avere la company
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: queries.users.getCurrentUser
   });
 
-  // Calcola le statistiche
-  const totalMemberships = memberships.length;
-  const activeTeams = new Set(memberships.map((m) => m.team_id)).size;
-  const activeUsers = new Set(memberships.map((m) => m.user_id)).size;
+  const { data: memberships = [] } = useQuery({
+    queryKey: ['memberships'],
+    queryFn: queries.userTeams.getAll,
+    enabled: !!currentUser?.company // Esegui la query solo se abbiamo la company dell'utente
+  });
+
+  // Filtriamo le memberships per la company corrente
+  const filteredMemberships = useMemo(() => {
+    if (!currentUser?.company) return [];
+    return memberships.filter(m => 
+      m.teams?.company === currentUser.company && 
+      m.users?.company === currentUser.company
+    );
+  }, [memberships, currentUser?.company]);
+
+  // Calcola le statistiche usando le memberships filtrate
+  const totalMemberships = filteredMemberships.length;
+  const activeTeams = new Set(filteredMemberships.map((m) => m.team_id)).size;
+  const activeUsers = new Set(filteredMemberships.map((m) => m.user_id)).size;
 
   return (
     <div className="min-h-screen bg-gray-50">

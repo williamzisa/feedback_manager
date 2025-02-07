@@ -52,20 +52,30 @@ export function FeedbackManagementView() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>(SessionStatus.PREPARATION);
   const [currentPage, setCurrentPage] = useState(1);
   
+  // Query per l'utente corrente
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: queries.users.getCurrentUser
+  });
+
   // Query per le sessioni
   const { data: sessions = [] } = useQuery({
     queryKey: queryKeys.sessions.all(),
     queryFn: async () => {
+      if (!currentUser?.company) return [];
+      
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
         .from('sessions')
         .select('*')
+        .eq('company', currentUser.company)
         .or('status.eq.In corso,status.eq.Conclusa')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!currentUser?.company
   });
 
   // Seleziona automaticamente la prima sessione disponibile
