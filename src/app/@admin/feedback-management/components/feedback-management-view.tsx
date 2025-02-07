@@ -20,8 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
-import { managementQueries } from "@/lib/queries/feedback-management.queries";
-import { queryKeys } from "@/lib/query-keys";
+import { queries } from "@/lib/supabase/queries";
 import { FeedbackType, SessionStatus } from "@/lib/types/feedback.types";
 import type { FeedbackManagementFilters } from "@/lib/types/feedback-management.types";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -32,6 +31,21 @@ import { Button } from "@/components/ui/button";
 type FeedbackResponseFilter = 'all' | 'with_response' | 'without_response';
 
 const ITEMS_PER_PAGE = 10;
+
+const queryKeys = {
+  sessions: {
+    all: () => ['sessions'] as const,
+    byCompany: (company: string) => ['sessions', 'by-company', company] as const
+  },
+  management: {
+    feedbacks: {
+      bySession: (sessionId: string) => ['feedbacks', 'management', sessionId] as const,
+      stats: (sessionId: string) => ['feedbacks', 'management', 'stats', sessionId] as const,
+      filtered: (sessionId: string, filters: Record<string, unknown>) => 
+        ['feedbacks', 'management', sessionId, 'filtered', filters] as const
+    }
+  }
+} as const;
 
 export function FeedbackManagementView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
@@ -70,7 +84,7 @@ export function FeedbackManagementView() {
   const [responseFilter, setResponseFilter] = useState<FeedbackResponseFilter>('all');
 
   // Query per le statistiche
-  const { data: feedbackStats = { 
+  const { data: stats = { 
     totalResponses: 0, 
     responseRate: 0, 
     averageScore: 0, 
@@ -81,8 +95,7 @@ export function FeedbackManagementView() {
     }
   } } = useQuery({
     queryKey: queryKeys.management.feedbacks.stats(selectedSessionId),
-    queryFn: () => managementQueries.getStats(selectedSessionId),
-    enabled: !!selectedSessionId
+    queryFn: () => queries.feedbackManagement.getStats(selectedSessionId)
   });
 
   // Query per i feedback filtrati
@@ -93,7 +106,7 @@ export function FeedbackManagementView() {
       type: typeFilter,
       responseStatus: responseFilter
     }),
-    queryFn: () => managementQueries.getFilteredFeedbacks(selectedSessionId, {
+    queryFn: () => queries.feedbackManagement.getFilteredFeedbacks(selectedSessionId, {
       sender: senderFilter,
       receiver: receiverFilter,
       type: typeFilter,
@@ -202,17 +215,17 @@ export function FeedbackManagementView() {
               />
               <StatCard
                 title="TASSO DI RISPOSTA"
-                value={Math.round(feedbackStats.responseRate)}
+                value={Math.round(stats.responseRate)}
                 className="bg-blue-50"
               />
               <StatCard
                 title="MEDIA VALUTAZIONI"
-                value={Number(feedbackStats.averageScore.toFixed(1))}
+                value={Number(stats.averageScore.toFixed(1))}
                 className="bg-yellow-50"
               />
               <StatCard
                 title="FEEDBACK SOFT"
-                value={feedbackStats.feedbacksByType[FeedbackType.SOFT]}
+                value={stats.feedbacksByType[FeedbackType.SOFT]}
                 className="bg-green-50"
               />
             </div>

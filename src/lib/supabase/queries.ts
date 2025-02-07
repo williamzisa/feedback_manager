@@ -5,6 +5,35 @@ import type { TeamCreateData, TeamUpdateData } from '../types/teams'
 import type { Database } from './database.types'
 import type { RuleInsert, RuleUpdate } from '../types/rules'
 import type { PreSessionStats, Feedback } from '../types/feedbacks'
+import type { 
+  ManagementFeedback, 
+  FeedbackManagementStats,
+  FeedbackManagementFilters
+} from '../types/feedback-management.types'
+import { FeedbackType } from '../types/feedback.types'
+
+interface QueryFeedback {
+  id: string;
+  value: number | null;
+  comment: string | null;
+  session_id: string;
+  rule_number: number | null;
+  sender: {
+    id: string;
+    name: string;
+    surname: string;
+  };
+  receiver: {
+    id: string;
+    name: string;
+    surname: string;
+  };
+  question: {
+    id: string;
+    description: string;
+    type: string;
+  };
+}
 
 export const queries = {
   // Users
@@ -2136,6 +2165,288 @@ export const queries = {
         console.error('Errore nell\'eliminazione delle associazioni user-process:', err);
         throw err;
       }
+    }
+  },
+
+  // Initiatives
+  initiatives: {
+    getBySessionAndQuestion: async (sessionId: string, questionId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('initiatives')
+          .select(`
+            *,
+            user:users!initiatives_user_id_fkey (
+              name,
+              surname
+            )
+          `)
+          .eq('session_id', sessionId)
+          .eq('question_id', questionId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Errore nel recupero delle iniziative:', error);
+          return [];
+        }
+        return data || [];
+      } catch (err) {
+        console.error('Errore nel recupero delle iniziative:', err);
+        return [];
+      }
+    },
+
+    delete: async (id: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { error } = await supabase
+          .from('initiatives')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Errore nell\'eliminazione:', error);
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error('Errore nell\'eliminazione dell\'iniziativa:', err);
+        return false;
+      }
+    },
+
+    update: async (id: string, description: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('initiatives')
+          .update({ 
+            description
+          })
+          .eq('id', id)
+          .select(`
+            *,
+            user:users!initiatives_user_id_fkey (
+              name,
+              surname
+            )
+          `)
+          .single();
+
+        if (error) {
+          console.error('Errore nell\'aggiornamento:', error);
+          return null;
+        }
+        return data;
+      } catch (err) {
+        console.error('Errore nell\'aggiornamento dell\'iniziativa:', err);
+        return null;
+      }
+    },
+
+    create: async (initiative: {
+      description: string;
+      session_id: string;
+      user_id: string;
+      question_id: string;
+      type: string;
+    }) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from('initiatives')
+          .insert({
+            ...initiative,
+            created_at: new Date().toISOString()
+          })
+          .select(`
+            *,
+            user:users!initiatives_user_id_fkey (
+              name,
+              surname
+            )
+          `)
+          .single();
+
+        if (error) {
+          console.error('Errore nella creazione:', error);
+          return null;
+        }
+        return data;
+      } catch (err) {
+        console.error('Errore nella creazione dell\'iniziativa:', err);
+        return null;
+      }
+    }
+  },
+
+  // Feedback Management
+  feedbackManagement: {
+    getFeedbacks: async (sessionId: string): Promise<ManagementFeedback[]> => {
+      const supabase = createClientComponentClient<Database>();
+      
+      try {
+        // Se non c'è sessionId, restituisci un array vuoto invece di lanciare un errore
+        if (!sessionId || sessionId === '') {
+          return [];
+        }
+
+        // Prima otteniamo il conteggio totale dei feedback
+        const { count, error: countError } = await supabase
+          .from('feedbacks')
+          .select('*', { count: 'exact', head: true })
+          .eq('session_id', sessionId);
+
+        if (countError) {
+          throw new Error(`Errore nel conteggio dei feedback: ${countError.message || 'Errore sconosciuto'}`);
+        }
+
+        if (!count) {
+          return [];
+        }
+
+        // Calcola il numero di batch necessari
+        const batchSize = 1000;
+        const numBatches = Math.ceil(count / batchSize);
+        let allFeedbacks: ManagementFeedback[] = [];
+
+        // Recupera i feedback in batch
+        for (let i = 0; i < numBatches; i++) {
+          const start = i * batchSize;
+          const end = start + batchSize - 1;
+
+          const { data: feedbacks, error: feedbackError } = await supabase
+            .from('feedbacks')
+            .select(`
+              id,
+              value,
+              comment,
+              session_id,
+              rule_number,
+              sender:users!feedbacks_sender_fkey (id, name, surname),
+              receiver:users!feedbacks_receiver_fkey (id, name, surname),
+              question:questions!feedbacks_question_id_fkey (id, description, type)
+            `)
+            .eq('session_id', sessionId)
+            .range(start, end)
+            .order('created_at', { ascending: false });
+
+          if (feedbackError) {
+            throw new Error(`Errore nel recupero dei feedback (batch ${i + 1}/${numBatches}): ${feedbackError.message || 'Errore sconosciuto'}`);
+          }
+
+          if (feedbacks) {
+            const mappedFeedbacks = (feedbacks as unknown as QueryFeedback[]).map((feedback) => {
+              const { sender, receiver, question } = feedback;
+              
+              if (!sender || !receiver || !question) {
+                console.warn(`Feedback incompleto trovato: ${feedback.id}`);
+                return null;
+              }
+
+              return {
+                id: feedback.id,
+                value: feedback.value,
+                comment: feedback.comment || '',
+                session_id: feedback.session_id,
+                rule_number: feedback.rule_number || 0,
+                sender: {
+                  id: sender.id,
+                  name: sender.name,
+                  surname: sender.surname
+                },
+                receiver: {
+                  id: receiver.id,
+                  name: receiver.name,
+                  surname: receiver.surname
+                },
+                question: {
+                  id: question.id,
+                  description: question.description,
+                  type: question.type as FeedbackType
+                }
+              } as ManagementFeedback;
+            }).filter((f): f is ManagementFeedback => f !== null);
+
+            allFeedbacks = [...allFeedbacks, ...mappedFeedbacks];
+          }
+        }
+
+        return allFeedbacks;
+
+      } catch (error) {
+        const err = error as Error;
+        const errorMessage = err.message || 'Errore sconosciuto nel recupero dei feedback';
+        console.error('Errore nel recupero dei feedback:', errorMessage);
+        throw new Error(errorMessage);
+      }
+    },
+
+    getFilteredFeedbacks: async (sessionId: string, filters: FeedbackManagementFilters): Promise<ManagementFeedback[]> => {
+      // Prima prendiamo tutti i feedback
+      const allFeedbacks = await queries.feedbackManagement.getFeedbacks(sessionId);
+
+      // Poi applichiamo i filtri in memoria
+      return allFeedbacks.filter(feedback => {
+        if (filters.sender && !`${feedback.sender.name} ${feedback.sender.surname}`.toLowerCase().includes(filters.sender.toLowerCase())) {
+          return false;
+        }
+        if (filters.receiver && !`${feedback.receiver.name} ${feedback.receiver.surname}`.toLowerCase().includes(filters.receiver.toLowerCase())) {
+          return false;
+        }
+        if (filters.type !== 'all' && feedback.question.type.toLowerCase() !== filters.type.toLowerCase()) {
+          return false;
+        }
+        if (filters.responseStatus !== 'all') {
+          if (filters.responseStatus === 'with_response' && feedback.value === null) {
+            return false;
+          }
+          if (filters.responseStatus === 'without_response' && feedback.value !== null) {
+            return false;
+          }
+        }
+        return true;
+      });
+    },
+
+    getStats: async (sessionId: string): Promise<FeedbackManagementStats> => {
+      // Prendiamo tutti i feedback
+      const feedbacks = await queries.feedbackManagement.getFeedbacks(sessionId);
+
+      const stats: FeedbackManagementStats = {
+        totalResponses: feedbacks.length,
+        responseRate: 0,
+        averageScore: 0,
+        feedbacksByType: {
+          [FeedbackType.SOFT]: 0,
+          [FeedbackType.EXECUTION]: 0,
+          [FeedbackType.STRATEGY]: 0
+        }
+      };
+
+      // Calcola le statistiche
+      const responseFeedbacks = feedbacks.filter(f => f.value !== null);
+      const validScoreFeedbacks = feedbacks.filter(f => f.value !== null && f.value > 0);
+      
+      // Tasso di risposta (feedback con value non null / totale)
+      stats.responseRate = feedbacks.length > 0 
+        ? (responseFeedbacks.length / feedbacks.length) * 100 
+        : 0;
+
+      // Media dei value > 0
+      const totalScore = validScoreFeedbacks.reduce((sum, f) => sum + (f.value || 0), 0);
+      stats.averageScore = validScoreFeedbacks.length > 0 
+        ? totalScore / validScoreFeedbacks.length 
+        : 0;
+
+      // Calcola i feedback per tipo
+      feedbacks.forEach(f => {
+        const feedbackType = f.question.type;
+        stats.feedbacksByType[feedbackType]++;
+      });
+
+      return stats;
     }
   }
 }

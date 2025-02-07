@@ -9,7 +9,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import CreateInitiativeDialog from "@/app/@admin/feedback-management/components/dialogs/create-initiative-dialog";
-import { queries } from "@/lib/queries";
+import { queries } from "@/lib/supabase/queries";
 
 type Session = {
   id: string;

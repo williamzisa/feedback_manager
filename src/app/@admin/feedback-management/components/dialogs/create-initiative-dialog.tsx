@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { queries } from "@/lib/queries";
+import { queries } from "@/lib/supabase/queries";
 
 interface Initiative {
   id: string;
