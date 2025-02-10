@@ -11,6 +11,7 @@ type Comment = {
   text: string;
   questionType: string;
   value: number | null;
+  isSelfevaluation: boolean;
 };
 
 function LoadingSpinner() {
@@ -53,6 +54,8 @@ function CommentsContent() {
           .select(`
             comment,
             value,
+            receiver,
+            sender,
             questions!inner (
               type
             ),
@@ -72,10 +75,13 @@ function CommentsContent() {
         const formattedComments = feedbacks
           .filter(f => f.comment && f.sender_user && f.questions)
           .map(f => ({
-            author: `${f.sender_user!.name} ${f.sender_user!.surname}`,
+            author: f.sender === f.receiver 
+              ? "Autovalutazione"
+              : `${f.sender_user!.name} ${f.sender_user!.surname}`,
             text: f.comment!,
             questionType: f.questions!.type,
-            value: f.value
+            value: f.value,
+            isSelfevaluation: f.sender === f.receiver
           }));
 
         setComments(formattedComments);
@@ -133,7 +139,9 @@ function CommentsContent() {
           <div className="space-y-4">
             {comments.map((comment, index) => (
               <div key={index} className="bg-white rounded-[20px] p-6">
-                <h4 className="font-bold text-lg mb-2">{comment.author}</h4>
+                <h4 className={`font-bold text-lg mb-2 ${comment.isSelfevaluation ? 'text-[#4285F4]' : ''}`}>
+                  {comment.author}
+                </h4>
                 <p className="text-gray-700">{comment.text}</p>
               </div>
             ))}

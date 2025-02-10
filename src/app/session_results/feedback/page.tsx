@@ -30,6 +30,7 @@ type FeedbackData = {
   mentor_value: number | null;
   self_value: number | null;
   comment_count: number;
+  feedback_count: number;
 };
 
 type Initiative = {
@@ -255,7 +256,8 @@ function FeedbackContent() {
               overall: null,
               mentor_value: null,
               self_value: null,
-              comment_count: 0
+              comment_count: 0,
+              feedback_count: 0
             };
           }
 
@@ -267,10 +269,8 @@ function FeedbackContent() {
           });
 
           // Incrementa il contatore dei commenti solo se c'è un commento non nullo e non vuoto
-          // e non è un self-feedback (il sender è diverso dal receiver)
-          if (curr.comment && 
-              curr.comment.trim() !== '' && 
-              curr.sender !== curr.receiver) {
+          // Ora includiamo anche i commenti di autovalutazione
+          if (curr.comment && curr.comment.trim() !== '') {
             console.log('Incremento contatore commenti per domanda:', questionId);
             acc[questionId].comment_count++;
           }
@@ -310,7 +310,8 @@ function FeedbackContent() {
             ...fb,
             overall,
             mentor_value,
-            self_value
+            self_value,
+            feedback_count: validFeedbacks.length
           };
         });
 
@@ -327,8 +328,8 @@ function FeedbackContent() {
           if (!typeFromUrl) {
             const firstType = sortedFeedbacks[0].question_type;
             setSelectedType(firstType);
+            setCurrentIndex(0);
           }
-          setCurrentIndex(0);
         }
       } catch (err) {
         console.error('Errore nel caricamento dei feedback:', err);
@@ -358,21 +359,37 @@ function FeedbackContent() {
   };
 
   const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    } else {
-      // Se siamo al primo feedback del tipo corrente, passa al tipo precedente
+    // Se siamo al primo feedback del tipo corrente
+    if (currentIndex === 0) {
       const types = Array.from(new Set(feedbacks.map(fb => fb.question_type)));
       const currentTypeIndex = types.indexOf(selectedType);
       
+      // Se non siamo nel primo tipo (SOFT)
       if (currentTypeIndex > 0) {
         const prevType = types[currentTypeIndex - 1];
+        // Trova tutti i feedback del tipo precedente
         const prevTypeFeedbacks = feedbacks.filter(fb => fb.question_type === prevType);
+        // Imposta il tipo precedente e l'ultimo indice di quel tipo
         setSelectedType(prevType);
-        setCurrentIndex(prevTypeFeedbacks.length - 1);
+        // Usiamo setTimeout per assicurarci che il cambio di tipo sia completato
+        setTimeout(() => {
+          setCurrentIndex(prevTypeFeedbacks.length - 1);
+        }, 0);
       }
+    } else {
+      // Se non siamo al primo feedback del tipo corrente, vai al precedente
+      setCurrentIndex(currentIndex - 1);
     }
   };
+
+  // Aggiungiamo un useEffect per gestire il cambio di tipo
+  useEffect(() => {
+    // Se stiamo navigando all'indietro verso il tipo precedente
+    if (selectedType && currentIndex === -1) {
+      const typeFeedbacks = feedbacks.filter(fb => fb.question_type === selectedType);
+      setCurrentIndex(typeFeedbacks.length - 1);
+    }
+  }, [selectedType, currentIndex, feedbacks]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -401,14 +418,34 @@ function FeedbackContent() {
   // Carica le iniziative quando cambia il feedback
   useEffect(() => {
     const loadInitiatives = async () => {
-      if (!selectedSession || !currentFeedback) return;
+      if (!selectedSession || !currentFeedback || !userId) return;
 
       try {
-        const loadedInitiatives = await queries.initiatives.getBySessionAndQuestion(
-          selectedSession,
-          currentFeedback.question_id
-        );
-        setInitiatives(loadedInitiatives || []);
+        const supabase = createClientComponentClient<Database>();
+        
+        // Otteniamo le iniziative dell'utente per la sessione e la domanda specifica
+        const { data: initiatives, error: initiativesError } = await supabase
+          .from('initiatives')
+          .select(`
+            id,
+            description,
+            created_at,
+            question_id,
+            session_id,
+            type,
+            user_id,
+            user:users (
+              name,
+              surname
+            )
+          `)
+          .eq('session_id', selectedSession)
+          .eq('question_id', currentFeedback.question_id)
+          .eq('user_id', userId);
+
+        if (initiativesError) throw initiativesError;
+        
+        setInitiatives(initiatives || []);
       } catch (err) {
         console.error('Errore nel caricamento delle iniziative:', err);
         setInitiatives([]);
@@ -416,7 +453,7 @@ function FeedbackContent() {
     };
 
     loadInitiatives();
-  }, [selectedSession, currentFeedback]);
+  }, [selectedSession, currentFeedback, userId]);
 
   const handleCreateInitiative = () => {
     if (!selectedSession || !currentFeedback || !userId) return;
@@ -511,10 +548,13 @@ function FeedbackContent() {
                 </span>
                 {selectedSession && (
                   <span className={`font-medium ${
-                    sessions.find(s => s.id === selectedSession)?.val_gap != null &&
-                    (sessions.find(s => s.id === selectedSession)?.val_gap || 0) >= 0
-                      ? 'text-emerald-500' 
-                      : 'text-red-500'
+                    sessions.find(s => s.id === selectedSession)?.val_gap != null
+                      ? (sessions.find(s => s.id === selectedSession)?.val_gap || 0) < -0.05
+                        ? 'text-red-500'
+                        : (sessions.find(s => s.id === selectedSession)?.val_gap || 0) > 0.05
+                          ? 'text-emerald-500'
+                          : 'text-yellow-500'
+                      : ''
                   }`}>
                     GAP: {(() => {
                       const session = sessions.find(s => s.id === selectedSession);
@@ -532,9 +572,13 @@ function FeedbackContent() {
                   <div className="flex justify-between items-center w-full pr-4">
                     <span>Sessione terminata il {formatDate(session.created_at)}</span>
                     <span className={`font-medium ${
-                      session.val_gap != null && session.val_gap >= 0
-                        ? 'text-emerald-500' 
-                        : 'text-red-500'
+                      session.val_gap != null
+                        ? session.val_gap < -0.05
+                          ? 'text-red-500'
+                          : session.val_gap > 0.05
+                            ? 'text-emerald-500'
+                            : 'text-yellow-500'
+                        : ''
                     }`}>
                       GAP: {session.val_gap != null 
                         ? `${session.val_gap >= 0 ? '+' : ''}${(session.val_gap * 100).toFixed(0)}%`
@@ -603,6 +647,9 @@ function FeedbackContent() {
                 </span>
                 <span className="text-lg">
                   Self: {currentFeedback.self_value ? currentFeedback.self_value.toFixed(1) : 'N/A'}
+                </span>
+                <span className="text-lg">
+                  N. Feedback: {currentFeedback.feedback_count}
                 </span>
               </div>
             </div>
@@ -692,7 +739,10 @@ function FeedbackContent() {
             {/* Navigation Buttons - Fixed at bottom */}
             <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-4">
               <div className="container mx-auto max-w-2xl flex gap-4">
-                {currentIndex > 0 && (
+                {(currentIndex > 0 || 
+                  (currentIndex === 0 && 
+                    (selectedType === 'EXECUTION' || selectedType === 'STRATEGY'))
+                ) && (
                   <button
                     onClick={handlePrevious}
                     className="flex-1 py-3 px-4 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center justify-center"

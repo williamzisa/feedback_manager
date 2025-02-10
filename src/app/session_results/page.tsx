@@ -177,7 +177,7 @@ function SessionResultsContent() {
     setSelectedSessionId(sessionId);
   };
 
-  const handleViewDetails = async (skillType?: 'SOFT' | 'STRATEGY' | 'EXECUTION') => {
+  const handleViewDetails = async (skillType: 'SOFT' | 'STRATEGY' | 'EXECUTION' = 'SOFT') => {
     try {
       const supabase = createClientComponentClient<Database>();
       const targetUserId = userId || (await queries.users.getCurrentUser()).id;
@@ -200,9 +200,7 @@ function SessionResultsContent() {
       if (selectedSessionId) {
         queryParams.set('sessionId', selectedSessionId);
       }
-      if (skillType) {
-        queryParams.set('type', skillType);
-      }
+      queryParams.set('type', skillType);
 
       window.location.href = `/session_results/feedback?${queryParams.toString()}`;
     } catch (error) {
@@ -239,7 +237,15 @@ function SessionResultsContent() {
                 <span>
                   {sessions.find(s => s.id === selectedSessionId)?.name || 'Seleziona una sessione'}
                 </span>
-                <span className="text-yellow-600">
+                <span className={`${
+                  userSessionData?.val_gap 
+                    ? userSessionData.val_gap < -0.05
+                      ? 'text-red-600'
+                      : userSessionData.val_gap > 0.05
+                        ? 'text-emerald-600'
+                        : 'text-yellow-600'
+                    : ''
+                }`}>
                   GAP: {userSessionData?.val_gap ? `${(userSessionData.val_gap * 100).toFixed(0)}%` : 'N/A'}
                 </span>
               </div>
@@ -269,8 +275,24 @@ function SessionResultsContent() {
             </div>
           </div>
           <div className="text-center">
-            <span className="text-xl text-yellow-600">
-              GAP: {userSessionData?.val_gap ? `${(userSessionData.val_gap * 100).toFixed(0)}%` : 'N/A'} (in linea)
+            <span className={`text-xl ${
+              userSessionData?.val_gap 
+                ? userSessionData.val_gap < -0.05
+                  ? 'text-red-600'
+                  : userSessionData.val_gap > 0.05
+                    ? 'text-emerald-600'
+                    : 'text-yellow-600'
+                : ''
+            }`}>
+              GAP: {userSessionData?.val_gap ? `${(userSessionData.val_gap * 100).toFixed(0)}%` : 'N/A'} ({
+                userSessionData?.val_gap
+                  ? userSessionData.val_gap < -0.05
+                    ? 'sotto le aspettative'
+                    : userSessionData.val_gap > 0.05
+                      ? 'sopra le aspettative'
+                      : 'in linea'
+                  : 'N/A'
+              })
             </span>
           </div>
           <div className="flex justify-between items-center">
