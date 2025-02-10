@@ -315,10 +315,6 @@ function EvaluateContent() {
     loadData();
   }, [sessionId, personId, updatePeopleList, updateSkillsList]);
 
-  useEffect(() => {
-    console.log('Skills in dropdown:', skills);
-  }, [selectedSkill, skills]);
-
   const handlePersonSelect = (person: Person) => {
     router.push(
       `/session/${sessionId}/evaluate?person=${encodeURIComponent(person.id)}`
@@ -428,7 +424,7 @@ function EvaluateContent() {
         .eq('id', feedbackId);
 
       if (updateError) {
-        console.error('Errore nell\'aggiornamento:', updateError);
+        setError('Errore nell\'aggiornamento del feedback');
         throw updateError;
       }
 
@@ -480,8 +476,8 @@ function EvaluateContent() {
       setRating(0);
       setComment('');
       setHasCommentChanged(false);
-    } catch (err) {
-      console.error('Errore:', err);
+    } catch {
+      setError('Si è verificato un errore durante l\'operazione');
     }
   };
 
@@ -524,7 +520,7 @@ function EvaluateContent() {
         .eq('id', feedbackId);
 
       if (updateError) {
-        console.error('Errore nell\'annullamento:', updateError);
+        setError('Errore nell\'annullamento del feedback');
         throw updateError;
       }
 
@@ -576,8 +572,8 @@ function EvaluateContent() {
       setRating(0);
       setComment('');
       setHasCommentChanged(false);
-    } catch (err) {
-      console.error('Errore:', err);
+    } catch {
+      setError('Si è verificato un errore durante l\'operazione');
     }
   };
 

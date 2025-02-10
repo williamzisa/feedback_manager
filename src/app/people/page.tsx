@@ -188,7 +188,7 @@ export default function PeoplePage() {
                         }
                       </p>
                       <button 
-                        onClick={() => window.location.href = `/session_results?userId=${mentee.id}&userName=${encodeURIComponent(`${mentee.name} ${mentee.surname}`)}`}
+                        onClick={() => window.location.href = `/session_results?userId=${mentee.id}&userName=${encodeURIComponent(mentee.name)}`}
                         className="px-5 py-2 bg-blue-500 text-white text-sm font-medium rounded-full hover:bg-blue-600 transition-colors"
                       >
                         Vedi Sessioni
