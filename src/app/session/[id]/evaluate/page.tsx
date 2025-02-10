@@ -584,7 +584,17 @@ function EvaluateContent() {
   const handleNext = useCallback(() => {
     if (!currentFeedbacks.length) return;
     
-    // Passa semplicemente al feedback successivo, la sequenza è già ordinata
+    // Se ci sono modifiche non salvate al commento, mostra l'alert
+    if (hasCommentChanged) {
+      const shouldStay = window.confirm('Non hai salvato il commento, sei sicuro di procedere alla prossima domanda?\n\nClicca "OK" per restare qui\nClicca "Annulla" per procedere senza salvare');
+      
+      if (shouldStay) {
+        return; // L'utente ha scelto di restare
+      }
+      // L'utente ha scelto di procedere senza salvare
+    }
+    
+    // Passa al feedback successivo
     const nextIndex = currentFeedbackIndex + 1;
     if (nextIndex < currentFeedbacks.length) {
       const nextFeedback = currentFeedbacks[nextIndex];
@@ -597,7 +607,7 @@ function EvaluateContent() {
       setComment(nextFeedback.comment || '');
       setHasCommentChanged(false);
     }
-  }, [currentFeedbacks, currentFeedbackIndex, selectedSkill]);
+  }, [currentFeedbacks, currentFeedbackIndex, selectedSkill, hasCommentChanged]);
 
   const handlePrevious = useCallback(() => {
     if (!currentFeedbacks.length) return;
@@ -827,11 +837,11 @@ function EvaluateContent() {
                 </h2>
 
                 {/* Rating Section */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                <div className="flex flex-col items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  <div className="flex flex-col items-center gap-3 sm:gap-4 w-full">
                     {/* Star Rating */}
                     {(currentFeedback.value === null || currentFeedback.value > 0) && (
-                      <div className={`flex justify-center w-full sm:w-auto gap-2 sm:gap-3 ${
+                      <div className={`flex justify-center gap-2 sm:gap-3 ${
                         currentFeedback.value !== null ? 'opacity-75' : ''
                       }`}>
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -889,7 +899,7 @@ function EvaluateContent() {
                       onClick={handleCancelRating}
                       className="w-full sm:w-auto py-2 px-3 sm:px-4 rounded-full transition-colors whitespace-nowrap text-sm sm:text-base flex-shrink-0 border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
                     >
-                      ANNULLA VALUTAZIONE
+                      ANNULLA
                     </button>
                   )}
                 </div>

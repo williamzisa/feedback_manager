@@ -30,6 +30,7 @@ export default function SessionPage() {
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -106,6 +107,11 @@ export default function SessionPage() {
             endDate: sessionData?.end_time || null,
             totalFeedbacks,
             completedFeedbacks
+          });
+
+          setCurrentUser({
+            id: currentUser.id,
+            name: currentUser.name
           });
         }
       } catch (err) {
@@ -197,38 +203,76 @@ export default function SessionPage() {
 
         {/* People List */}
         <div className="space-y-3">
-          {people.map((person) => (
-            <div
-              key={person.id}
-              className={`bg-white rounded-[20px] p-5 cursor-pointer hover:shadow-lg transition-shadow
-                ${person.remainingAnswers === 0 ? 'bg-blue-50/50 border border-blue-100' : ''}`}
-              onClick={() => handlePersonClick(person.id)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="text-lg font-medium">{person.name}</span>
+          {/* Lista delle persone (esclusa l'autovalutazione) */}
+          {people
+            .filter(person => person.id !== currentUser?.id)
+            .map((person) => (
+              <div
+                key={person.id}
+                className={`bg-white rounded-[20px] p-5 cursor-pointer hover:shadow-lg transition-shadow
+                  ${person.remainingAnswers === 0 ? 'bg-blue-50/50 border border-blue-100' : ''}`}
+                onClick={() => handlePersonClick(person.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-lg font-medium">{person.name}</span>
+                    {person.remainingAnswers === 0 ? (
+                      <span className="text-emerald-500 text-sm">
+                        Valutazione completata
+                      </span>
+                    ) : (
+                      <span className="text-red-500 text-sm">
+                        {person.remainingAnswers} risposte rimanenti
+                      </span>
+                    )}
+                  </div>
                   {person.remainingAnswers === 0 ? (
-                    <span className="text-emerald-500 text-sm">
-                      Valutazione completata
-                    </span>
+                    <button className="px-6 py-2 rounded-full text-white font-medium bg-blue-400 hover:bg-blue-500">
+                      RIVEDI
+                    </button>
                   ) : (
-                    <span className="text-red-500 text-sm">
-                      {person.remainingAnswers} risposte rimanenti
-                    </span>
+                    <button className="px-6 py-2 rounded-full text-white font-medium bg-blue-500 hover:bg-blue-600">
+                      VALUTA
+                    </button>
                   )}
                 </div>
-                {person.remainingAnswers === 0 ? (
-                  <button className="px-6 py-2 rounded-full text-white font-medium bg-blue-400 hover:bg-blue-500">
-                    RIVEDI
-                  </button>
-                ) : (
-                  <button className="px-6 py-2 rounded-full text-white font-medium bg-blue-500 hover:bg-blue-600">
-                    VALUTA
-                  </button>
-                )}
               </div>
-            </div>
-          ))}
+            ))}
+
+          {/* Autovalutazione (sempre in fondo) */}
+          {people
+            .filter(person => person.id === currentUser?.id)
+            .map((person) => (
+              <div
+                key={person.id}
+                className={`bg-blue-50 rounded-[20px] p-5 cursor-pointer hover:shadow-lg transition-shadow border border-blue-100/50 mt-6`}
+                onClick={() => handlePersonClick(person.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-lg font-medium">Autovalutazione</span>
+                    {person.remainingAnswers === 0 ? (
+                      <span className="text-emerald-500 text-sm">
+                        Autovalutazione completata
+                      </span>
+                    ) : (
+                      <span className="text-red-500 text-sm">
+                        {person.remainingAnswers} risposte rimanenti
+                      </span>
+                    )}
+                  </div>
+                  {person.remainingAnswers === 0 ? (
+                    <button className="px-6 py-2 rounded-full text-white font-medium bg-blue-400 hover:bg-blue-500">
+                      RIVEDI
+                    </button>
+                  ) : (
+                    <button className="px-6 py-2 rounded-full text-white font-medium bg-blue-500 hover:bg-blue-600">
+                      VALUTA
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
         </div>
       </main>
     </div>
