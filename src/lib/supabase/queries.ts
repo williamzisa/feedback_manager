@@ -1323,27 +1323,63 @@ export const queries = {
 
     create: async (rule: RuleInsert) => {
       const supabase = createClientComponentClient<Database>();
-      const { data, error } = await supabase
-        .from('rules')
-        .insert([rule])
-        .select()
-        .single();
+      try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
 
-      if (error) throw error;
-      return data;
+        const { data, error } = await supabase
+          .from('rules')
+          .insert([{
+            ...rule,
+            company: currentUser.company
+          }])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Errore nella creazione della regola:', error);
+          throw error;
+        }
+
+        return data;
+      } catch (err) {
+        console.error('Errore nella creazione della regola:', err);
+        throw err;
+      }
     },
 
     update: async (id: string, updates: RuleUpdate) => {
       const supabase = createClientComponentClient<Database>();
-      const { data, error } = await supabase
-        .from('rules')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
 
-      if (error) throw error;
-      return data;
+        const { data, error } = await supabase
+          .from('rules')
+          .update({
+            ...updates,
+            company: currentUser.company
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Errore nell\'aggiornamento della regola:', error);
+          throw error;
+        }
+
+        return data;
+      } catch (err) {
+        console.error('Errore nell\'aggiornamento della regola:', err);
+        throw err;
+      }
     },
 
     delete: async (id: string) => {
@@ -1368,6 +1404,12 @@ export const queries = {
     }) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error('Company non configurata per questo utente');
+        }
+
         // 1. Creiamo la sessione
         const { data: session, error } = await supabase
           .from('sessions')
@@ -1377,7 +1419,8 @@ export const queries = {
             start_time: sessionData.start_time,
             end_time: sessionData.end_time,
             status: sessionData.status || 'In preparazione',
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            company: currentUser.company
           }])
           .select()
           .single();

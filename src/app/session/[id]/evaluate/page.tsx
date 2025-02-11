@@ -315,6 +315,14 @@ function EvaluateContent() {
     loadData();
   }, [sessionId, personId, updatePeopleList, updateSkillsList]);
 
+  // Aggiungiamo questo effetto per aggiornare il currentPerson appena abbiamo i dati delle persone
+  useEffect(() => {
+    if (people.length > 0 && personId) {
+      const person = people.find(p => p.id === personId);
+      setCurrentPerson(person || null);
+    }
+  }, [people, personId]);
+
   const handlePersonSelect = (person: Person) => {
     router.push(
       `/session/${sessionId}/evaluate?person=${encodeURIComponent(person.id)}`
@@ -651,7 +659,7 @@ function EvaluateContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Feedback" showBackButton={true} />
+        <Header title={people.find(p => p.id === personId)?.name.split(' ')[0] || ''} showBackButton={true} />
         <main className="container mx-auto max-w-2xl px-4 py-6">
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -664,7 +672,7 @@ function EvaluateContent() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Feedback" showBackButton={true} />
+        <Header title={people.find(p => p.id === personId)?.name.split(' ')[0] || ''} showBackButton={true} />
         <main className="container mx-auto max-w-2xl px-4 py-6">
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
             <strong className="font-bold">Errore!</strong>
@@ -680,7 +688,7 @@ function EvaluateContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header 
-        title="Feedback" 
+        title={people.find(p => p.id === personId)?.name.split(' ')[0] || ''} 
         showBackButton={true} 
         backUrl={`/session/${sessionId}`}
       />
