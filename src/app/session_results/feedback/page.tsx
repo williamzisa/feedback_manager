@@ -35,7 +35,9 @@ function FeedbackContent() {
     loadInitiatives
   } = useFeedback(userId, sessionId);
 
-  const filteredFeedbacks = feedbacks.filter(fb => fb.question_type === selectedType);
+  const filteredFeedbacks = feedbacks
+    .filter(fb => fb.question_type === selectedType)
+    .sort((a, b) => (a.overall ?? 0) - (b.overall ?? 0));
   const currentFeedback = filteredFeedbacks[currentIndex];
 
   // Effetto per caricare i feedback quando cambia la sessione
@@ -307,7 +309,7 @@ function FeedbackContent() {
                     const currentTypeIndex = types.indexOf(selectedType);
                     return currentTypeIndex < types.length - 1;
                   })()
-                ) && (
+                ) ? (
                   <button 
                     onClick={handleNext}
                     className="flex-1 py-3 px-4 rounded-full text-base sm:text-lg font-medium transition-colors bg-[#4285F4] text-white hover:bg-[#3367D6] flex items-center justify-center"
@@ -324,6 +326,26 @@ function FeedbackContent() {
                         strokeLinejoin="round" 
                         strokeWidth={2} 
                         d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                ) : selectedType === 'STRATEGY' && currentIndex === filteredFeedbacks.length - 1 && (
+                  <button 
+                    onClick={() => window.location.href = '/'}
+                    className="flex-1 py-3 px-4 rounded-full text-base sm:text-lg font-medium transition-colors bg-[#4285F4] text-white hover:bg-[#3367D6] flex items-center justify-center"
+                  >
+                    HOME
+                    <svg 
+                      className="w-5 h-5 sm:w-6 sm:h-6 ml-2" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                       />
                     </svg>
                   </button>
