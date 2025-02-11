@@ -96,6 +96,21 @@ function CommentsContent() {
     loadData();
   }, [sessionId, userId, questionId]);
 
+  const handleBack = () => {
+    const type = searchParams.get('type');
+    const index = searchParams.get('index');
+    const userName = searchParams.get('userName');
+    
+    const backParams = new URLSearchParams();
+    if (userId) backParams.set('userId', userId);
+    if (userName) backParams.set('userName', userName);
+    if (sessionId) backParams.set('sessionId', sessionId);
+    if (type) backParams.set('type', type);
+    if (index) backParams.set('index', index);
+    
+    window.location.href = `/session_results/feedback?${backParams.toString()}`;
+  };
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -104,7 +119,7 @@ function CommentsContent() {
           <div className="bg-white rounded-[20px] p-8 text-center max-w-md w-full shadow-sm">
             <p className="text-red-500">{error}</p>
             <button 
-              onClick={() => window.history.back()}
+              onClick={handleBack}
               className="mt-4 bg-[#4285F4] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#3367D6] transition-colors"
             >
               Indietro
@@ -151,7 +166,7 @@ function CommentsContent() {
         {/* Back Button */}
         <div className="mt-6">
           <button 
-            onClick={() => window.history.back()}
+            onClick={handleBack}
             className="w-full bg-[#4285F4] text-white py-4 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
           >
             Indietro

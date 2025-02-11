@@ -14,8 +14,10 @@ function FeedbackContent() {
   const userName = searchParams.get('userName');
   const sessionId = searchParams.get('sessionId');
   const typeFromUrl = searchParams.get('type')?.toUpperCase();
+  const indexFromUrl = searchParams.get('index');
   
   const [selectedType, setSelectedType] = useState<string>(typeFromUrl || 'EXECUTION');
+  const [initialIndex, setInitialIndex] = useState<number | null>(indexFromUrl ? parseInt(indexFromUrl) : null);
   
   const {
     sessions,
@@ -51,11 +53,16 @@ function FeedbackContent() {
   }, [selectedSession, currentFeedback, userId, loadInitiatives]);
 
   useEffect(() => {
-    if (selectedType && currentIndex === -1) {
+    if (selectedType && feedbacks.length > 0) {
       const typeFeedbacks = feedbacks.filter(fb => fb.question_type === selectedType);
-      setCurrentIndex(typeFeedbacks.length - 1);
+      if (initialIndex !== null && initialIndex < typeFeedbacks.length) {
+        setCurrentIndex(initialIndex);
+        setInitialIndex(null); // Reset dopo l'uso
+      } else if (currentIndex === -1) {
+        setCurrentIndex(typeFeedbacks.length - 1);
+      }
     }
-  }, [selectedType, currentIndex, feedbacks, setCurrentIndex]);
+  }, [selectedType, feedbacks, initialIndex, currentIndex, setCurrentIndex]);
 
   const handleNext = () => {
     if (currentIndex < filteredFeedbacks.length - 1) {
@@ -106,6 +113,8 @@ function FeedbackContent() {
     queryParams.set('sessionId', sessionId);
     queryParams.set('userId', userId);
     queryParams.set('questionId', currentFeedback.question_id);
+    queryParams.set('type', selectedType);
+    queryParams.set('index', currentIndex.toString());
     if (userName) {
       queryParams.set('userName', userName);
     }
