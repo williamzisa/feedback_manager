@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense, useEffect } from "react";
+import type { MouseEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Select,
@@ -15,7 +16,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Database } from "@/lib/supabase/database.types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Star, UserCircle2, Target, Users } from "lucide-react";
+import { Star, UserCircle2, Target, Users, MessageSquare } from "lucide-react";
 
 type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   sessions: Database["public"]["Tables"]["sessions"]["Row"];
@@ -34,41 +35,76 @@ function SessionResultsContent() {
 
   // Recupera l'userId dall'URL o dalla sessione
   useEffect(() => {
+    let isMounted = true;
+
     async function getUserId() {
+      if (urlUserId && isMounted) {
+        console.log("Using URL userId:", urlUserId);
+        setUserId(urlUserId);
+        return;
+      }
+
       try {
-        // Se c'è un userId nell'URL, usa quello
-        if (urlUserId) {
-          setUserId(urlUserId);
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (!isMounted) return;
+
+        if (authError) {
+          console.error("Auth error:", authError);
+          setError("Errore di autenticazione");
+          setIsLoading(false);
           return;
         }
 
-        // Altrimenti prova a recuperare l'utente dalla sessione
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user?.id) {
-          const { data: userData, error: userError } = await supabase
-            .from("users")
-            .select("id")
-            .eq("auth_id", user.id)
-            .single();
-
-          if (userError) throw userError;
-          if (userData) {
-            setUserId(userData.id);
-          }
-        } else {
+        if (!user) {
+          console.error("No authenticated user found");
           setError("Utente non autenticato");
           setIsLoading(false);
+          return;
         }
+
+        console.log("Auth user found:", user.id);
+
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("auth_id", user.id)
+          .single();
+
+        if (!isMounted) return;
+
+        if (userError) {
+          console.error("User fetch error:", userError);
+          setError("Errore nel recupero dati utente");
+          setIsLoading(false);
+          return;
+        }
+
+        if (!userData) {
+          console.error("No user data found");
+          setError("Utente non trovato nel database");
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("User data found:", userData);
+        setUserId(userData.id);
       } catch (err) {
-        console.error("Errore nel recupero dell'utente:", err);
+        if (!isMounted) return;
+        console.error("Error in getUserId:", err);
         setError("Errore nel recupero dell'utente");
         setIsLoading(false);
       }
     }
 
     getUserId();
+
+    return () => {
+      isMounted = false;
+    };
   }, [supabase, urlUserId]);
 
   useEffect(() => {
@@ -118,13 +154,43 @@ function SessionResultsContent() {
 
   const currentSession = sessions.find((s) => s.session_id === selectedSession);
 
-  const handleViewDetails = () => {
+  const handleViewDetails = (
+    skill?: string | MouseEvent<HTMLButtonElement>
+  ) => {
+    if (skill instanceof MouseEvent) {
+      // Se non c'è skill, usa quella di default
+      skill = "Strategy Skills";
+    }
+
+    const queryParams = new URLSearchParams();
+    if (userId) {
+      queryParams.set("userId", userId);
+      // Se c'è userName lo passiamo, altrimenti no
+      if (userName) {
+        queryParams.set("userName", userName);
+      }
+    }
+    if (selectedSession) {
+      queryParams.set("sessionId", selectedSession);
+    }
+    if (typeof skill === "string") {
+      queryParams.set("skill", skill);
+    }
+
+    console.log("Navigating to feedback with params:", queryParams.toString());
+    window.location.href = `/session_results/feedback?${queryParams.toString()}`;
+  };
+
+  const handleViewComments = () => {
     const queryParams = new URLSearchParams();
     if (userId && userName) {
       queryParams.set("userId", userId);
       queryParams.set("userName", userName);
     }
-    window.location.href = `/session_results/feedback${
+    if (selectedSession) {
+      queryParams.set("sessionId", selectedSession);
+    }
+    window.location.href = `/session_results/comment${
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
   };
@@ -281,7 +347,10 @@ function SessionResultsContent() {
         {/* Skills Cards */}
         <div className="space-y-4">
           {/* Soft Skills */}
-          <div className="bg-[#FFF8F0] rounded-[20px] p-6">
+          <div
+            className="bg-[#FFF8F0] rounded-[20px] p-6 cursor-pointer hover:bg-[#FFF0E0] transition-colors"
+            onClick={() => handleViewDetails("Soft Skills")}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Soft Skills</h2>
               <span className="bg-[#F5A623] text-white text-xl font-bold px-4 py-1 rounded-full">
@@ -296,7 +365,10 @@ function SessionResultsContent() {
           </div>
 
           {/* Strategy Skills */}
-          <div className="bg-white rounded-[20px] p-6">
+          <div
+            className="bg-white rounded-[20px] p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => handleViewDetails("Strategy Skills")}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Strategy Skills</h2>
               <span className="bg-[#00BFA5] text-white text-xl font-bold px-4 py-1 rounded-full">
@@ -311,7 +383,10 @@ function SessionResultsContent() {
           </div>
 
           {/* Execution Skills */}
-          <div className="bg-white rounded-[20px] p-6">
+          <div
+            className="bg-white rounded-[20px] p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => handleViewDetails("Execution Skills")}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Execution Skills</h2>
               <span className="bg-[#4285F4] text-white text-xl font-bold px-4 py-1 rounded-full">
@@ -326,13 +401,20 @@ function SessionResultsContent() {
           </div>
         </div>
 
-        {/* View Details Button */}
-        <div className="mt-6">
+        {/* Action Buttons */}
+        <div className="mt-6 space-y-4">
           <Button
             className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white py-6 rounded-full text-lg"
             onClick={handleViewDetails}
           >
             Vedi Dettaglio
+          </Button>
+          <Button
+            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-6 rounded-full text-lg flex items-center justify-center gap-2"
+            onClick={handleViewComments}
+          >
+            <MessageSquare className="w-5 h-5" />
+            Vedi Commenti
           </Button>
         </div>
       </main>

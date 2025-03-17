@@ -1,10 +1,16 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import type { QuestionInsert, QuestionUpdate } from '../types/questions'
-import type { Level } from '../types/levels'
-import type { TeamCreateData, TeamUpdateData } from '../types/teams'
-import type { Database } from './database.types'
-import type { RuleInsert, RuleUpdate } from '../types/rules'
-import type { PreSessionStats } from '../types/feedbacks'
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import type { QuestionInsert, QuestionUpdate } from "../types/questions";
+import type { Level } from "../types/levels";
+import type { TeamCreateData, TeamUpdateData } from "../types/teams";
+import type { Database } from "./database.types";
+import type { RuleInsert, RuleUpdate } from "../types/rules";
+import type { PreSessionStats } from "../types/feedbacks";
+
+type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
+  sender: { name: string; surname: string };
+  receiver: { name: string; surname: string };
+  question: { description: string };
+};
 
 export const queries = {
   // Users
@@ -14,46 +20,53 @@ export const queries = {
       try {
         const session = await supabase.auth.getSession();
         if (!session.data.session) {
-          throw new Error('Sessione non valida - effettua nuovamente il login');
+          throw new Error("Sessione non valida - effettua nuovamente il login");
         }
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
         if (authError) {
-          console.error('Errore auth.getUser:', authError);
-          throw new Error('Errore di autenticazione - effettua nuovamente il login');
+          console.error("Errore auth.getUser:", authError);
+          throw new Error(
+            "Errore di autenticazione - effettua nuovamente il login"
+          );
         }
         if (!user) {
-          throw new Error('Utente non autenticato - effettua il login');
+          throw new Error("Utente non autenticato - effettua il login");
         }
 
         const { data: checkData, error: checkError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('auth_id', user.id);
-        
+          .from("users")
+          .select("*")
+          .eq("auth_id", user.id);
+
         if (checkError) {
-          console.error('Errore nella query di controllo:', checkError);
+          console.error("Errore nella query di controllo:", checkError);
           throw new Error(`Errore nel controllo utente: ${checkError.message}`);
         }
-        
+
         if (!checkData || checkData.length === 0) {
-          throw new Error('Utente non trovato nel database');
+          throw new Error("Utente non trovato nel database");
         }
-        
+
         if (checkData.length > 1) {
-          console.error('Errore di integrità:', checkData);
-          throw new Error('Errore di integrità: trovati multipli utenti con lo stesso auth_id');
+          console.error("Errore di integrità:", checkData);
+          throw new Error(
+            "Errore di integrità: trovati multipli utenti con lo stesso auth_id"
+          );
         }
 
         const userData = checkData[0];
-        
+
         if (!userData.company) {
-          throw new Error('Company non configurata per questo utente');
+          throw new Error("Company non configurata per questo utente");
         }
 
         return userData;
       } catch (err) {
-        console.error('Errore getCurrentUser:', err);
+        console.error("Errore getCurrentUser:", err);
         throw err;
       }
     },
@@ -62,8 +75,9 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('users')
-          .select(`
+          .from("users")
+          .select(
+            `
             id,
             name,
             surname,
@@ -76,35 +90,42 @@ export const queries = {
             auth_id,
             created_at,
             last_login
-          `)
-          .order('name');
+          `
+          )
+          .order("name");
 
         if (error) {
-          console.error('Errore nel recupero degli utenti:', error.message);
+          console.error("Errore nel recupero degli utenti:", error.message);
           throw new Error(`Errore nel recupero degli utenti: ${error.message}`);
         }
 
         if (!data) {
-          console.error('Nessun dato ricevuto dal database');
-          throw new Error('Nessun dato ricevuto dal database');
+          console.error("Nessun dato ricevuto dal database");
+          throw new Error("Nessun dato ricevuto dal database");
         }
 
         return data;
       } catch (err) {
-        console.error('Errore nel recupero degli utenti:', err);
-        throw new Error(err instanceof Error ? err.message : 'Errore sconosciuto nel recupero degli utenti');
+        console.error("Errore nel recupero degli utenti:", err);
+        throw new Error(
+          err instanceof Error
+            ? err.message
+            : "Errore sconosciuto nel recupero degli utenti"
+        );
       }
     },
 
     getById: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
-        .from('users')
-        .select('id, auth_id, name, surname, email, company, level, mentor, admin, created_at')
-        .eq('id', id)
-        .single()
-      if (error) throw error
-      return data
+        .from("users")
+        .select(
+          "id, auth_id, name, surname, email, company, level, mentor, admin, created_at"
+        )
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data;
     },
 
     create: async (userData: {
@@ -121,71 +142,78 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('users')
-          .insert([{
-            id: crypto.randomUUID(),
-            ...userData,
-            created_at: new Date().toISOString(),
-            last_login: null
-          }])
+          .from("users")
+          .insert([
+            {
+              id: crypto.randomUUID(),
+              ...userData,
+              created_at: new Date().toISOString(),
+              last_login: null,
+            },
+          ])
           .select()
           .single();
 
         if (error) {
-          console.error('Errore nella creazione dell\'utente:', error);
+          console.error("Errore nella creazione dell'utente:", error);
           throw error;
         }
 
         return data;
       } catch (err) {
-        console.error('Errore nella creazione dell\'utente:', err);
+        console.error("Errore nella creazione dell'utente:", err);
         throw err;
       }
     },
 
-    update: async (id: string, userData: Partial<{
-      name: string;
-      surname: string;
-      email: string;
-      level: string | null;
-      mentor: string | null;
-      company: string | null;
-      admin: boolean;
-      status: string;
-      auth_id: string | null;
-    }>) => {
+    update: async (
+      id: string,
+      userData: Partial<{
+        name: string;
+        surname: string;
+        email: string;
+        level: string | null;
+        mentor: string | null;
+        company: string | null;
+        admin: boolean;
+        status: string;
+        auth_id: string | null;
+      }>
+    ) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Tentativo di aggiornamento utente:', { id, userData });
-        
+        console.log("Tentativo di aggiornamento utente:", { id, userData });
+
         const { data, error } = await supabase
-          .from('users')
+          .from("users")
           .update(userData)
-          .eq('id', id)
+          .eq("id", id)
           .select()
           .single();
 
         if (error) {
-          console.error('Errore Supabase nell\'aggiornamento dell\'utente:', {
+          console.error("Errore Supabase nell'aggiornamento dell'utente:", {
             message: error.message,
             details: error.details,
             hint: error.hint,
-            code: error.code
+            code: error.code,
           });
-          throw new Error(`Errore nell'aggiornamento dell'utente: ${error.message}`);
+          throw new Error(
+            `Errore nell'aggiornamento dell'utente: ${error.message}`
+          );
         }
 
         if (!data) {
-          console.error('Nessun dato ricevuto dopo l\'aggiornamento');
-          throw new Error('Nessun dato ricevuto dopo l\'aggiornamento');
+          console.error("Nessun dato ricevuto dopo l'aggiornamento");
+          throw new Error("Nessun dato ricevuto dopo l'aggiornamento");
         }
 
-        console.log('Aggiornamento utente completato:', data);
+        console.log("Aggiornamento utente completato:", data);
         return data;
       } catch (err) {
-        console.error('Errore catturato nell\'aggiornamento dell\'utente:', {
+        console.error("Errore catturato nell'aggiornamento dell'utente:", {
           error: err,
-          message: err instanceof Error ? err.message : 'Errore sconosciuto'
+          message: err instanceof Error ? err.message : "Errore sconosciuto",
         });
         throw err;
       }
@@ -194,17 +222,14 @@ export const queries = {
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        const { error } = await supabase
-          .from('users')
-          .delete()
-          .eq('id', id);
+        const { error } = await supabase.from("users").delete().eq("id", id);
 
         if (error) {
-          console.error('Errore nell\'eliminazione dell\'utente:', error);
+          console.error("Errore nell'eliminazione dell'utente:", error);
           throw error;
         }
       } catch (err) {
-        console.error('Errore nell\'eliminazione dell\'utente:', err);
+        console.error("Errore nell'eliminazione dell'utente:", err);
         throw err;
       }
     },
@@ -213,8 +238,9 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('users')
-          .select(`
+          .from("users")
+          .select(
+            `
             id,
             name,
             surname,
@@ -227,20 +253,25 @@ export const queries = {
             auth_id,
             created_at,
             last_login
-          `)
-          .eq('company', company)
-          .eq('status', 'active')
-          .order('name');
+          `
+          )
+          .eq("company", company)
+          .eq("status", "active")
+          .order("name");
 
         if (error) {
-          console.error('Errore nel recupero degli utenti:', error.message);
+          console.error("Errore nel recupero degli utenti:", error.message);
           throw new Error(`Errore nel recupero degli utenti: ${error.message}`);
         }
 
         return data || [];
       } catch (err) {
-        console.error('Errore nel recupero degli utenti:', err);
-        throw new Error(err instanceof Error ? err.message : 'Errore sconosciuto nel recupero degli utenti');
+        console.error("Errore nel recupero degli utenti:", err);
+        throw new Error(
+          err instanceof Error
+            ? err.message
+            : "Errore sconosciuto nel recupero degli utenti"
+        );
       }
     },
 
@@ -248,8 +279,9 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('users')
-          .select(`
+          .from("users")
+          .select(
+            `
             *,
             user_sessions (
               val_overall,
@@ -257,32 +289,39 @@ export const queries = {
               level_standard,
               created_at
             )
-          `)
-          .eq('mentor', mentorId)
-          .eq('status', 'active')
-          .order('name');
+          `
+          )
+          .eq("mentor", mentorId)
+          .eq("status", "active")
+          .order("name");
 
         if (error) {
-          console.error('Errore nel recupero dei mentee:', error.message);
+          console.error("Errore nel recupero dei mentee:", error.message);
           throw new Error(`Errore nel recupero dei mentee: ${error.message}`);
         }
 
         // Ordiniamo le sessioni di ogni utente per data
-        const processedData = data?.map(user => ({
+        const processedData = data?.map((user) => ({
           ...user,
           user_sessions: user.user_sessions?.sort((a, b) => {
             if (!a.created_at) return 1;
             if (!b.created_at) return -1;
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-          })
+            return (
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+            );
+          }),
         }));
 
         return { data: processedData, error: null };
       } catch (err) {
-        console.error('Errore nel recupero dei mentee:', err);
-        return { 
-          data: null, 
-          error: err instanceof Error ? err.message : 'Errore sconosciuto nel recupero dei mentee'
+        console.error("Errore nel recupero dei mentee:", err);
+        return {
+          data: null,
+          error:
+            err instanceof Error
+              ? err.message
+              : "Errore sconosciuto nel recupero dei mentee",
         };
       }
     },
@@ -293,44 +332,43 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
-        .from('companies')
-        .select('id, name, created_at')
-        .order('name', { ascending: true })
-      if (error) throw error
-      return data
+        .from("companies")
+        .select("id, name, created_at")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return data;
     },
     create: async (company: { name: string }) => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
-        .from('companies')
-        .insert([{
-          id: crypto.randomUUID(),
-          ...company
-        }])
-        .select('id, name, created_at')
-        .single()
-      if (error) throw error
-      return data
+        .from("companies")
+        .insert([
+          {
+            id: crypto.randomUUID(),
+            ...company,
+          },
+        ])
+        .select("id, name, created_at")
+        .single();
+      if (error) throw error;
+      return data;
     },
     update: async (id: string, company: { name?: string }) => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
-        .from('companies')
+        .from("companies")
         .update(company)
-        .eq('id', id)
-        .select('id, name, created_at')
-        .single()
-      if (error) throw error
-      return data
+        .eq("id", id)
+        .select("id, name, created_at")
+        .single();
+      if (error) throw error;
+      return data;
     },
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
-      const { error } = await supabase
-        .from('companies')
-        .delete()
-        .eq('id', id)
-      if (error) throw error
-    }
+      const { error } = await supabase.from("companies").delete().eq("id", id);
+      if (error) throw error;
+    },
   },
 
   // Teams
@@ -338,11 +376,12 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Iniziando il recupero dei team...');
-        
+        console.log("Iniziando il recupero dei team...");
+
         const { data, error } = await supabase
-          .from('teams')
-          .select(`
+          .from("teams")
+          .select(
+            `
             *,
             leader:users!teams_leader_fkey (
               id,
@@ -366,47 +405,60 @@ export const queries = {
                 surname
               )
             )
-          `)
-          .order('name');
+          `
+          )
+          .order("name");
 
         if (error) {
-          console.error('Errore nel recupero dei team:', error);
+          console.error("Errore nel recupero dei team:", error);
           throw error;
         }
 
         if (!data) {
-          console.log('Nessun dato restituito da Supabase');
-          throw new Error('Nessun dato restituito da Supabase');
+          console.log("Nessun dato restituito da Supabase");
+          throw new Error("Nessun dato restituito da Supabase");
         }
 
-        console.log('Team recuperati con successo:', data);
+        console.log("Team recuperati con successo:", data);
 
-        return data.map((team: Database['public']['Tables']['teams']['Row'] & {
-          leader: { id: string; name: string; surname: string } | null;
-          team_clusters: Array<{ 
-            id: string; 
-            cluster: { id: string; name: string } | null 
-          }> | null;
-          user_teams: Array<{ 
-            id: string; 
-            user_id: string | null; 
-            created_at: string | null 
-          }> | null;
-        }) => ({
-          id: team.id,
-          name: team.name,
-          is_project: team.project || false,
-          leader: team.leader,
-          team_clusters: team.team_clusters?.filter((tc): tc is { id: string; cluster: { id: string; name: string } } => 
-            tc !== null && tc.cluster !== null
-          ).map(tc => ({
-            id: tc.id,
-            cluster: tc.cluster
-          })) || [],
-          user_teams: team.user_teams || []
-        }));
+        return data.map(
+          (
+            team: Database["public"]["Tables"]["teams"]["Row"] & {
+              leader: { id: string; name: string; surname: string } | null;
+              team_clusters: Array<{
+                id: string;
+                cluster: { id: string; name: string } | null;
+              }> | null;
+              user_teams: Array<{
+                id: string;
+                user_id: string | null;
+                created_at: string | null;
+              }> | null;
+            }
+          ) => ({
+            id: team.id,
+            name: team.name,
+            is_project: team.project || false,
+            leader: team.leader,
+            team_clusters:
+              team.team_clusters
+                ?.filter(
+                  (
+                    tc
+                  ): tc is {
+                    id: string;
+                    cluster: { id: string; name: string };
+                  } => tc !== null && tc.cluster !== null
+                )
+                .map((tc) => ({
+                  id: tc.id,
+                  cluster: tc.cluster,
+                })) || [],
+            user_teams: team.user_teams || [],
+          })
+        );
       } catch (err) {
-        console.error('Errore dettagliato nel recupero dei team:', err);
+        console.error("Errore dettagliato nel recupero dei team:", err);
         throw err;
       }
     },
@@ -414,32 +466,32 @@ export const queries = {
     create: async (teamData: TeamCreateData) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Creazione team con dati:', teamData);
-        
+        console.log("Creazione team con dati:", teamData);
+
         if (!teamData.leaderId) {
-          throw new Error('Il team leader è obbligatorio');
+          throw new Error("Il team leader è obbligatorio");
         }
 
         const { data, error } = await supabase
-          .from('teams')
+          .from("teams")
           .insert({
             name: teamData.name.trim(),
             leader: teamData.leaderId,
             project: teamData.is_project,
-            company: teamData.company
+            company: teamData.company,
           })
           .select()
           .single();
 
         if (error) {
-          console.error('Errore nella creazione del team:', error);
+          console.error("Errore nella creazione del team:", error);
           throw error;
         }
 
-        console.log('Team creato con successo:', data);
+        console.log("Team creato con successo:", data);
         return data;
       } catch (err) {
-        console.error('Errore dettagliato nella creazione del team:', err);
+        console.error("Errore dettagliato nella creazione del team:", err);
         throw err;
       }
     },
@@ -447,32 +499,32 @@ export const queries = {
     update: async (id: string, teamData: TeamUpdateData) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Aggiornamento team con dati:', teamData);
-        
+        console.log("Aggiornamento team con dati:", teamData);
+
         if (!teamData.leaderId) {
-          throw new Error('Il team leader è obbligatorio');
+          throw new Error("Il team leader è obbligatorio");
         }
 
         const { data, error } = await supabase
-          .from('teams')
+          .from("teams")
           .update({
             name: teamData.name.trim(),
             leader: teamData.leaderId,
-            project: teamData.is_project
+            project: teamData.is_project,
           })
-          .eq('id', id)
+          .eq("id", id)
           .select()
           .single();
 
         if (error) {
-          console.error('Errore nell\'aggiornamento del team:', error);
+          console.error("Errore nell'aggiornamento del team:", error);
           throw error;
         }
 
-        console.log('Team aggiornato con successo:', data);
+        console.log("Team aggiornato con successo:", data);
         return data;
       } catch (err) {
-        console.error('Errore dettagliato nell\'aggiornamento del team:', err);
+        console.error("Errore dettagliato nell'aggiornamento del team:", err);
         throw err;
       }
     },
@@ -485,30 +537,33 @@ export const queries = {
 
         // 2. Elimino le associazioni user_teams
         const { error: userTeamsError } = await supabase
-          .from('user_teams')
+          .from("user_teams")
           .delete()
-          .eq('team_id', id);
+          .eq("team_id", id);
 
         if (userTeamsError) {
-          console.error('Errore nell\'eliminazione delle associazioni user_teams:', userTeamsError);
+          console.error(
+            "Errore nell'eliminazione delle associazioni user_teams:",
+            userTeamsError
+          );
           throw userTeamsError;
         }
 
         // 3. Infine elimino il team
         const { error: teamError } = await supabase
-          .from('teams')
+          .from("teams")
           .delete()
-          .eq('id', id);
+          .eq("id", id);
 
         if (teamError) {
-          console.error('Errore nell\'eliminazione del team:', teamError);
+          console.error("Errore nell'eliminazione del team:", teamError);
           throw teamError;
         }
       } catch (err) {
-        console.error('Errore durante l\'eliminazione del team:', err);
+        console.error("Errore durante l'eliminazione del team:", err);
         throw err;
       }
-    }
+    },
   },
 
   // Team Clusters
@@ -516,24 +571,30 @@ export const queries = {
     create: async (teamCluster: { team_id: string; cluster_id: string }) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Creazione associazione team-cluster...');
+        console.log("Creazione associazione team-cluster...");
         const { data, error } = await supabase
-          .from('team_clusters')
+          .from("team_clusters")
           .insert({
             team_id: teamCluster.team_id,
-            cluster_id: teamCluster.cluster_id
+            cluster_id: teamCluster.cluster_id,
           })
           .select()
           .single();
 
         if (error) {
-          console.error('Errore nella creazione dell\'associazione team-cluster:', error);
+          console.error(
+            "Errore nella creazione dell'associazione team-cluster:",
+            error
+          );
           throw error;
         }
 
         return data;
       } catch (err) {
-        console.error('Errore dettagliato nella creazione dell\'associazione team-cluster:', err);
+        console.error(
+          "Errore dettagliato nella creazione dell'associazione team-cluster:",
+          err
+        );
         throw err;
       }
     },
@@ -541,21 +602,27 @@ export const queries = {
     deleteByTeamId: async (teamId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Eliminazione associazioni team-cluster...');
+        console.log("Eliminazione associazioni team-cluster...");
         const { error } = await supabase
-          .from('team_clusters')
+          .from("team_clusters")
           .delete()
-          .eq('team_id', teamId);
+          .eq("team_id", teamId);
 
         if (error) {
-          console.error('Errore nell\'eliminazione delle associazioni team-cluster:', error);
+          console.error(
+            "Errore nell'eliminazione delle associazioni team-cluster:",
+            error
+          );
           throw error;
         }
       } catch (err) {
-        console.error('Errore dettagliato nell\'eliminazione delle associazioni team-cluster:', err);
+        console.error(
+          "Errore dettagliato nell'eliminazione delle associazioni team-cluster:",
+          err
+        );
         throw err;
       }
-    }
+    },
   },
 
   // User Teams (Memberships)
@@ -564,8 +631,9 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('user_teams')
-          .select(`
+          .from("user_teams")
+          .select(
+            `
             *,
             users (
               id,
@@ -577,17 +645,18 @@ export const queries = {
               id,
               name
             )
-          `)
-          .order('created_at', { ascending: false });
+          `
+          )
+          .order("created_at", { ascending: false });
 
         if (error) {
-          console.error('Errore nel recupero delle user_teams:', error);
+          console.error("Errore nel recupero delle user_teams:", error);
           throw error;
         }
 
         return data;
       } catch (err) {
-        console.error('Errore nel recupero delle user_teams:', err);
+        console.error("Errore nel recupero delle user_teams:", err);
         throw err;
       }
     },
@@ -596,13 +665,16 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('user_teams')
-          .insert([{
-            id: crypto.randomUUID(),
-            user_id: userTeam.userId,
-            team_id: userTeam.teamId
-          }])
-          .select(`
+          .from("user_teams")
+          .insert([
+            {
+              id: crypto.randomUUID(),
+              user_id: userTeam.userId,
+              team_id: userTeam.teamId,
+            },
+          ])
+          .select(
+            `
             *,
             users (
               id,
@@ -614,32 +686,37 @@ export const queries = {
               id,
               name
             )
-          `)
+          `
+          )
           .single();
 
         if (error) {
-          console.error('Errore nella creazione della user_team:', error);
+          console.error("Errore nella creazione della user_team:", error);
           throw error;
         }
 
         return data;
       } catch (err) {
-        console.error('Errore nella creazione della user_team:', err);
+        console.error("Errore nella creazione della user_team:", err);
         throw err;
       }
     },
 
-    update: async (id: string, userTeam: { userId: string; teamId: string }) => {
+    update: async (
+      id: string,
+      userTeam: { userId: string; teamId: string }
+    ) => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('user_teams')
+          .from("user_teams")
           .update({
             user_id: userTeam.userId,
-            team_id: userTeam.teamId
+            team_id: userTeam.teamId,
           })
-          .eq('id', id)
-          .select(`
+          .eq("id", id)
+          .select(
+            `
             *,
             users (
               id,
@@ -651,17 +728,18 @@ export const queries = {
               id,
               name
             )
-          `)
+          `
+          )
           .single();
 
         if (error) {
-          console.error('Errore nell\'aggiornamento della user_team:', error);
+          console.error("Errore nell'aggiornamento della user_team:", error);
           throw error;
         }
 
         return data;
       } catch (err) {
-        console.error('Errore nell\'aggiornamento della user_team:', err);
+        console.error("Errore nell'aggiornamento della user_team:", err);
         throw err;
       }
     },
@@ -670,19 +748,19 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { error } = await supabase
-          .from('user_teams')
+          .from("user_teams")
           .delete()
-          .eq('id', id);
+          .eq("id", id);
 
         if (error) {
-          console.error('Errore nell\'eliminazione della user_team:', error);
+          console.error("Errore nell'eliminazione della user_team:", error);
           throw error;
         }
       } catch (err) {
-        console.error('Errore nell\'eliminazione della user_team:', err);
+        console.error("Errore nell'eliminazione della user_team:", err);
         throw err;
       }
-    }
+    },
   },
 
   // Clusters
@@ -691,8 +769,9 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('clusters')
-          .select(`
+          .from("clusters")
+          .select(
+            `
             id,
             name,
             level,
@@ -703,36 +782,44 @@ export const queries = {
               id,
               team_id
             )
-          `)
-          .order('name');
+          `
+          )
+          .order("name");
 
         if (error) {
-          console.error('Errore nel recupero dei cluster:', error);
+          console.error("Errore nel recupero dei cluster:", error);
           throw error;
         }
 
-        return data.map(cluster => ({
+        return data.map((cluster) => ({
           ...cluster,
-          team_count: cluster.team_clusters?.length || 0
+          team_count: cluster.team_clusters?.length || 0,
         }));
       } catch (err) {
-        console.error('Errore nel recupero dei cluster:', err);
+        console.error("Errore nel recupero dei cluster:", err);
         throw err;
       }
     },
 
-    create: async (cluster: { name: string; level: number | null; leader: string | null }) => {
+    create: async (cluster: {
+      name: string;
+      level: number | null;
+      leader: string | null;
+    }) => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('clusters')
-          .insert([{
-            id: crypto.randomUUID(),
-            name: cluster.name,
-            level: cluster.level,
-            leader: cluster.leader
-          }])
-          .select(`
+          .from("clusters")
+          .insert([
+            {
+              id: crypto.randomUUID(),
+              name: cluster.name,
+              level: cluster.level,
+              leader: cluster.leader,
+            },
+          ])
+          .select(
+            `
             id,
             name,
             level,
@@ -743,36 +830,41 @@ export const queries = {
               id,
               team_id
             )
-          `)
+          `
+          )
           .single();
 
         if (error) {
-          console.error('Errore nella creazione del cluster:', error);
+          console.error("Errore nella creazione del cluster:", error);
           throw error;
         }
 
         return {
           ...data,
-          team_count: data.team_clusters?.length || 0
+          team_count: data.team_clusters?.length || 0,
         };
       } catch (err) {
-        console.error('Errore nella creazione del cluster:', err);
+        console.error("Errore nella creazione del cluster:", err);
         throw err;
       }
     },
 
-    update: async (id: string, cluster: { name: string; level: number | null; leader: string | null }) => {
+    update: async (
+      id: string,
+      cluster: { name: string; level: number | null; leader: string | null }
+    ) => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('clusters')
+          .from("clusters")
           .update({
             name: cluster.name,
             level: cluster.level,
-            leader: cluster.leader
+            leader: cluster.leader,
           })
-          .eq('id', id)
-          .select(`
+          .eq("id", id)
+          .select(
+            `
             id,
             name,
             level,
@@ -783,20 +875,21 @@ export const queries = {
               id,
               team_id
             )
-          `)
+          `
+          )
           .single();
 
         if (error) {
-          console.error('Errore nell\'aggiornamento del cluster:', error);
+          console.error("Errore nell'aggiornamento del cluster:", error);
           throw error;
         }
 
         return {
           ...data,
-          team_count: data.team_clusters?.length || 0
+          team_count: data.team_clusters?.length || 0,
         };
       } catch (err) {
-        console.error('Errore nell\'aggiornamento del cluster:', err);
+        console.error("Errore nell'aggiornamento del cluster:", err);
         throw err;
       }
     },
@@ -804,20 +897,17 @@ export const queries = {
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        const { error } = await supabase
-          .from('clusters')
-          .delete()
-          .eq('id', id);
+        const { error } = await supabase.from("clusters").delete().eq("id", id);
 
         if (error) {
-          console.error('Errore nell\'eliminazione del cluster:', error);
+          console.error("Errore nell'eliminazione del cluster:", error);
           throw error;
         }
       } catch (err) {
-        console.error('Errore nell\'eliminazione del cluster:', err);
+        console.error("Errore nell'eliminazione del cluster:", err);
         throw err;
       }
-    }
+    },
   },
 
   // Levels
@@ -825,30 +915,30 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
-        .from('levels')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .from("levels")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Errore nel recupero dei livelli:', error)
-        throw error
+        console.error("Errore nel recupero dei livelli:", error);
+        throw error;
       }
-      return data
+      return data;
     },
 
-    create: async (level: Omit<Level, 'id' | 'created_at'>) => {
+    create: async (level: Omit<Level, "id" | "created_at">) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Tentativo di creazione livello:', level)
+        console.log("Tentativo di creazione livello:", level);
 
         // Otteniamo la company dell'utente corrente
         const currentUser = await queries.users.getCurrentUser();
         if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
+          throw new Error("Company non configurata per questo utente");
         }
 
         const { data, error: insertError } = await supabase
-          .from('levels')
+          .from("levels")
           .insert({
             id: crypto.randomUUID(),
             company: currentUser.company,
@@ -857,35 +947,42 @@ export const queries = {
             execution_weight: level.execution_weight,
             soft_weight: level.soft_weight,
             strategy_weight: level.strategy_weight,
-            standard: level.standard
+            standard: level.standard,
           })
-          .select('id, role, step, execution_weight, soft_weight, strategy_weight, standard, created_at')
-          .single()
+          .select(
+            "id, role, step, execution_weight, soft_weight, strategy_weight, standard, created_at"
+          )
+          .single();
 
         if (insertError) {
-          console.error('Errore inserimento:', insertError)
-          throw new Error('Errore durante l\'inserimento: ' + insertError.message)
-        }
-        
-        if (!data) {
-          throw new Error('Nessun dato restituito dopo la creazione')
+          console.error("Errore inserimento:", insertError);
+          throw new Error(
+            "Errore durante l'inserimento: " + insertError.message
+          );
         }
 
-        console.log('Livello creato con successo:', data)
-        return data
+        if (!data) {
+          throw new Error("Nessun dato restituito dopo la creazione");
+        }
+
+        console.log("Livello creato con successo:", data);
+        return data;
       } catch (err) {
-        console.error('Errore completo nella creazione del livello:', err)
-        throw err
+        console.error("Errore completo nella creazione del livello:", err);
+        throw err;
       }
     },
 
-    update: async (id: string, level: Partial<Omit<Level, 'id' | 'created_at'>>) => {
+    update: async (
+      id: string,
+      level: Partial<Omit<Level, "id" | "created_at">>
+    ) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log('Tentativo di aggiornamento livello:', { id, level });
+        console.log("Tentativo di aggiornamento livello:", { id, level });
 
         const { data, error } = await supabase
-          .from('levels')
+          .from("levels")
           .update({
             role: level.role,
             step: level.step,
@@ -893,31 +990,28 @@ export const queries = {
             soft_weight: level.soft_weight,
             strategy_weight: level.strategy_weight,
             standard: level.standard,
-            company: level.company
+            company: level.company,
           })
-          .eq('id', id)
+          .eq("id", id)
           .select()
           .single();
 
         if (error) {
-          console.error('Errore nell\'aggiornamento del livello:', error);
+          console.error("Errore nell'aggiornamento del livello:", error);
           throw error;
         }
 
-        console.log('Livello aggiornato con successo:', data);
+        console.log("Livello aggiornato con successo:", data);
         return data;
       } catch (err) {
-        console.error('Errore nell\'aggiornamento del livello:', err);
+        console.error("Errore nell'aggiornamento del livello:", err);
         throw err;
       }
     },
 
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
-      const { error } = await supabase
-        .from('levels')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("levels").delete().eq("id", id);
 
       if (error) throw error;
     },
@@ -926,20 +1020,24 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('levels')
-          .select('*')
-          .eq('company', company)
-          .order('step');
+          .from("levels")
+          .select("*")
+          .eq("company", company)
+          .order("step");
 
         if (error) {
-          console.error('Errore nel recupero dei livelli:', error.message);
+          console.error("Errore nel recupero dei livelli:", error.message);
           throw new Error(`Errore nel recupero dei livelli: ${error.message}`);
         }
 
         return data || [];
       } catch (err) {
-        console.error('Errore nel recupero dei livelli:', err);
-        throw new Error(err instanceof Error ? err.message : 'Errore sconosciuto nel recupero dei livelli');
+        console.error("Errore nel recupero dei livelli:", err);
+        throw new Error(
+          err instanceof Error
+            ? err.message
+            : "Errore sconosciuto nel recupero dei livelli"
+        );
       }
     },
   },
@@ -950,8 +1048,9 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('processes')
-          .select(`
+          .from("processes")
+          .select(
+            `
             *,
             user_processes (
               id,
@@ -961,46 +1060,51 @@ export const queries = {
               id,
               description
             )
-          `)
-          .order('name');
+          `
+          )
+          .order("name");
 
         if (error) {
-          console.error('Errore nel recupero dei processi:', error);
+          console.error("Errore nel recupero dei processi:", error);
           throw error;
         }
 
-        return data.map(process => ({
+        return data.map((process) => ({
           id: process.id,
           name: process.name,
           linked_question_id: process.linked_question_id,
           linked_question: process.questions,
           user_count: process.user_processes?.length || 0,
           company: process.company,
-          created_at: process.created_at
+          created_at: process.created_at,
         }));
       } catch (err) {
-        console.error('Errore nel recupero dei processi:', err);
+        console.error("Errore nel recupero dei processi:", err);
         throw err;
       }
     },
 
-    create: async (processData: { name: string, linked_question_id: string }) => {
+    create: async (processData: {
+      name: string;
+      linked_question_id: string;
+    }) => {
       const supabase = createClientComponentClient<Database>();
       try {
         // Otteniamo la company dell'utente corrente
         const currentUser = await queries.users.getCurrentUser();
         if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
+          throw new Error("Company non configurata per questo utente");
         }
 
         const { data, error } = await supabase
-          .from('processes')
+          .from("processes")
           .insert({
             name: processData.name.trim(),
             linked_question_id: processData.linked_question_id,
-            company: currentUser.company
+            company: currentUser.company,
           })
-          .select(`
+          .select(
+            `
             *,
             user_processes (
               id,
@@ -1010,11 +1114,12 @@ export const queries = {
               id,
               description
             )
-          `)
+          `
+          )
           .single();
 
         if (error) {
-          console.error('Errore nella creazione del processo:', error);
+          console.error("Errore nella creazione del processo:", error);
           throw error;
         }
 
@@ -1025,25 +1130,29 @@ export const queries = {
           linked_question: data.questions,
           user_count: data.user_processes?.length || 0,
           company: data.company,
-          created_at: data.created_at
+          created_at: data.created_at,
         };
       } catch (err) {
-        console.error('Errore nella creazione del processo:', err);
+        console.error("Errore nella creazione del processo:", err);
         throw err;
       }
     },
 
-    update: async (id: string, processData: { name: string, linked_question_id: string }) => {
+    update: async (
+      id: string,
+      processData: { name: string; linked_question_id: string }
+    ) => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('processes')
+          .from("processes")
           .update({
             name: processData.name.trim(),
-            linked_question_id: processData.linked_question_id
+            linked_question_id: processData.linked_question_id,
           })
-          .eq('id', id)
-          .select(`
+          .eq("id", id)
+          .select(
+            `
             *,
             user_processes (
               id,
@@ -1053,11 +1162,12 @@ export const queries = {
               id,
               description
             )
-          `)
+          `
+          )
           .single();
 
         if (error) {
-          console.error('Errore nell\'aggiornamento del processo:', error);
+          console.error("Errore nell'aggiornamento del processo:", error);
           throw error;
         }
 
@@ -1068,10 +1178,10 @@ export const queries = {
           linked_question: data.questions,
           user_count: data.user_processes?.length || 0,
           company: data.company,
-          created_at: data.created_at
+          created_at: data.created_at,
         };
       } catch (err) {
-        console.error('Errore nell\'aggiornamento del processo:', err);
+        console.error("Errore nell'aggiornamento del processo:", err);
         throw err;
       }
     },
@@ -1081,30 +1191,33 @@ export const queries = {
       try {
         // Prima elimino le associazioni user_processes
         const { error: userProcessesError } = await supabase
-          .from('user_processes')
+          .from("user_processes")
           .delete()
-          .eq('process_id', id);
+          .eq("process_id", id);
 
         if (userProcessesError) {
-          console.error('Errore nell\'eliminazione delle associazioni user_processes:', userProcessesError);
+          console.error(
+            "Errore nell'eliminazione delle associazioni user_processes:",
+            userProcessesError
+          );
           throw userProcessesError;
         }
 
         // Poi elimino il processo
         const { error: processError } = await supabase
-          .from('processes')
+          .from("processes")
           .delete()
-          .eq('id', id);
+          .eq("id", id);
 
         if (processError) {
-          console.error('Errore nell\'eliminazione del processo:', processError);
+          console.error("Errore nell'eliminazione del processo:", processError);
           throw processError;
         }
       } catch (err) {
-        console.error('Errore nell\'eliminazione del processo:', err);
+        console.error("Errore nell'eliminazione del processo:", err);
         throw err;
       }
-    }
+    },
   },
 
   // Questions
@@ -1113,42 +1226,42 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('questions')
-          .select('id, description, type, created_at, company')
-          .order('created_at', { ascending: false });
+          .from("questions")
+          .select("id, description, type, created_at, company")
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
         return data;
       } catch (err) {
-        console.error('Errore nel recupero delle domande:', err);
+        console.error("Errore nel recupero delle domande:", err);
         throw err;
       }
     },
 
-    create: async (question: Omit<QuestionInsert, 'id'>) => {
+    create: async (question: Omit<QuestionInsert, "id">) => {
       const supabase = createClientComponentClient<Database>();
       try {
         // Otteniamo la company dell'utente corrente
         const currentUser = await queries.users.getCurrentUser();
         if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
+          throw new Error("Company non configurata per questo utente");
         }
 
         const { data, error } = await supabase
-          .from('questions')
+          .from("questions")
           .insert({
             id: crypto.randomUUID(),
             description: question.description,
             type: question.type,
-            company: currentUser.company
+            company: currentUser.company,
           })
-          .select('id, description, type, created_at, company')
+          .select("id, description, type, created_at, company")
           .single();
 
         if (error) throw error;
         return data;
       } catch (err) {
-        console.error('Errore nella creazione della domanda:', err);
+        console.error("Errore nella creazione della domanda:", err);
         throw err;
       }
     },
@@ -1159,46 +1272,43 @@ export const queries = {
         // Otteniamo la company dell'utente corrente
         const currentUser = await queries.users.getCurrentUser();
         if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
+          throw new Error("Company non configurata per questo utente");
         }
 
         const { data, error } = await supabase
-          .from('questions')
+          .from("questions")
           .update({
             description: question.description,
             type: question.type,
-            company: currentUser.company
+            company: currentUser.company,
           })
-          .eq('id', id)
-          .select('id, description, type, created_at, company')
+          .eq("id", id)
+          .select("id, description, type, created_at, company")
           .single();
 
         if (error) throw error;
         return data;
       } catch (err) {
-        console.error('Errore nell\'aggiornamento della domanda:', err);
+        console.error("Errore nell'aggiornamento della domanda:", err);
         throw err;
       }
     },
 
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
-      const { error } = await supabase
-        .from('questions')
-        .delete()
-        .eq('id', id)
-      if (error) throw error
-    }
+      const { error } = await supabase.from("questions").delete().eq("id", id);
+      if (error) throw error;
+    },
   },
 
   rules: {
     getByCompany: async (company: string) => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
-        .from('rules')
-        .select('*')
-        .eq('company', company)
-        .order('number', { ascending: true });
+        .from("rules")
+        .select("*")
+        .eq("company", company)
+        .order("number", { ascending: true });
 
       if (error) throw error;
       return data;
@@ -1207,7 +1317,7 @@ export const queries = {
     create: async (rule: RuleInsert) => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
-        .from('rules')
+        .from("rules")
         .insert([rule])
         .select()
         .single();
@@ -1219,9 +1329,9 @@ export const queries = {
     update: async (id: string, updates: RuleUpdate) => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
-        .from('rules')
+        .from("rules")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -1231,13 +1341,10 @@ export const queries = {
 
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
-      const { error } = await supabase
-        .from('rules')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("rules").delete().eq("id", id);
 
       if (error) throw error;
-    }
+    },
   },
 
   // Sessions
@@ -1255,42 +1362,45 @@ export const queries = {
         // Otteniamo la company dell'utente corrente
         const currentUser = await queries.users.getCurrentUser();
         if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
+          throw new Error("Company non configurata per questo utente");
         }
 
         // 1. Creiamo la sessione
         const { data: session, error: sessionError } = await supabase
-          .from('sessions')
+          .from("sessions")
           .insert({
             id: crypto.randomUUID(),
             name: sessionData.name,
             start_time: sessionData.start_time,
             end_time: sessionData.end_time,
-            status: sessionData.status || 'In preparazione',
-            company: currentUser.company
+            status: sessionData.status || "In preparazione",
+            company: currentUser.company,
           })
           .select()
           .single();
 
         if (sessionError) {
-          console.error('Errore nella creazione della sessione:', sessionError);
+          console.error("Errore nella creazione della sessione:", sessionError);
           throw sessionError;
         }
 
         // 2. Creiamo le associazioni session_clusters
         if (sessionData.clusters.length > 0) {
           const { error: clustersError } = await supabase
-            .from('session_clusters')
+            .from("session_clusters")
             .insert(
-              sessionData.clusters.map(clusterId => ({
+              sessionData.clusters.map((clusterId) => ({
                 id: crypto.randomUUID(),
                 session_id: session.id,
-                cluster_id: clusterId
+                cluster_id: clusterId,
               }))
             );
 
           if (clustersError) {
-            console.error('Errore nella creazione delle associazioni session_clusters:', clustersError);
+            console.error(
+              "Errore nella creazione delle associazioni session_clusters:",
+              clustersError
+            );
             throw clustersError;
           }
         }
@@ -1298,105 +1408,113 @@ export const queries = {
         // 3. Creiamo le associazioni session_rules
         if (sessionData.rules.length > 0) {
           const { error: rulesError } = await supabase
-            .from('session_rules')
+            .from("session_rules")
             .insert(
-              sessionData.rules.map(ruleId => ({
+              sessionData.rules.map((ruleId) => ({
                 id: crypto.randomUUID(),
                 session_id: session.id,
-                rule_id: ruleId
+                rule_id: ruleId,
               }))
             );
 
           if (rulesError) {
-            console.error('Errore nella creazione delle associazioni session_rules:', rulesError);
+            console.error(
+              "Errore nella creazione delle associazioni session_rules:",
+              rulesError
+            );
             throw rulesError;
           }
         }
 
         return session;
       } catch (err) {
-        console.error('Errore nella creazione della sessione:', err);
+        console.error("Errore nella creazione della sessione:", err);
         throw err;
       }
     },
 
-    update: async (sessionId: string, sessionData: {
-      name: string;
-      start_time: string | null;
-      end_time: string | null;
-      clusters: string[];
-      rules: string[];
-      status?: string;
-    }) => {
-      const supabase = createClientComponentClient<Database>()
+    update: async (
+      sessionId: string,
+      sessionData: {
+        name: string;
+        start_time: string | null;
+        end_time: string | null;
+        clusters: string[];
+        rules: string[];
+        status?: string;
+      }
+    ) => {
+      const supabase = createClientComponentClient<Database>();
 
       // Aggiorniamo la sessione
       const { data: session, error } = await supabase
-        .from('sessions')
+        .from("sessions")
         .update({
           name: sessionData.name,
           start_time: sessionData.start_time,
           end_time: sessionData.end_time,
-          status: sessionData.status
+          status: sessionData.status,
         })
-        .eq('id', sessionId)
+        .eq("id", sessionId)
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
-      if (!session) throw new Error('Errore durante l\'aggiornamento della sessione')
+      if (error) throw error;
+      if (!session)
+        throw new Error("Errore durante l'aggiornamento della sessione");
 
       // Aggiorniamo le associazioni con i cluster
       // Prima eliminiamo tutte le associazioni esistenti
       const { error: deleteClusterError } = await supabase
-        .from('session_clusters')
+        .from("session_clusters")
         .delete()
-        .eq('session_id', sessionId)
-      if (deleteClusterError) throw deleteClusterError
+        .eq("session_id", sessionId);
+      if (deleteClusterError) throw deleteClusterError;
 
       // Poi creiamo le nuove associazioni
       if (sessionData.clusters.length > 0) {
         const { error: clustersError } = await supabase
-          .from('session_clusters')
+          .from("session_clusters")
           .insert(
-            sessionData.clusters.map(clusterId => ({
+            sessionData.clusters.map((clusterId) => ({
               session_id: sessionId,
-              cluster_id: clusterId
+              cluster_id: clusterId,
             }))
-          )
-        if (clustersError) throw clustersError
+          );
+        if (clustersError) throw clustersError;
       }
 
       // Aggiorniamo le associazioni con le regole
       // Prima eliminiamo tutte le associazioni esistenti
       const { error: deleteRulesError } = await supabase
-        .from('session_rules')
+        .from("session_rules")
         .delete()
-        .eq('session_id', sessionId)
-      if (deleteRulesError) throw deleteRulesError
+        .eq("session_id", sessionId);
+      if (deleteRulesError) throw deleteRulesError;
 
       // Poi creiamo le nuove associazioni
       if (sessionData.rules.length > 0) {
         const { error: rulesError } = await supabase
-          .from('session_rules')
+          .from("session_rules")
           .insert(
-            sessionData.rules.map(ruleId => ({
+            sessionData.rules.map((ruleId) => ({
               session_id: sessionId,
-              rule_id: ruleId
+              rule_id: ruleId,
             }))
-          )
-        if (rulesError) throw rulesError
+          );
+        if (rulesError) throw rulesError;
       }
 
-      return session
+      return session;
     },
 
     getByCompany: async (company: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('sessions')
-          .select(`
+          .from("sessions")
+          .select(
+            `
             *,
             session_clusters (
               id,
@@ -1412,18 +1530,19 @@ export const queries = {
                 name
               )
             )
-          `)
-          .eq('company', company)
-          .order('created_at', { ascending: false });
+          `
+          )
+          .eq("company", company)
+          .order("created_at", { ascending: false });
 
         if (error) {
-          console.error('Errore nel recupero delle sessioni:', error);
+          console.error("Errore nel recupero delle sessioni:", error);
           throw error;
         }
 
         return data || [];
       } catch (err) {
-        console.error('Errore nel recupero delle sessioni:', err);
+        console.error("Errore nel recupero delle sessioni:", err);
         throw err;
       }
     },
@@ -1434,12 +1553,13 @@ export const queries = {
         // Otteniamo la company dell'utente corrente
         const currentUser = await queries.users.getCurrentUser();
         if (!currentUser.company) {
-          throw new Error('Company non configurata per questo utente');
+          throw new Error("Company non configurata per questo utente");
         }
 
         const { data, error } = await supabase
-          .from('sessions')
-          .select(`
+          .from("sessions")
+          .select(
+            `
             *,
             session_clusters!inner (
               id,
@@ -1458,35 +1578,43 @@ export const queries = {
                 )
               )
             )
-          `)
-          .eq('company', currentUser.company)
-          .neq('status', 'In preparazione')
-          .eq('session_clusters.cluster.team_clusters.team.user_teams.user_id', userId)
-          .order('created_at', { ascending: false });
+          `
+          )
+          .eq("company", currentUser.company)
+          .neq("status", "In preparazione")
+          .eq(
+            "session_clusters.cluster.team_clusters.team.user_teams.user_id",
+            userId
+          )
+          .order("created_at", { ascending: false });
 
         if (error) {
-          console.error('Errore nel recupero delle sessioni dell\'utente:', error);
+          console.error(
+            "Errore nel recupero delle sessioni dell'utente:",
+            error
+          );
           throw error;
         }
 
         // Trasformiamo i dati nel formato atteso dal tipo Session
-        const formattedData = data?.map(session => ({
-          ...session,
-          session_clusters: session.session_clusters.map(sc => ({
-            id: sc.id,
-            cluster: {
-              id: sc.cluster.id,
-              name: sc.cluster.name
-            }
-          }))
-        })) || [];
+        const formattedData =
+          data?.map((session) => ({
+            ...session,
+            session_clusters: session.session_clusters.map((sc) => ({
+              id: sc.id,
+              cluster: {
+                id: sc.cluster.id,
+                name: sc.cluster.name,
+              },
+            })),
+          })) || [];
 
         return formattedData;
       } catch (err) {
-        console.error('Errore nel recupero delle sessioni dell\'utente:', err);
+        console.error("Errore nel recupero delle sessioni dell'utente:", err);
         throw err;
       }
-    }
+    },
   },
 
   // Feedbacks
@@ -1495,8 +1623,9 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
-          .from('feedbacks')
-          .select(`
+          .from("feedbacks")
+          .select(
+            `
             *,
             sender:users!feedbacks_sender_fkey (
               id,
@@ -1518,34 +1647,39 @@ export const queries = {
               name,
               number
             )
-          `)
-          .eq('session_id', sessionId)
-          .order('created_at', { ascending: false });
+          `
+          )
+          .eq("session_id", sessionId)
+          .order("created_at", { ascending: false });
 
         if (error) {
-          console.error('Errore nel recupero dei feedback:', error);
+          console.error("Errore nel recupero dei feedback:", error);
           throw error;
         }
 
-        return data.map(feedback => ({
+        return data.map((feedback) => ({
           id: feedback.id,
-          sender: feedback.sender ? `${feedback.sender.name} ${feedback.sender.surname}` : '',
-          receiver: feedback.receiver ? `${feedback.receiver.name} ${feedback.receiver.surname}` : '',
-          question: feedback.question?.description || '',
+          sender: feedback.sender
+            ? `${feedback.sender.name} ${feedback.sender.surname}`
+            : "",
+          receiver: feedback.receiver
+            ? `${feedback.receiver.name} ${feedback.receiver.surname}`
+            : "",
+          question: feedback.question?.description || "",
           rule: feedback.rule?.number || 0,
           tags: [], // TODO: Implementare i tag quando disponibili
           value: feedback.value,
-          comment: feedback.comment
+          comment: feedback.comment,
         }));
       } catch (err) {
-        console.error('Errore nel recupero dei feedback:', err);
+        console.error("Errore nel recupero dei feedback:", err);
         throw err;
       }
     },
 
     generateForRule: async (
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      sessionId: string, 
+      sessionId: string,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       ruleId: string
     ) => {
@@ -1553,12 +1687,12 @@ export const queries = {
       const supabase = createClientComponentClient<Database>();
       try {
         // TODO: Implementare la generazione dei feedback per una regola
-        throw new Error('Non implementato');
+        throw new Error("Non implementato");
       } catch (err) {
-        console.error('Errore nella generazione dei feedback:', err);
+        console.error("Errore nella generazione dei feedback:", err);
         throw err;
       }
-    }
+    },
   },
 
   // Session Stats
@@ -1568,17 +1702,17 @@ export const queries = {
       try {
         // Ottieni il numero totale di feedback
         const { count: totalFeedbacks, error: feedbackError } = await supabase
-          .from('feedbacks')
-          .select('*', { count: 'exact', head: true })
-          .eq('session_id', sessionId);
+          .from("feedbacks")
+          .select("*", { count: "exact", head: true })
+          .eq("session_id", sessionId);
 
         if (feedbackError) throw feedbackError;
 
         // Ottieni il numero di utenti coinvolti nella sessione
         const { data: userSessions, error: userSessionsError } = await supabase
-          .from('user_sessions')
-          .select('user_id')
-          .eq('session_id', sessionId);
+          .from("user_sessions")
+          .select("user_id")
+          .eq("session_id", sessionId);
 
         if (userSessionsError) throw userSessionsError;
 
@@ -1586,29 +1720,129 @@ export const queries = {
 
         // Ottieni il numero di utenti senza feedback
         const { data: usersWithFeedback, error: usersError } = await supabase
-          .from('feedbacks')
-          .select('receiver')
-          .eq('session_id', sessionId)
-          .not('receiver', 'is', null);
+          .from("feedbacks")
+          .select("receiver")
+          .eq("session_id", sessionId)
+          .not("receiver", "is", null);
 
         if (usersError) throw usersError;
 
-        const uniqueUsersWithFeedback = new Set(usersWithFeedback.map(f => f.receiver)).size;
+        const uniqueUsersWithFeedback = new Set(
+          usersWithFeedback.map((f) => f.receiver)
+        ).size;
         const usersWithNoFeedbacks = totalUsers - uniqueUsersWithFeedback;
 
         // Calcola la media di feedback per utente
-        const avgFeedbacksPerUser = totalUsers > 0 ? (totalFeedbacks || 0) / totalUsers : 0;
+        const avgFeedbacksPerUser =
+          totalUsers > 0 ? (totalFeedbacks || 0) / totalUsers : 0;
 
         return {
           totalFeedbacks: totalFeedbacks || 0,
           avgFeedbacksPerUser: Number(avgFeedbacksPerUser.toFixed(1)),
           usersWithNoFeedbacks,
-          totalUsers
+          totalUsers,
         };
       } catch (err) {
-        console.error('Errore nel calcolo delle statistiche:', err);
+        console.error("Errore nel calcolo delle statistiche:", err);
         throw err;
       }
+    },
+  },
+};
+
+export async function getSessionFeedback(sessionId: string, userId: string) {
+  const supabase = createClientComponentClient<Database>();
+  try {
+    // Prima recupera i dati della sessione utente
+    const { data: userSession, error: userSessionError } = await supabase
+      .from("user_sessions")
+      .select(
+        `
+        *,
+        sessions (
+          id,
+          name,
+          start_time,
+          end_time,
+          status,
+          company,
+          created_at
+        )
+      `
+      )
+      .eq("session_id", sessionId)
+      .eq("user_id", userId)
+      .single();
+
+    if (userSessionError) {
+      console.error(
+        "Errore nel recupero della sessione utente:",
+        userSessionError
+      );
+      throw userSessionError;
     }
+
+    // Poi recupera i feedback
+    const { data: feedbacks, error: feedbacksError } = await supabase
+      .from("feedbacks")
+      .select(
+        `
+        *,
+        sender:users!feedbacks_sender_fkey(name, surname),
+        receiver:users!feedbacks_receiver_fkey(name, surname),
+        question:questions(description)
+      `
+      )
+      .eq("session_id", sessionId)
+      .eq("receiver", userId);
+
+    if (feedbacksError) {
+      console.error("Errore nel recupero dei feedback:", feedbacksError);
+      throw feedbacksError;
+    }
+
+    return {
+      userSession,
+      feedbacks: feedbacks.map((feedback) => ({
+        ...feedback,
+        sender: feedback.sender || { name: "", surname: "" },
+        receiver: feedback.receiver || { name: "", surname: "" },
+        question: feedback.question || { description: "" },
+      })) as Feedback[],
+    };
+  } catch (err) {
+    console.error("Errore nel recupero dei feedback:", err);
+    throw err;
+  }
+}
+
+export async function getSessionComments(sessionId: string, userId: string) {
+  const supabase = createClientComponentClient<Database>();
+  try {
+    const { data: feedbacks, error } = await supabase
+      .from("feedbacks")
+      .select(
+        `
+        *,
+        sender:users!feedbacks_sender_fkey(name, surname),
+        receiver:users!feedbacks_receiver_fkey(name, surname),
+        question:questions(description)
+      `
+      )
+      .eq("session_id", sessionId)
+      .eq("receiver", userId)
+      .not("comment", "is", null);
+
+    if (error) throw error;
+
+    return feedbacks.map((feedback) => ({
+      ...feedback,
+      sender: feedback.sender || { name: "", surname: "" },
+      receiver: feedback.receiver || { name: "", surname: "" },
+      question: feedback.question || { description: "" },
+    })) as Feedback[];
+  } catch (err) {
+    console.error("Errore nel recupero dei commenti:", err);
+    throw err;
   }
 }
