@@ -17,11 +17,17 @@ export default function SessionsPage() {
     const loadSessions = async () => {
       try {
         const currentUser = await queries.users.getCurrentUser();
-        const userSessions = await queries.sessions.getUserSessions(currentUser.id);
+        const userSessions = await queries.sessions.getUserSessions(
+          currentUser.id
+        );
         setSessions(userSessions);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Errore nel caricamento delle sessioni');
-        console.error('Errore nel caricamento delle sessioni:', err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Errore nel caricamento delle sessioni"
+        );
+        console.error("Errore nel caricamento delle sessioni:", err);
       } finally {
         setLoading(false);
       }
@@ -31,19 +37,19 @@ export default function SessionsPage() {
   }, []);
 
   const handleSessionClick = (session: Session) => {
-    if (session.status === 'In corso') {
+    if (session.status === "In corso") {
       router.push(`/session/${session.id}`);
-    } else if (session.status === 'Conclusa') {
+    } else if (session.status === "Conclusa") {
       router.push(`/session_results?sessionId=${session.id}`);
     }
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Data non impostata';
-    return new Date(dateString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    if (!dateString) return "Data non impostata";
+    return new Date(dateString).toLocaleDateString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   };
 
@@ -102,9 +108,13 @@ export default function SessionsPage() {
                   </div>
                   <button
                     className={`px-6 py-2 rounded-full text-white font-medium
-                      ${session.status === 'In corso' ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                      ${
+                        session.status === "In corso"
+                          ? "bg-emerald-500"
+                          : "bg-blue-500"
+                      }`}
                   >
-                    {session.status === 'In corso' ? 'VAI' : 'ANALISI'}
+                    {session.status === "In corso" ? "VAI" : "ANALISI"}
                   </button>
                 </div>
               </div>
