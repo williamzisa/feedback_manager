@@ -15,6 +15,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Database } from "@/lib/supabase/database.types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { Star, UserCircle2, Target, Users } from "lucide-react";
 
 type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   sessions: Database["public"]["Tables"]["sessions"]["Row"];
@@ -195,44 +196,84 @@ function SessionResultsContent() {
         </div>
 
         {/* Results Overview */}
-        <div className="bg-white rounded-[20px] p-6 mb-4 space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <span className="text-2xl font-bold">
-                Overall: {currentSession.val_overall?.toFixed(1)}
-              </span>
+        <div className="bg-white rounded-[20px] p-6 mb-4">
+          <div className="grid grid-cols-2 gap-6">
+            {/* Colonna sinistra */}
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <Star className="w-6 h-6 text-yellow-500" />
+                </div>
+                <div className="flex items-baseline flex-1">
+                  <span className="text-3xl font-bold">
+                    {currentSession.val_overall?.toFixed(1)}
+                  </span>
+                  <span className="ml-2 text-sm text-gray-500">Overall</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <UserCircle2 className="w-6 h-6 text-blue-500" />
+                </div>
+                <div className="flex items-baseline flex-1">
+                  <span className="text-3xl font-bold">
+                    {currentSession.self_overall?.toFixed(1)}
+                  </span>
+                  <span className="ml-2 text-sm text-gray-500">Self</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <span className="text-2xl font-bold">
-                Standard: {currentSession.level_standard?.toFixed(1)}
-              </span>
+
+            {/* Colonna destra */}
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <Target className="w-6 h-6 text-green-500" />
+                </div>
+                <div className="flex items-baseline flex-1">
+                  <span className="text-3xl font-bold">
+                    {currentSession.level_standard?.toFixed(1)}
+                  </span>
+                  <span className="ml-2 text-sm text-gray-500">Standard</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <Users className="w-6 h-6 text-purple-500" />
+                </div>
+                <div className="flex items-baseline flex-1">
+                  <span className="text-3xl font-bold">
+                    {currentSession.val_overall?.toFixed(1)}
+                  </span>
+                  <span className="ml-2 text-sm text-gray-500">
+                    Il mio Mentor
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="text-center">
-            <span
-              className={`text-xl ${
+
+          {/* Separatore */}
+          <div className="my-4 border-t border-gray-100"></div>
+
+          {/* GAP Section */}
+          <div className="text-center space-y-2">
+            <div className="text-sm text-gray-500 font-medium">
+              Risultati della Sessione
+            </div>
+            <div
+              className={`text-2xl font-bold ${
                 (currentSession.val_gap || 0) >= 0
                   ? "text-green-600"
                   : "text-yellow-600"
               }`}
             >
-              GAP: {currentSession.val_gap?.toFixed(1)}% (
-              {(currentSession.val_gap || 0) >= 0
-                ? "in linea"
-                : "da migliorare"}
-              )
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <div>
-              <span className="text-2xl font-bold">
-                Il mio Mentor: {currentSession.val_overall?.toFixed(1)}
-              </span>
+              {currentSession.val_gap?.toFixed(1)}%
             </div>
-            <div>
-              <span className="text-2xl font-bold">
-                Self: {currentSession.self_overall?.toFixed(1)}
-              </span>
+            <div className="text-sm text-gray-500">
+              {(currentSession.val_gap || 0) >= 0
+                ? "In linea con lo standard"
+                : "Da migliorare"}
             </div>
           </div>
         </div>
