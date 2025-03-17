@@ -17,7 +17,10 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
   sender: { name: string; surname: string };
   receiver: { name: string; surname: string };
-  question: { description: string };
+  question: {
+    description: string;
+    type: string;
+  };
 };
 
 type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"];
@@ -162,6 +165,12 @@ function FeedbackContent() {
   const currentSkill = skillsData[selectedSkill];
   const pageTitle = userName || "I miei Risultati";
 
+  // Funzione helper per formattare i numeri con 2 decimali
+  const formatNumber = (num: number | null): string => {
+    if (num === null) return "N/A";
+    return num.toFixed(2);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -187,16 +196,12 @@ function FeedbackContent() {
   }
 
   const { userSession, feedbacks } = feedbackData;
-  const skillScore =
-    Number(userSession?.[currentSkill.value as keyof UserSession]) || 0;
-  const selfScore =
-    Number(userSession?.[currentSkill.self as keyof UserSession]) || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title={pageTitle} />
 
-      <main className="container mx-auto max-w-2xl px-4 py-6">
+      <main className="container mx-auto max-w-2xl px-4 py-6 pb-32">
         {/* Session Selector */}
         <div className="mb-4">
           <Select value={selectedSession} onValueChange={setSelectedSession}>
@@ -204,8 +209,7 @@ function FeedbackContent() {
               <div className="flex justify-between items-center w-full pr-4">
                 <span className="text-gray-900">{selectedSession}</span>
                 <span className="text-yellow-600 font-medium">
-                  GAP:{" "}
-                  {userSession?.val_gap ? `${userSession.val_gap}%` : "N/A"}
+                  GAP: {formatNumber(userSession?.val_gap)}%
                 </span>
               </div>
             </SelectTrigger>
@@ -214,8 +218,7 @@ function FeedbackContent() {
                 <div className="flex justify-between items-center w-full pr-4">
                   <span>Sessione terminata il 31/12/24</span>
                   <span className="text-yellow-600">
-                    GAP:{" "}
-                    {userSession?.val_gap ? `${userSession.val_gap}%` : "N/A"}
+                    GAP: {formatNumber(userSession?.val_gap)}%
                   </span>
                 </div>
               </SelectItem>
@@ -236,7 +239,11 @@ function FeedbackContent() {
                   className="text-white px-3 py-0.5 rounded-full text-sm font-medium"
                   style={{ backgroundColor: currentSkill.color }}
                 >
-                  {skillScore}
+                  {formatNumber(
+                    Number(
+                      userSession?.[currentSkill.value as keyof UserSession]
+                    )
+                  )}
                 </span>
               </div>
             </SelectTrigger>
@@ -246,9 +253,9 @@ function FeedbackContent() {
                   <div className="flex items-center gap-2 pr-4">
                     <span>{skill.name}</span>
                     <span className="text-sm" style={{ color: skill.color }}>
-                      {Number(
-                        userSession?.[skill.value as keyof UserSession]
-                      ) || 0}
+                      {formatNumber(
+                        Number(userSession?.[skill.value as keyof UserSession])
+                      )}
                     </span>
                   </div>
                 </SelectItem>
@@ -269,7 +276,9 @@ function FeedbackContent() {
                 <div key={index} className="flex flex-col items-center">
                   <div
                     className={`w-12 h-12 ${
-                      rating <= skillScore ? "text-yellow-400" : "text-gray-200"
+                      rating <= Number(feedbacks[0]?.value)
+                        ? "text-yellow-400"
+                        : "text-gray-200"
                     }`}
                   >
                     <svg
@@ -289,14 +298,26 @@ function FeedbackContent() {
           <div className="space-y-4 mt-8">
             <div className="flex justify-between items-center py-2 border-b border-gray-100">
               <span className="text-lg font-semibold">
-                Overall: {Number(userSession?.val_overall) || 0}/5
+                Overall: {formatNumber(Number(userSession?.val_overall))}/5
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-lg">Il mio Mentor: {skillScore}/5</span>
+              <span className="text-lg">
+                Il mio Mentor:{" "}
+                {formatNumber(
+                  Number(userSession?.[currentSkill.value as keyof UserSession])
+                )}
+                /5
+              </span>
             </div>
             <div className="flex justify-between items-center py-2">
-              <span className="text-lg">Self: {selfScore}/5</span>
+              <span className="text-lg">
+                Self:{" "}
+                {formatNumber(
+                  Number(userSession?.[currentSkill.self as keyof UserSession])
+                )}
+                /5
+              </span>
             </div>
           </div>
         </div>

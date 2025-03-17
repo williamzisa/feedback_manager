@@ -9,7 +9,10 @@ import type { PreSessionStats } from "../types/feedbacks";
 type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
   sender: { name: string; surname: string };
   receiver: { name: string; surname: string };
-  question: { description: string };
+  question: {
+    description: string;
+    type: string;
+  };
 };
 
 export const queries = {
