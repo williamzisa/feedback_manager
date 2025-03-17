@@ -1,0 +1,9 @@
+---
+description: pre-session analysis, feedback generation
+globs: 
+---
+
+# Regole generazione feedbacks
+
+Controlla sempre in [database.types.ts](mdc:src/lib/supabase/database.types.ts) le funzioni che permettono di generare feedback.
+Queste di solito vengono innescate dalla pagina pre-session-analysis

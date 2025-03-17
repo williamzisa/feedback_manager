@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { Button } from '@/components/ui/button'
 import { Menu } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { UserMenu } from '@/components/navigation/user-menu'
 
 interface NavigationItem {
   name: string
@@ -17,6 +18,7 @@ interface NavigationItem {
 const navigationLeft: NavigationItem[] = [
   { name: 'Clusters', href: '/admin/clusters' },
   { name: 'Teams', href: '/admin/teams' },
+  { name: 'Memberships', href: '/admin/memberships' },
   { name: 'Users', href: '/admin/users' },
   { name: 'Levels', href: '/admin/levels' },
   { name: 'Processes', href: '/admin/processes' },
@@ -26,7 +28,9 @@ const navigationRight: NavigationItem[] = [
   { name: 'Questions', href: '/admin/questions' },
   { name: 'Rules', href: '/admin/rules' },
   { name: 'Sessions', href: '/admin/sessions' },
-  { name: 'Feedbacks', href: '/admin/feedbacks', subtitle: '(Analisi Sessione)' },
+  { name: 'Analisi pre-sessione', href: '/admin/pre-session-analysis' },
+  { name: 'Risultati sessioni', href: '/admin/session-results' },
+  { name: 'Gestione feedback', href: '/admin/feedback-management' },
 ]
 
 export const AdminHeader = () => {
@@ -53,8 +57,8 @@ export const AdminHeader = () => {
         pathname === item.href
           ? 'text-blue-600'
           : 'text-gray-500 hover:text-gray-700',
-        'text-base font-medium transition-colors',
-        isMobile ? 'block py-2' : ''
+        'text-base font-medium transition-colors duration-200',
+        isMobile ? 'block py-1.5 hover:translate-x-1 transition-transform' : ''
       )}
       onClick={() => setIsOpen(false)}
     >
@@ -71,37 +75,44 @@ export const AdminHeader = () => {
         {isMobile ? (
           <>
             <div className="flex-1" />
-            <Sheet open={isOpen} onOpenChange={setIsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden">
-                  <Menu className="h-8 w-8" />
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                <SheetTitle className="text-xl font-bold text-gray-900 mb-6">
-                  Admin Menu
-                </SheetTitle>
-                <div className="flex flex-col space-y-6 mt-6">
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                      Gestione Team
-                    </h3>
-                    {navigationLeft.map((item) => (
-                      <NavLink key={item.name} item={item} />
-                    ))}
+            <div className="flex items-center gap-3">
+              <UserMenu />
+              <Sheet open={isOpen} onOpenChange={setIsOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="lg:hidden">
+                    <Menu className="h-6 w-6" />
+                    <span className="sr-only">Toggle menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] sm:w-[400px] p-6">
+                  <SheetTitle className="text-xl font-bold text-gray-900 mb-4">
+                    Admin Menu
+                  </SheetTitle>
+                  <div className="flex flex-col space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+                        Gestione Team
+                      </h3>
+                      <div className="space-y-1">
+                        {navigationLeft.map((item) => (
+                          <NavLink key={item.name} item={item} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="pt-2 space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+                        Gestione Feedback
+                      </h3>
+                      <div className="space-y-1">
+                        {navigationRight.map((item) => (
+                          <NavLink key={item.name} item={item} />
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                      Gestione Feedback
-                    </h3>
-                    {navigationRight.map((item) => (
-                      <NavLink key={item.name} item={item} />
-                    ))}
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </SheetContent>
+              </Sheet>
+            </div>
           </>
         ) : (
           <>
@@ -114,6 +125,7 @@ export const AdminHeader = () => {
               {navigationRight.map((item) => (
                 <NavLink key={item.name} item={item} />
               ))}
+              <UserMenu />
             </div>
           </>
         )}

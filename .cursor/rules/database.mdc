@@ -1,0 +1,9 @@
+---
+description: database, types and queries structure
+globs: 
+---
+
+# Database
+- Always refer to [database.types.ts](mdc:src/lib/supabase/database.types.ts) to check tab and field
+- Always refer to @feedback_manager\src\lib\types to understand and update types
+- Always refer to [queries.ts](mdc:src/lib/supabase/queries.ts) to understand and update queries
