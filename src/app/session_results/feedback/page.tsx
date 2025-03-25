@@ -1,165 +1,201 @@
-'use client';
+"use client";
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { useState, Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import BottomNav from "@/components/navigation/bottom-nav";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import Header from "@/components/navigation/header";
-import { useFeedback } from './hooks/useFeedback';
-import { FeedbackCard } from './components/FeedbackCard';
-import { InitiativesSection } from './components/InitiativesSection';
+import { getSessionFeedback } from "@/lib/supabase/queries";
+import { Database } from "@/lib/supabase/database.types";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
+type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
+  sender: { name: string; surname: string };
+  receiver: { name: string; surname: string };
+  question: {
+    description: string;
+    type: string;
+  };
+};
+
+type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"];
+
+const skillsData = {
+  "Strategy Skills": {
+    name: "Strategy Skills",
+    color: "#00BFA5",
+    weight: "weight_strategy",
+    value: "val_strategy",
+    self: "self_strategy",
+  },
+  "Execution Skills": {
+    name: "Execution Skills",
+    color: "#4285F4",
+    weight: "weight_execution",
+    value: "val_execution",
+    self: "self_execution",
+  },
+  "Soft Skills": {
+    name: "Soft Skills",
+    color: "#F5A623",
+    weight: "weight_soft",
+    value: "val_soft",
+    self: "self_soft",
+  },
+} as const;
+
+type SkillKey = keyof typeof skillsData;
 
 function FeedbackContent() {
   const searchParams = useSearchParams();
-  const userId = searchParams.get('userId');
-  const userName = searchParams.get('userName');
-  const sessionId = searchParams.get('sessionId');
-  const typeFromUrl = searchParams.get('type')?.toUpperCase();
-  const indexFromUrl = searchParams.get('index');
-  
-  const [selectedType, setSelectedType] = useState<string>(typeFromUrl || 'EXECUTION');
-  const [initialIndex, setInitialIndex] = useState<number | null>(indexFromUrl ? parseInt(indexFromUrl) : null);
-  
-  const {
-    sessions,
-    selectedSession,
-    setSelectedSession,
-    feedbacks,
-    currentIndex,
-    setCurrentIndex,
-    loading,
-    error,
-    currentUserId,
-    isInitializing,
-    initiatives,
-    loadFeedbacks,
-    loadInitiatives
-  } = useFeedback(userId, sessionId);
+  const urlUserId = searchParams.get("userId");
+  const userName = searchParams.get("userName");
+  const sessionId = searchParams.get("sessionId");
+  const urlSkill = searchParams.get("skill") as SkillKey;
+  const [userId, setUserId] = useState<string | null>(urlUserId);
+  const [selectedSession, setSelectedSession] = useState(
+    "Sessione terminata il 31/12/24"
+  );
+  const [selectedSkill, setSelectedSkill] = useState<SkillKey>(
+    urlSkill || "Strategy Skills"
+  );
+  const [feedbackData, setFeedbackData] = useState<{
+    userSession: UserSession | null;
+    feedbacks: Feedback[];
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const supabase = createClientComponentClient<Database>();
 
-  const filteredFeedbacks = feedbacks
-    .filter(fb => fb.question_type === selectedType)
-    .sort((a, b) => (a.overall ?? 0) - (b.overall ?? 0));
-  const currentFeedback = filteredFeedbacks[currentIndex];
-
-  // Effetto per caricare i feedback quando cambia la sessione
+  // Recupera l'userId se non presente nell'URL
   useEffect(() => {
-    if (selectedSession && userId) {
-      loadFeedbacks(selectedSession, userId);
-    }
-  }, [selectedSession, userId, loadFeedbacks]);
+    async function getUserId() {
+      if (urlUserId) return; // Se c'è già un userId nell'URL, non fare nulla
 
-  // Effetto per caricare le iniziative quando cambia il feedback
-  useEffect(() => {
-    if (selectedSession && currentFeedback && userId) {
-      loadInitiatives(selectedSession, currentFeedback.question_id, userId);
-    }
-  }, [selectedSession, currentFeedback, userId, loadInitiatives]);
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    if (selectedType && feedbacks.length > 0) {
-      const typeFeedbacks = feedbacks.filter(fb => fb.question_type === selectedType);
-      if (initialIndex !== null && initialIndex < typeFeedbacks.length) {
-        setCurrentIndex(initialIndex);
-        setInitialIndex(null); // Reset dopo l'uso
-      } else if (currentIndex === -1) {
-        setCurrentIndex(typeFeedbacks.length - 1);
+        if (authError) {
+          console.error("Auth error:", authError);
+          setError("Errore di autenticazione");
+          setIsLoading(false);
+          return;
+        }
+
+        if (!user) {
+          console.error("No authenticated user found");
+          setError("Utente non autenticato");
+          setIsLoading(false);
+          return;
+        }
+
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("auth_id", user.id)
+          .single();
+
+        if (userError) {
+          console.error("User fetch error:", userError);
+          setError("Errore nel recupero dati utente");
+          setIsLoading(false);
+          return;
+        }
+
+        if (!userData) {
+          console.error("No user data found");
+          setError("Utente non trovato nel database");
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("Setting userId from auth:", userData.id);
+        setUserId(userData.id);
+      } catch (err) {
+        console.error("Error in getUserId:", err);
+        setError("Errore nel recupero dell'utente");
+        setIsLoading(false);
       }
     }
-  }, [selectedType, feedbacks, initialIndex, currentIndex, setCurrentIndex]);
 
-  const handleNext = () => {
-    if (currentIndex < filteredFeedbacks.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      const types = Array.from(new Set(feedbacks.map(fb => fb.question_type)));
-      const currentTypeIndex = types.indexOf(selectedType);
-      
-      if (currentTypeIndex < types.length - 1) {
-        const nextType = types[currentTypeIndex + 1];
-        setSelectedType(nextType);
-        setCurrentIndex(0);
+    getUserId();
+  }, [supabase, urlUserId]);
+
+  useEffect(() => {
+    async function loadFeedback() {
+      if (!sessionId || !userId) {
+        console.log(
+          "Missing params - sessionId:",
+          sessionId,
+          "userId:",
+          userId
+        );
+        return;
+      }
+
+      try {
+        console.log(
+          "Loading feedback for session:",
+          sessionId,
+          "user:",
+          userId
+        );
+        const data = await getSessionFeedback(sessionId, userId);
+        console.log("Feedback data received:", data);
+        setFeedbackData(data);
+      } catch (error) {
+        console.error("Errore nel caricamento dei feedback:", error);
+        setError("Errore nel caricamento dei feedback");
+      } finally {
+        setIsLoading(false);
       }
     }
+
+    loadFeedback();
+  }, [sessionId, userId]);
+
+  const currentSkill = skillsData[selectedSkill];
+  const pageTitle = userName || "I miei Risultati";
+
+  // Funzione helper per formattare i numeri con 2 decimali
+  const formatNumber = (num: number | null): string => {
+    if (num === null) return "N/A";
+    return num.toFixed(2);
   };
 
-  const handlePrevious = () => {
-    if (currentIndex === 0) {
-      const types = Array.from(new Set(feedbacks.map(fb => fb.question_type)));
-      const currentTypeIndex = types.indexOf(selectedType);
-      
-      if (currentTypeIndex > 0) {
-        const prevType = types[currentTypeIndex - 1];
-        const prevTypeFeedbacks = feedbacks.filter(fb => fb.question_type === prevType);
-        setSelectedType(prevType);
-        setTimeout(() => {
-          setCurrentIndex(prevTypeFeedbacks.length - 1);
-        }, 0);
-      }
-    } else {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit'
-    });
-  };
-
-  const handleViewComments = () => {
-    if (!sessionId || !userId || !currentFeedback) return;
-    
-    const queryParams = new URLSearchParams();
-    queryParams.set('sessionId', sessionId);
-    queryParams.set('userId', userId);
-    queryParams.set('questionId', currentFeedback.question_id);
-    queryParams.set('type', selectedType);
-    queryParams.set('index', currentIndex.toString());
-    if (userName) {
-      queryParams.set('userName', userName);
-    }
-    window.location.href = `/session_results/comment?${queryParams.toString()}`;
-  };
-
-  const handleInitiativeSuccess = () => {
-    if (!currentFeedback) return;
-    loadInitiatives(selectedSession!, currentFeedback.question_id, userId!);
-  };
-
-  // Determina il backUrl in base alla presenza dell'userId e se è l'utente corrente
-  const backUrl = userId === currentUserId || !userId || userId === 'null'
-    ? '/session_results'
-    : `/session_results?userId=${userId}&userName=${encodeURIComponent(userName || '')}`;
-
-  const pageTitle = userId ? (userName || 'I miei Risultati') : 'I miei Risultati';
-
-  if (isInitializing || loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title={pageTitle} showBackButton={true} backUrl={backUrl} />
-        <main className="container mx-auto max-w-2xl px-4 py-6">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        </main>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">Caricamento...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title={pageTitle} showBackButton={true} backUrl={backUrl} />
-        <main className="container mx-auto max-w-2xl px-4 py-6">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        </main>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center text-red-500">{error}</div>
       </div>
     );
   }
+
+  if (!feedbackData || !feedbackData.userSession) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">Nessun dato disponibile</div>
+      </div>
+    );
+  }
+
+  const { userSession, feedbacks } = feedbackData;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -169,7 +205,7 @@ function FeedbackContent() {
         backUrl={backUrl}
       />
 
-      <main className="container mx-auto max-w-2xl px-4 py-6 pb-32 mt-[60px]">
+      <main className="container mx-auto max-w-2xl px-4 py-6 pb-32">
         {/* Session Selector */}
         <div className="mb-4">
           <Select 
@@ -178,11 +214,43 @@ function FeedbackContent() {
           >
             <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
               <div className="flex justify-between items-center w-full pr-4">
-                <span className="text-gray-900">
-                  {selectedSession 
-                    ? `Sessione terminata il ${formatDate(sessions.find(s => s.id === selectedSession)?.created_at || '')}`
-                    : 'Seleziona sessione'
-                  }
+                <span className="text-gray-900">{selectedSession}</span>
+                <span className="text-yellow-600 font-medium">
+                  GAP: {formatNumber(userSession?.val_gap)}%
+                </span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Sessione terminata il 31/12/24">
+                <div className="flex justify-between items-center w-full pr-4">
+                  <span>Sessione terminata il 31/12/24</span>
+                  <span className="text-yellow-600">
+                    GAP: {formatNumber(userSession?.val_gap)}%
+                  </span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Skills Selector */}
+        <div className="mb-6">
+          <Select
+            value={selectedSkill}
+            onValueChange={(value) => setSelectedSkill(value as SkillKey)}
+          >
+            <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
+              <div className="flex justify-between items-center w-full pr-4">
+                <span className="text-gray-900">{selectedSkill}</span>
+                <span
+                  className="text-white px-3 py-0.5 rounded-full text-sm font-medium"
+                  style={{ backgroundColor: currentSkill.color }}
+                >
+                  {formatNumber(
+                    Number(
+                      userSession?.[currentSkill.value as keyof UserSession]
+                    )
+                  )}
                 </span>
                 {selectedSession && (
                   <span className={`font-medium ${
@@ -205,23 +273,14 @@ function FeedbackContent() {
               </div>
             </SelectTrigger>
             <SelectContent>
-              {sessions.map((session) => (
-                <SelectItem key={session.id} value={session.id}>
-                  <div className="flex justify-between items-center w-full pr-4">
-                    <span>Sessione terminata il {formatDate(session.created_at)}</span>
-                    <span className={`font-medium ${
-                      session.val_gap != null
-                        ? session.val_gap < -0.05
-                          ? 'text-red-500'
-                          : session.val_gap > 0.05
-                            ? 'text-emerald-500'
-                            : 'text-yellow-500'
-                        : ''
-                    }`}>
-                      GAP: {session.val_gap != null 
-                        ? `${session.val_gap >= 0 ? '+' : ''}${(session.val_gap * 100).toFixed(0)}%`
-                        : 'N/A'
-                      }
+              {Object.entries(skillsData).map(([key, skill]) => (
+                <SelectItem key={key} value={key}>
+                  <div className="flex items-center gap-2 pr-4">
+                    <span>{skill.name}</span>
+                    <span className="text-sm" style={{ color: skill.color }}>
+                      {formatNumber(
+                        Number(userSession?.[skill.value as keyof UserSession])
+                      )}
                     </span>
                   </div>
                 </SelectItem>
@@ -230,51 +289,93 @@ function FeedbackContent() {
           </Select>
         </div>
 
-        {/* Skill Type Selector */}
-        {currentFeedback && (
-          <div className="mb-6">
-            <Select 
-              value={selectedType} 
-              onValueChange={(value) => setSelectedType(value)}
-            >
-              <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
-                <span className="text-gray-900">{selectedType} Skills</span>
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from(new Set(feedbacks.map(fb => fb.question_type))).map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type} Skills
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Feedback Content */}
-        {currentFeedback && (
-          <FeedbackCard
-            feedback={currentFeedback}
-            onViewComments={handleViewComments}
-          >
-            <InitiativesSection
-              initiatives={initiatives}
-              onInitiativeSuccess={handleInitiativeSuccess}
-              sessionId={selectedSession!}
-              userId={userId!}
-              questionId={currentFeedback.question_id}
-              questionType={currentFeedback.question_type}
-            />
-          </FeedbackCard>
-        )}
-
-        {/* Navigation */}
-        {currentFeedback && (
-          <>
-            {/* Indicatore di progresso */}
-            <div className="text-left text-gray-600 mb-4">
-              Domanda {currentIndex + 1} di {filteredFeedbacks.length}
+        {/* Question and Rating */}
+        <div className="bg-white rounded-[20px] p-6 mb-4">
+          <div className="mb-8">
+            <p className="text-lg mb-6">
+              {feedbacks[0]?.question?.description ||
+                "Nessuna domanda disponibile"}
+            </p>
+            <div className="flex justify-center gap-4 px-4">
+              {[1, 2, 3, 3.5, 4].map((rating, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div
+                    className={`w-12 h-12 ${
+                      rating <= Number(feedbacks[0]?.value)
+                        ? "text-yellow-400"
+                        : "text-gray-200"
+                    }`}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="w-full h-full"
+                    >
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
+
+          {/* Overall Rating */}
+          <div className="space-y-4 mt-8">
+            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              <span className="text-lg font-semibold">
+                Overall: {formatNumber(Number(userSession?.val_overall))}/5
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              <span className="text-lg">
+                Il mio Mentor:{" "}
+                {formatNumber(
+                  Number(userSession?.[currentSkill.value as keyof UserSession])
+                )}
+                /5
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-lg">
+                Self:{" "}
+                {formatNumber(
+                  Number(userSession?.[currentSkill.self as keyof UserSession])
+                )}
+                /5
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="bg-white rounded-[20px] p-6">
+          <div
+            className="flex justify-between items-center cursor-pointer hover:opacity-80"
+            onClick={() =>
+              (window.location.href = `/session_results/comment?sessionId=${sessionId}&userId=${userId}&skill=${selectedSkill}`)
+            }
+          >
+            <h3 className="text-lg font-semibold">
+              Hai ricevuto {feedbacks.filter((f) => f.comment).length} commenti,
+              guardali qui:
+            </h3>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100">
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
 
             {/* Navigation Buttons - Fixed at bottom */}
             <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg p-4 z-50">
@@ -368,4 +469,4 @@ export default function FeedbackPage() {
       </Suspense>
     </div>
   );
-} 
+}

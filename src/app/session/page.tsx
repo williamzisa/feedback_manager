@@ -11,7 +11,9 @@ import { Database } from "@/lib/supabase/database.types";
 
 export default function SessionsPage() {
   const router = useRouter();
-  const [sessionsWithStatus, setSessionsWithStatus] = useState<(Session & { remainingFeedbacks: number })[]>([]);
+  const [sessionsWithStatus, setSessionsWithStatus] = useState<
+    (Session & { remainingFeedbacks: number })[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,26 +23,17 @@ export default function SessionsPage() {
         setLoading(true);
         const supabase = createClientComponentClient<Database>();
         const currentUser = await queries.users.getCurrentUser();
-        const userSessions = await queries.sessions.getUserSessions(currentUser.id);
-        
-        // Carica i feedback per ogni sessione
-        const sessionsWithFeedbacks = await Promise.all(
-          userSessions.map(async (session) => {
-            const { data: feedbacks } = await supabase
-              .from('feedbacks')
-              .select('value')
-              .eq('session_id', session.id)
-              .eq('sender', currentUser.id);
-            
-            const remainingFeedbacks = feedbacks?.filter((f: { value: number | null }) => f.value === null).length || 0;
-            return { ...session, remainingFeedbacks };
-          })
+        const userSessions = await queries.sessions.getUserSessions(
+          currentUser.id
         );
-        
-        setSessionsWithStatus(sessionsWithFeedbacks);
+        setSessions(userSessions);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Errore nel caricamento delle sessioni');
-        console.error('Errore nel caricamento delle sessioni:', err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Errore nel caricamento delle sessioni"
+        );
+        console.error("Errore nel caricamento delle sessioni:", err);
       } finally {
         setLoading(false);
       }
@@ -50,19 +43,19 @@ export default function SessionsPage() {
   }, []);
 
   const handleSessionClick = (session: Session) => {
-    if (session.status === 'In corso') {
+    if (session.status === "In corso") {
       router.push(`/session/${session.id}`);
-    } else if (session.status === 'Conclusa') {
+    } else if (session.status === "Conclusa") {
       router.push(`/session_results?sessionId=${session.id}`);
     }
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Data non impostata';
-    return new Date(dateString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    if (!dateString) return "Data non impostata";
+    return new Date(dateString).toLocaleDateString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   };
 
@@ -118,25 +111,22 @@ export default function SessionsPage() {
                     <p className="text-gray-600">
                       Data di conclusione: {formatDate(session.end_time)}
                     </p>
-                    {session.status === 'In corso' && session.remainingFeedbacks === 0 && (
-                      <p className="text-emerald-500 text-sm mt-1">
-                        Valutazione completata
-                      </p>
-                    )}
+                    {session.status === "In corso" &&
+                      session.remainingFeedbacks === 0 && (
+                        <p className="text-emerald-500 text-sm mt-1">
+                          Valutazione completata
+                        </p>
+                      )}
                   </div>
                   <button
                     className={`px-6 py-2 rounded-full text-white font-medium
-                      ${session.status === 'In corso' 
-                        ? session.remainingFeedbacks === 0 
-                          ? 'bg-emerald-600 hover:bg-emerald-700' 
-                          : 'bg-emerald-500 hover:bg-emerald-600'
-                        : 'bg-blue-500 hover:bg-blue-600'}`}
+                      ${
+                        session.status === "In corso"
+                          ? "bg-emerald-500"
+                          : "bg-blue-500"
+                      }`}
                   >
-                    {session.status === 'In corso' 
-                      ? session.remainingFeedbacks === 0 
-                        ? 'RIVEDI' 
-                        : 'VALUTA'
-                      : 'ANALISI'}
+                    {session.status === "In corso" ? "VAI" : "ANALISI"}
                   </button>
                 </div>
               </div>

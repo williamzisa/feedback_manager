@@ -1,172 +1,135 @@
-'use client';
+"use client";
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import BottomNav from "@/components/navigation/bottom-nav";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import Header from "@/components/navigation/header";
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Database } from '@/lib/supabase/database.types';
+import { getSessionComments } from "@/lib/supabase/queries";
+import { Database } from "@/lib/supabase/database.types";
 
-type Comment = {
-  author: string;
-  text: string;
-  questionType: string;
-  value: number | null;
-  isSelfevaluation: boolean;
+type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
+  sender: { name: string; surname: string };
+  receiver: { name: string; surname: string };
+  question: { description: string };
 };
 
-function LoadingSpinner() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header title="Commenti" />
-      <div className="flex justify-center items-center h-[calc(100vh-180px)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    </div>
-  );
-}
+const skillsData = {
+  "Strategy Skills": {
+    name: "Strategy Skills",
+    color: "#00BFA5",
+  },
+  "Execution Skills": {
+    name: "Execution Skills",
+    color: "#4285F4",
+  },
+  "Soft Skills": {
+    name: "Soft Skills",
+    color: "#F5A623",
+  },
+} as const;
 
-function CommentsContent() {
+type SkillKey = keyof typeof skillsData;
+
+export default function CommentPage() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('sessionId');
-  const userId = searchParams.get('userId');
-  const questionId = searchParams.get('questionId');
-  
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const sessionId = searchParams.get("sessionId");
+  const userId = searchParams.get("userId");
+  const initialSkill = searchParams.get("skill") as SkillKey;
+  const [selectedSkill, setSelectedSkill] = useState<SkillKey>(
+    initialSkill || "Execution Skills"
+  );
+  const [comments, setComments] = useState<Feedback[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!sessionId || !userId || !questionId) {
-        setError('Parametri mancanti nell\'URL');
-        setLoading(false);
-        return;
+    async function loadComments() {
+      if (sessionId && userId) {
+        try {
+          const data = await getSessionComments(sessionId, userId);
+          setComments(data.filter((f) => f.comment));
+        } catch (error) {
+          console.error("Errore nel caricamento dei commenti:", error);
+        } finally {
+          setIsLoading(false);
+        }
       }
-      
-      setLoading(true);
-      setError(null);
-      const supabase = createClientComponentClient<Database>();
+    }
+    loadComments();
+  }, [sessionId, userId]);
 
-      try {
-        // Recupera i commenti dei feedback per la question specifica
-        const { data: feedbacks, error: feedbackError } = await supabase
-          .from('feedbacks')
-          .select(`
-            comment,
-            value,
-            receiver,
-            sender,
-            questions!inner (
-              type
-            ),
-            sender_user:users!feedbacks_sender_fkey (
-              name,
-              surname
-            )
-          `)
-          .eq('session_id', sessionId)
-          .eq('receiver', userId)
-          .eq('question_id', questionId)
-          .not('comment', 'is', null)
-          .not('comment', 'eq', '');
-
-        if (feedbackError) throw feedbackError;
-
-        const formattedComments = feedbacks
-          .filter(f => f.comment && f.sender_user && f.questions)
-          .map(f => ({
-            author: f.sender === f.receiver 
-              ? "Autovalutazione"
-              : `${f.sender_user!.name} ${f.sender_user!.surname}`,
-            text: f.comment!,
-            questionType: f.questions!.type,
-            value: f.value,
-            isSelfevaluation: f.sender === f.receiver
-          }));
-
-        setComments(formattedComments);
-      } catch (error) {
-        console.error('Errore nel caricamento dei dati:', error);
-        setError('Errore nel caricamento dei dati');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [sessionId, userId, questionId]);
-
-  const handleBack = () => {
-    const type = searchParams.get('type');
-    const index = searchParams.get('index');
-    const userName = searchParams.get('userName');
-    
-    const backParams = new URLSearchParams();
-    if (userId) backParams.set('userId', userId);
-    if (userName) backParams.set('userName', userName);
-    if (sessionId) backParams.set('sessionId', sessionId);
-    if (type) backParams.set('type', type);
-    if (index) backParams.set('index', index);
-    
-    window.location.href = `/session_results/feedback?${backParams.toString()}`;
-  };
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Commenti" />
-        <div className="flex flex-col justify-center items-center h-[calc(100vh-180px)] px-4">
-          <div className="bg-white rounded-[20px] p-8 text-center max-w-md w-full shadow-sm">
-            <p className="text-red-500">{error}</p>
-            <button 
-              onClick={handleBack}
-              className="mt-4 bg-[#4285F4] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#3367D6] transition-colors"
-            >
-              Indietro
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  if (isLoading) {
+    return <div>Caricamento...</div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="Commenti" />
 
-      <main className="container mx-auto max-w-2xl px-4 py-6 pb-32 mt-[60px]">
+      <main className="container mx-auto max-w-2xl px-4 py-6">
+        {/* Skill Selector */}
+        <div className="mb-6">
+          <Select
+            value={selectedSkill}
+            onValueChange={(value) => setSelectedSkill(value as SkillKey)}
+          >
+            <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
+              <div className="flex justify-between items-center w-full pr-4">
+                <span className="text-gray-900">{selectedSkill}</span>
+                <span className="bg-[#4285F4] text-white px-3 py-0.5 rounded-full text-sm font-medium">
+                  {comments.length}
+                </span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(skillsData).map(([key, skill]) => (
+                <SelectItem key={key} value={key}>
+                  <div className="flex items-center gap-2 pr-4">
+                    <span>{skill.name}</span>
+                    <span className="text-[#4285F4] text-sm">
+                      {comments.length}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Commenti Ricevuti Title */}
-        <h2 className="text-xl font-medium text-center mb-8 text-[#4285F4]">
+        <h2 className="text-[#4285F4] text-xl font-medium text-center mb-8">
           Commenti Ricevuti
         </h2>
 
-        {loading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : comments.length === 0 ? (
-          <div className="bg-white rounded-[20px] p-8 text-center">
-            <p className="text-gray-500">
-              Non sono presenti commenti
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {comments.map((comment, index) => (
-              <div key={index} className="bg-white rounded-[20px] p-6">
-                <h4 className={`font-bold text-lg mb-2 ${comment.isSelfevaluation ? 'text-[#4285F4]' : ''}`}>
-                  {comment.author}
-                </h4>
-                <p className="text-gray-700">{comment.text}</p>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Question */}
+        <div className="mb-8">
+          <h3 className="text-2xl font-bold text-center mb-8">
+            {comments[0]?.question?.description ||
+              "Nessuna domanda disponibile"}
+          </h3>
+        </div>
+
+        {/* Comments List */}
+        <div className="space-y-4">
+          {comments.map((comment) => (
+            <div key={comment.id} className="bg-white rounded-[20px] p-6">
+              <h4 className="font-bold text-lg mb-2">
+                {comment.sender?.name} {comment.sender?.surname}
+              </h4>
+              <p className="text-gray-700">{comment.comment}</p>
+            </div>
+          ))}
+        </div>
 
         {/* Back Button */}
         <div className="mt-6">
-          <button 
-            onClick={handleBack}
+          <button
+            onClick={() => window.history.back()}
             className="w-full bg-[#4285F4] text-white py-4 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
           >
             Indietro
@@ -176,11 +139,3 @@ function CommentsContent() {
     </div>
   );
 }
-
-export default function CommentPage() {
-  return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <CommentsContent />
-    </Suspense>
-  );
-} 
