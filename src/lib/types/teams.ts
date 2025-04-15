@@ -24,6 +24,18 @@ export interface UserTeam {
   created_at: string | null;
 }
 
+export interface TeamConnection {
+  id: string;
+  first_team_id: string;
+  second_team_id: string;
+  created_at: string;
+}
+
+export interface ConnectedTeam {
+  id: string;
+  name: string;
+}
+
 export type Team = {
   id: string;
   name: string;
@@ -50,6 +62,13 @@ export type Team = {
       surname: string;
     } | null;
   }[];
+  connected_teams?: ConnectedTeam[];
+  team_teams?: {
+    second_team: ConnectedTeam;
+  }[];
+  other_teams?: {
+    first_team: ConnectedTeam;
+  }[];
 };
 
 export type TeamFormData = {
@@ -70,4 +89,9 @@ export type TeamUpdateData = {
   name: string;
   leaderId: string;
   is_project: boolean;
+};
+
+export type TeamConnectionResponse = {
+  success: boolean;
+  error?: string;
 };

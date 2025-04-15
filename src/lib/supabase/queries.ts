@@ -21,20 +21,15 @@ export const queries = {
     getCurrentUser: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
-        const session = await supabase.auth.getSession();
-        if (!session.data.session) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
           throw new Error("Sessione non valida - effettua nuovamente il login");
         }
 
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError) {
           console.error("Errore auth.getUser:", authError);
-          throw new Error(
-            "Errore di autenticazione - effettua nuovamente il login"
-          );
+          throw new Error("Errore di autenticazione - effettua nuovamente il login");
         }
         if (!user) {
           throw new Error("Utente non autenticato - effettua il login");
@@ -56,9 +51,56 @@ export const queries = {
 
         if (checkData.length > 1) {
           console.error("Errore di integrità:", checkData);
-          throw new Error(
-            "Errore di integrità: trovati multipli utenti con lo stesso auth_id"
-          );
+          throw new Error("Errore di integrità: trovati multipli utenti con lo stesso auth_id");
+        }
+
+        const userData = checkData[0];
+
+        if (!userData.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        return userData;
+      } catch (err) {
+        console.error("Errore getCurrentUser:", err);
+        throw err;
+      }
+    },
+
+    getCurrentUserClient: async () => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error("Sessione non valida - effettua nuovamente il login");
+        }
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) {
+          console.error("Errore auth.getUser:", authError);
+          throw new Error("Errore di autenticazione - effettua nuovamente il login");
+        }
+        if (!user) {
+          throw new Error("Utente non autenticato - effettua il login");
+        }
+
+        const { data: checkData, error: checkError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("auth_id", user.id);
+
+        if (checkError) {
+          console.error("Errore nella query di controllo:", checkError);
+          throw new Error(`Errore nel controllo utente: ${checkError.message}`);
+        }
+
+        if (!checkData || checkData.length === 0) {
+          throw new Error("Utente non trovato nel database");
+        }
+
+        if (checkData.length > 1) {
+          console.error("Errore di integrità:", checkData);
+          throw new Error("Errore di integrità: trovati multipli utenti con lo stesso auth_id");
         }
 
         const userData = checkData[0];
@@ -564,6 +606,92 @@ export const queries = {
         }
       } catch (err) {
         console.error("Errore durante l'eliminazione del team:", err);
+        throw err;
+      }
+    },
+
+    getTeamConnections: async (teamId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from("team_teams")
+          .select(`
+            first_team:teams!team_teams_first_team_id_fkey (
+              id,
+              name
+            ),
+            second_team:teams!team_teams_second_team_id_fkey (
+              id,
+              name
+            )
+          `)
+          .or(`first_team_id.eq.${teamId},second_team_id.eq.${teamId}`);
+
+        if (error) {
+          console.error("Errore nel recupero delle connessioni del team:", error);
+          throw error;
+        }
+
+        return (data || []).map(connection => {
+          const connectedTeam = connection.first_team.id === teamId 
+            ? connection.second_team 
+            : connection.first_team;
+          return {
+            id: connectedTeam.id,
+            name: connectedTeam.name
+          };
+        });
+      } catch (err) {
+        console.error("Errore nel recupero delle connessioni del team:", err);
+        throw err;
+      }
+    },
+
+    createTeamConnection: async (firstTeamId: string, secondTeamId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Assicuriamo che first_team_id sia alfabeticamente minore di second_team_id
+        const [first, second] = [firstTeamId, secondTeamId].sort();
+        
+        const { error } = await supabase
+          .from("team_teams")
+          .insert({
+            first_team_id: first,
+            second_team_id: second
+          });
+
+        if (error) {
+          if (error.code === "23505") { // Codice per violazione unique constraint
+            console.warn("Connessione già esistente tra i team");
+            return;
+          }
+          console.error("Errore nella creazione della connessione:", error);
+          throw error;
+        }
+      } catch (err) {
+        console.error("Errore nella creazione della connessione:", err);
+        throw err;
+      }
+    },
+
+    deleteTeamConnection: async (firstTeamId: string, secondTeamId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Assicuriamo che first_team_id sia alfabeticamente minore di second_team_id
+        const [first, second] = [firstTeamId, secondTeamId].sort();
+        
+        const { error } = await supabase
+          .from("team_teams")
+          .delete()
+          .eq("first_team_id", first)
+          .eq("second_team_id", second);
+
+        if (error) {
+          console.error("Errore nell'eliminazione della connessione:", error);
+          throw error;
+        }
+      } catch (err) {
+        console.error("Errore nell'eliminazione della connessione:", err);
         throw err;
       }
     },
