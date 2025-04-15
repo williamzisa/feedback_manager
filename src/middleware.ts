@@ -19,6 +19,31 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
+  // Protezione delle route admin
+  if (req.nextUrl.pathname.startsWith('/admin')) {
+    // Se non c'è una sessione, redirect a /login
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+
+    try {
+      // Verifica se l'utente è admin
+      const { data: user, error } = await supabase
+        .from("users")
+        .select("admin")
+        .eq("auth_id", session.user.id)
+        .single()
+
+      if (error || !user || !user.admin) {
+        // Se non è admin, redirect alla home
+        return NextResponse.redirect(new URL('/', req.url))
+      }
+    } catch (err) {
+      console.error("Errore nella verifica dei permessi admin:", err)
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+  }
+
   return res
 }
 
