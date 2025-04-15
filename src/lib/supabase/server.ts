@@ -538,3 +538,116 @@ export async function getAvailableTeamProcesses(userId: string) {
     throw err
   }
 }
+
+export async function getTeamProcesses(teamId: string) {
+  try {
+    const supabase = await getServerSupabase()
+    
+    const { data, error } = await supabase
+      .from("team_processes")
+      .select(`
+        id,
+        process:processes (
+          id,
+          name,
+          linked_question_id,
+          questions:questions!processes_linked_question_id_fkey (
+            id,
+            description
+          )
+        )
+      `)
+      .eq("team_id", teamId)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Errore nel recupero dei processi del team:", error)
+      throw error
+    }
+
+    return data
+      .filter((tp): tp is typeof tp & { process: NonNullable<typeof tp.process> } => 
+        tp.process !== null
+      )
+      .map(tp => ({
+        id: tp.id,
+        process: {
+          id: tp.process.id,
+          name: tp.process.name,
+          linked_question: tp.process.questions ? {
+            id: tp.process.questions.id,
+            description: tp.process.questions.description
+          } : null
+        }
+      }))
+  } catch (err) {
+    console.error("Errore nel recupero dei processi del team:", err)
+    throw err
+  }
+}
+
+export async function addProcessToTeam(teamId: string, processData: { name: string; linked_question_id: string }) {
+  try {
+    const supabase = await getServerSupabase()
+    
+    // 1. Creiamo prima il processo
+    const { data: process, error: processError } = await supabase
+      .from("processes")
+      .insert({
+        id: crypto.randomUUID(),
+        name: processData.name.trim(),
+        linked_question_id: processData.linked_question_id,
+        company: (await getCurrentUser()).company!
+      })
+      .select()
+      .single()
+
+    if (processError) {
+      console.error("Errore nella creazione del processo:", processError)
+      throw processError
+    }
+
+    // 2. Associamo il processo al team
+    const { error: teamProcessError } = await supabase
+      .from("team_processes")
+      .insert({
+        id: crypto.randomUUID(),
+        team_id: teamId,
+        process_id: process.id
+      })
+
+    if (teamProcessError) {
+      console.error("Errore nell'associazione del processo al team:", teamProcessError)
+      throw teamProcessError
+    }
+
+    revalidatePath(`/teams/${teamId}`)
+    return { success: true }
+  } catch (err) {
+    console.error("Errore nell'aggiunta del processo al team:", err)
+    return { success: false, error: err instanceof Error ? err.message : "Errore sconosciuto" }
+  }
+}
+
+export async function removeProcessFromTeam(teamId: string, processId: string) {
+  try {
+    const supabase = await getServerSupabase()
+    
+    // Rimuoviamo solo l'associazione team_processes
+    const { error: teamProcessError } = await supabase
+      .from("team_processes")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("process_id", processId)
+
+    if (teamProcessError) {
+      throw teamProcessError
+    }
+
+    revalidatePath(`/teams/${teamId}`)
+    return { success: true }
+  } catch (err) {
+    console.error("Errore nella rimozione del processo dal team:", err)
+    return { success: false, error: err instanceof Error ? err.message : "Errore sconosciuto" }
+  }
+}

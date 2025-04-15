@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TeamConnectionsManager } from "./components/team-connections-manager";
+import { TeamProcessesManager } from "./components/team-processes-manager";
 import { queries } from "@/lib/supabase/queries";
 
 interface TeamPageProps {
@@ -105,6 +106,9 @@ export default async function TeamPage({ params }: TeamPageProps) {
               />
             </CardContent>
           </Card>
+
+          {/* Processi del Team */}
+          <TeamProcessesManager teamId={params.teamId} />
         </div>
       </main>
 
