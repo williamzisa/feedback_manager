@@ -550,6 +550,75 @@ export type Database = {
           },
         ]
       }
+      team_processes: {
+        Row: {
+          created_at: string
+          id: string
+          process_id: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          process_id: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          process_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_processes_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_processes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_teams: {
+        Row: {
+          created_at: string
+          first_team_id: string
+          second_team_id: string
+        }
+        Insert: {
+          created_at?: string
+          first_team_id: string
+          second_team_id: string
+        }
+        Update: {
+          created_at?: string
+          first_team_id?: string
+          second_team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_teams_first_team_id_fkey"
+            columns: ["first_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_teams_second_team_id_fkey"
+            columns: ["second_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           company: string
