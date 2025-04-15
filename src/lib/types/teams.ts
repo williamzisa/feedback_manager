@@ -25,7 +25,6 @@ export interface UserTeam {
 }
 
 export interface TeamConnection {
-  id: string;
   first_team_id: string;
   second_team_id: string;
   created_at: string;
@@ -36,40 +35,34 @@ export interface ConnectedTeam {
   name: string;
 }
 
-export type Team = {
+export interface Team {
   id: string;
   name: string;
   is_project: boolean;
-  leader: {
+  leader: { id: string; name: string; surname: string } | null;
+  team_clusters: Array<{
     id: string;
-    name: string;
-    surname: string;
-  };
-  team_clusters?: {
+    cluster: { id: string; name: string };
+  }>;
+  user_teams: Array<{
     id: string;
-    cluster: {
-      id: string;
-      name: string;
-    };
-  }[];
-  user_teams?: {
-    id: string;
-    user_id: string | null;
-    created_at: string | null;
-    user?: {
-      id: string;
-      name: string;
-      surname: string;
-    } | null;
-  }[];
+    user: { id: string; name: string; surname: string } | null;
+  }>;
+  connections_count: number;
   connected_teams?: ConnectedTeam[];
-  team_teams?: {
-    second_team: ConnectedTeam;
-  }[];
-  other_teams?: {
-    first_team: ConnectedTeam;
-  }[];
-};
+  connections?: Array<{
+    first_team_id: string;
+    second_team_id: string;
+  }>;
+  reverse_connections?: Array<{
+    first_team_id: string;
+    second_team_id: string;
+  }>;
+}
+
+export interface TeamWithConnections extends Team {
+  connected_teams: ConnectedTeam[];
+}
 
 export type TeamFormData = {
   name: string;

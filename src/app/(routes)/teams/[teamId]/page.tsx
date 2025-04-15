@@ -1,5 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Header from "@/components/navigation/header";
+import BottomNav from "@/components/navigation/bottom-nav";
 import { getCurrentUser, getTeamDetails } from "@/lib/supabase/server";
 import {
   Card,
@@ -25,9 +27,12 @@ export const metadata: Metadata = {
 
 export default async function TeamPage({ params }: TeamPageProps) {
   const user = await getCurrentUser();
-  const { teamId } = params;
 
-  const teamDetails = await getTeamDetails(teamId, user.id);
+  if (!params?.teamId) {
+    notFound();
+  }
+
+  const teamDetails = await getTeamDetails(params.teamId, user.id);
   if (!teamDetails) {
     notFound();
   }
@@ -40,70 +45,70 @@ export default async function TeamPage({ params }: TeamPageProps) {
   }));
 
   return (
-    <main className="container mx-auto p-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">
-            {teamDetails.name}
-          </h1>
-          {teamDetails.is_project && (
-            <Badge variant="secondary">Progetto</Badge>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <Header title={teamDetails.name} showBackButton backUrl="/teams" />
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Info Team */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informazioni Team</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h3 className="font-medium mb-2">Team Leader</h3>
-              <p className="text-muted-foreground">
-                {teamDetails.leader
-                  ? `${teamDetails.leader.name} ${teamDetails.leader.surname}`
-                  : "Non assegnato"}
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-medium mb-2">Cluster</h3>
-              {teamDetails.clusters.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {teamDetails.clusters.map((cluster) => (
-                    <Badge key={cluster.id} variant="outline">
-                      {cluster.name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Nessun cluster associato
+      <main className="container mx-auto max-w-2xl px-4 py-6">
+        <div className="space-y-6">
+          {/* Info Team */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <CardTitle>Informazioni Team</CardTitle>
+                {teamDetails.is_project && (
+                  <Badge variant="secondary">Progetto</Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-medium mb-2">Team Leader</h3>
+                <p className="text-muted-foreground">
+                  {teamDetails.leader
+                    ? `${teamDetails.leader.name} ${teamDetails.leader.surname}`
+                    : "Non assegnato"}
                 </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
 
-        {/* Team Connessi */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Connessi</CardTitle>
-            <CardDescription>
-              Gestisci le connessioni con altri team
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <TeamConnectionsManager
-              teamId={teamId}
-              connectedTeams={teamDetails.connected_teams}
-              availableTeams={availableTeams}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+              <div>
+                <h3 className="font-medium mb-2">Cluster</h3>
+                {teamDetails.clusters.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {teamDetails.clusters.map((cluster) => (
+                      <Badge key={cluster.id} variant="outline">
+                        {cluster.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nessun cluster associato
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Team Connessi */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Connessi</CardTitle>
+              <CardDescription>
+                Gestisci le connessioni con altri team
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TeamConnectionsManager
+                teamId={params.teamId}
+                connectedTeams={teamDetails.connected_teams}
+                availableTeams={availableTeams}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+
+      <BottomNav />
+    </div>
   );
 }

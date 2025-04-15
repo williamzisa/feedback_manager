@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { X, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,27 +24,31 @@ interface TeamConnectionsManagerProps {
   teamId: string;
   connectedTeams: Team[];
   availableTeams: Team[];
+  onSuccess?: () => void;
 }
 
 export function TeamConnectionsManager({
   teamId,
   connectedTeams: initialConnectedTeams,
   availableTeams,
+  onSuccess,
 }: TeamConnectionsManagerProps) {
-  const [connectedTeams, setConnectedTeams] = useState(initialConnectedTeams);
+  const [connectedTeams, setConnectedTeams] = useState<Team[]>([]);
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [pendingTeamId, setPendingTeamId] = useState<string | null>(null);
 
-  const determineTeamOrder = (
-    firstId: string,
-    secondId: string
-  ): [string, string] => {
-    // Garantisce che vengano sempre restituiti esattamente due elementi
-    const [first, second] = [firstId, secondId].sort();
-    return [first, second] as [string, string];
-  };
+  // Sincronizza lo stato con le props
+  useEffect(() => {
+    if (initialConnectedTeams && Array.isArray(initialConnectedTeams)) {
+      console.log(
+        "Aggiornamento stato connectedTeams con:",
+        initialConnectedTeams
+      );
+      setConnectedTeams(initialConnectedTeams);
+    }
+  }, [initialConnectedTeams]);
 
   const handleConnect = async (selectedTeamId: string) => {
     const selectedTeam = availableTeams.find(
@@ -55,11 +59,12 @@ export function TeamConnectionsManager({
     setPendingTeamId(selectedTeamId);
     startTransition(async () => {
       try {
-        const [first, second] = determineTeamOrder(teamId, selectedTeam.id);
+        const [first, second] = [teamId, selectedTeam.id].sort();
         await queries.teams.createTeamConnection(first, second);
         setConnectedTeams((prev) => [...prev, selectedTeam]);
         setSearchQuery("");
         toast.success("Team connesso con successo");
+        onSuccess?.();
       } catch (error) {
         console.error("Errore nella connessione del team:", error);
         toast.error("Errore nella connessione del team");
@@ -73,12 +78,13 @@ export function TeamConnectionsManager({
     setPendingTeamId(teamToDisconnect.id);
     startTransition(async () => {
       try {
-        const [first, second] = determineTeamOrder(teamId, teamToDisconnect.id);
+        const [first, second] = [teamId, teamToDisconnect.id].sort();
         await queries.teams.deleteTeamConnection(first, second);
         setConnectedTeams((prev) =>
           prev.filter((team) => team.id !== teamToDisconnect.id)
         );
         toast.success("Team disconnesso con successo");
+        onSuccess?.();
       } catch (error) {
         console.error("Errore nella disconnessione del team:", error);
         toast.error("Errore nella disconnessione del team");

@@ -50,12 +50,12 @@
 ### 3. Aggiornamento Vista Admin (`/admin/teams`)
 
 - **Data Fetching**:
-  - Modificare `queries.teams.getAll` per includere opzionalmente un conteggio delle connessioni per ogni team (`team_teams`). Valutare l'impatto sulle performance; potrebbe essere necessaria una query separata se il join diventa troppo pesante.
+  - Modificare `queries.teams.getAll` per includere opzionalmente un conteggio delle connessioni per ogni team (`team_teams`). Valutare l'impatto sulle performance; potrebbe essere necessaria una query separata se il join diventa troppo pesante.✅
 - **UI**:
-  - Aggiornare `src/app/@admin/teams/components/teams-table.tsx` per visualizzare il conteggio delle connessioni.
-  - Aggiungere un pulsante o link nella riga della tabella per navigare a una vista/modale di gestione delle connessioni specifiche per quel team in ambito admin (potrebbe riutilizzare o adattare `TeamConnectionsManager`).
+  - Aggiornare `src/app/@admin/teams/components/teams-table.tsx` per visualizzare il conteggio delle connessioni.✅
+  - Aggiungere un pulsante o link nella riga della tabella per navigare a una vista/modale di gestione delle connessioni specifiche per quel team in ambito admin (potrebbe riutilizzare `TeamConnectionsManager`).✅
 - **Componenti**:
-  - Modificare `src/app/@admin/teams/components/dialogs/edit-team-dialog.tsx` o creare un nuovo componente/dialogo per permettere la gestione delle connessioni `team_teams` dalla vista admin.
+  - Modificare `src/app/@admin/teams/components/dialogs/edit-team-dialog.tsx` o creare un nuovo componente/dialogo per permettere la gestione delle connessioni `team_teams` dalla vista admin.✅
 - **Ottimizzazione**: Assicurare che le query aggiuntive non degradino le performance della tabella admin, considerare la paginazione se il numero di team è elevato.
 - **TypeScript**: Assicurare che i tipi aggiornati per `Team` siano usati correttamente nei componenti admin.
 

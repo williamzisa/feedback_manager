@@ -10,8 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Edit, Network } from "lucide-react";
 import { EditTeamDialog } from "./dialogs/edit-team-dialog";
+import { ManageConnectionsDialog } from "./dialogs/manage-connections-dialog";
 import type { Team } from "@/lib/types/teams";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,17 +31,25 @@ interface TeamsTableProps {
 
 export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [teamForConnections, setTeamForConnections] = useState<Team | null>(
+    null
+  );
 
   const handleEdit = (team: Team) => {
     setSelectedTeam(team);
   };
 
+  const handleManageConnections = (team: Team) => {
+    setTeamForConnections(team);
+  };
+
   const getMembersList = (team: Team) => {
-    console.log('User Teams:', team.user_teams);
-    return team.user_teams
-      ?.filter(ut => ut.user)
-      .map(ut => `${ut.user?.name} ${ut.user?.surname}`)
-      .join(", ") || "Nessun membro";
+    return (
+      team.user_teams
+        ?.filter((ut) => ut.user)
+        .map((ut) => `${ut.user?.name} ${ut.user?.surname}`)
+        .join(", ") || "Nessun membro"
+    );
   };
 
   if (isLoading) {
@@ -60,13 +69,22 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
           <div key={team.id} className="mb-4 bg-white p-4 rounded-lg shadow">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-medium">{team.name}</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleEdit(team)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleEdit(team)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleManageConnections(team)}
+                >
+                  <Network className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-2 text-sm text-gray-600">
               <div>
@@ -75,7 +93,9 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
               </div>
               <div>
                 <span className="font-medium">Team Leader:</span>{" "}
-                {`${team.leader?.name || ""} ${team.leader?.surname || ""}`}
+                {team.leader
+                  ? `${team.leader.name} ${team.leader.surname}`
+                  : "-"}
               </div>
               <div>
                 <span className="font-medium">Members:</span>{" "}
@@ -89,6 +109,10 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+              </div>
+              <div>
+                <span className="font-medium">Connessioni:</span>{" "}
+                {team.connections_count || 0}
               </div>
               <div className="flex flex-wrap gap-2">
                 {team.is_project && <Badge variant="outline">Progetto</Badge>}
@@ -105,6 +129,7 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
               <TableHead>CLUSTER</TableHead>
               <TableHead>TEAM LEADER</TableHead>
               <TableHead>MEMBERS</TableHead>
+              <TableHead>CONNESSIONI</TableHead>
               <TableHead>PROGETTO</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -116,9 +141,11 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
                 <TableCell>
                   {team.team_clusters?.[0]?.cluster?.name || "-"}
                 </TableCell>
-                <TableCell>{`${team.leader?.name || ""} ${
-                  team.leader?.surname || ""
-                }`}</TableCell>
+                <TableCell>
+                  {team.leader
+                    ? `${team.leader.name} ${team.leader.surname}`
+                    : "-"}
+                </TableCell>
                 <TableCell>
                   <TooltipProvider>
                     <Tooltip>
@@ -130,6 +157,18 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {team.connections_count || 0}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleManageConnections(team)}
+                    >
+                      <Network className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant={team.is_project ? "default" : "secondary"}>
@@ -149,7 +188,7 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
             ))}
             {teams.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   Nessun team trovato
                 </TableCell>
               </TableRow>
@@ -163,6 +202,15 @@ export function TeamsTable({ teams, onSuccess, isLoading }: TeamsTableProps) {
           team={selectedTeam}
           open={!!selectedTeam}
           onOpenChange={(open) => !open && setSelectedTeam(null)}
+          onSuccess={onSuccess}
+        />
+      )}
+
+      {teamForConnections && (
+        <ManageConnectionsDialog
+          team={teamForConnections}
+          open={!!teamForConnections}
+          onOpenChange={(open: boolean) => !open && setTeamForConnections(null)}
           onSuccess={onSuccess}
         />
       )}

@@ -421,13 +421,13 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
-        console.log("Iniziando il recupero dei team...");
-
         const { data, error } = await supabase
           .from("teams")
           .select(
             `
-            *,
+            id,
+            name,
+            project,
             leader:users!teams_leader_fkey (
               id,
               name,
@@ -442,45 +442,28 @@ export const queries = {
             ),
             user_teams (
               id,
-              user_id,
-              created_at,
               user:users (
                 id,
                 name,
                 surname
               )
-            )
+            ),
+            connections:team_teams!team_teams_first_team_id_fkey(first_team_id, second_team_id),
+            reverse_connections:team_teams!team_teams_second_team_id_fkey(first_team_id, second_team_id)
           `
           )
           .order("name");
 
         if (error) {
-          console.error("Errore nel recupero dei team:", error);
           throw error;
         }
 
         if (!data) {
-          console.log("Nessun dato restituito da Supabase");
           throw new Error("Nessun dato restituito da Supabase");
         }
 
-        console.log("Team recuperati con successo:", data);
-
         return data.map(
-          (
-            team: Database["public"]["Tables"]["teams"]["Row"] & {
-              leader: { id: string; name: string; surname: string } | null;
-              team_clusters: Array<{
-                id: string;
-                cluster: { id: string; name: string } | null;
-              }> | null;
-              user_teams: Array<{
-                id: string;
-                user_id: string | null;
-                created_at: string | null;
-              }> | null;
-            }
-          ) => ({
+          (team) => ({
             id: team.id,
             name: team.name,
             is_project: team.project || false,
@@ -488,22 +471,18 @@ export const queries = {
             team_clusters:
               team.team_clusters
                 ?.filter(
-                  (
-                    tc
-                  ): tc is {
-                    id: string;
-                    cluster: { id: string; name: string };
-                  } => tc !== null && tc.cluster !== null
+                  (tc) => tc !== null && tc.cluster !== null
                 )
                 .map((tc) => ({
                   id: tc.id,
                   cluster: tc.cluster,
                 })) || [],
             user_teams: team.user_teams || [],
+            connections_count: (team.connections?.length || 0) + (team.reverse_connections?.length || 0)
           })
         );
       } catch (err) {
-        console.error("Errore dettagliato nel recupero dei team:", err);
+        console.error("Errore nel recupero dei team:", err);
         throw err;
       }
     },
@@ -632,10 +611,13 @@ export const queries = {
           throw error;
         }
 
+        // Mappiamo i dati per ottenere un array di team connessi
         return (data || []).map(connection => {
+          // Se il team corrente è first_team, restituiamo second_team e viceversa
           const connectedTeam = connection.first_team.id === teamId 
             ? connection.second_team 
             : connection.first_team;
+          
           return {
             id: connectedTeam.id,
             name: connectedTeam.name
