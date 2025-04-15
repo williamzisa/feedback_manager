@@ -61,6 +61,6 @@
 
 ### 4. Ottimizzazioni Generali e UI/UX
 
-- **Feedback Utente**: Utilizzare toast (es. `sonner`) per notificare successo/errore delle operazioni di creazione/eliminazione connessioni. ✅
+- **Feedback Utente**: Utilizzare toast (es. `sonner`) per notificare successo/errore delle operazioni di creazione/eliminazione connessioni.
 - **Responsiveness**: Assicurare che le nuove pagine e componenti siano responsive e utilizzabili su dispositivi mobili.
 - **Type Safety**: Mantenere una stretta type safety in tutto il processo, aggiornando le interfacce `Team`, `UserTeam`, `TeamConnection` etc. in `src/lib/types/` secondo necessità.

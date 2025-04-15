@@ -1861,6 +1861,136 @@ export const queries = {
       }
     },
   },
+
+  // User Processes
+  user_processes: {
+    assignProcessToUser: async (userId: string, processId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Verifica che l'utente stia assegnando il processo a se stesso
+        const currentUser = await queries.users.getCurrentUser();
+        if (currentUser.id !== userId) {
+          throw new Error("Non puoi assegnare processi ad altri utenti");
+        }
+
+        // Verifica che il processo appartenga a un team di cui l'utente fa parte
+        const { data: teamProcesses, error: teamCheckError } = await supabase
+          .from("team_processes")
+          .select(`
+            team:teams!inner (
+              id,
+              user_teams!inner (
+                user_id
+              )
+            )
+          `)
+          .eq("process_id", processId)
+          .eq("team.user_teams.user_id", userId);
+
+        if (teamCheckError) {
+          throw new Error("Errore nella verifica dell'appartenenza al team");
+        }
+
+        if (!teamProcesses || teamProcesses.length === 0) {
+          throw new Error("Il processo non appartiene a nessun team di cui fai parte");
+        }
+
+        // Verifica se l'assegnazione esiste già
+        const { data: existingAssignment, error: checkError } = await supabase
+          .from("user_processes")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("process_id", processId)
+          .single();
+
+        if (checkError && checkError.code !== "PGRST116") { // PGRST116 = not found
+          throw checkError;
+        }
+
+        if (existingAssignment) {
+          throw new Error("Processo già assegnato all'utente");
+        }
+
+        // Crea la nuova assegnazione
+        const { data, error } = await supabase
+          .from("user_processes")
+          .insert({
+            id: crypto.randomUUID(),
+            user_id: userId,
+            process_id: processId
+          })
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        return data;
+      } catch (err) {
+        console.error("Errore nell'assegnazione del processo:", err);
+        throw err;
+      }
+    },
+
+    removeProcessFromUser: async (userId: string, processId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Verifica che l'utente stia rimuovendo il processo da se stesso
+        const currentUser = await queries.users.getCurrentUser();
+        if (currentUser.id !== userId) {
+          throw new Error("Non puoi rimuovere processi da altri utenti");
+        }
+
+        // Rimuovi l'assegnazione
+        const { error } = await supabase
+          .from("user_processes")
+          .delete()
+          .eq("user_id", userId)
+          .eq("process_id", processId);
+
+        if (error) {
+          throw error;
+        }
+
+        return { success: true };
+      } catch (err) {
+        console.error("Errore nella rimozione del processo:", err);
+        throw err;
+      }
+    },
+
+    getUserProcessAssignments: async (userId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from("user_processes")
+          .select(`
+            id,
+            process:processes (
+              id,
+              name,
+              linked_question_id,
+              questions!processes_linked_question_id_fkey (
+                id,
+                description,
+                type
+              )
+            )
+          `)
+          .eq("user_id", userId);
+
+        if (error) {
+          throw error;
+        }
+
+        return data;
+      } catch (err) {
+        console.error("Errore nel recupero delle assegnazioni:", err);
+        throw err;
+      }
+    }
+  },
 };
 
 export async function getSessionFeedback(sessionId: string, userId: string) {

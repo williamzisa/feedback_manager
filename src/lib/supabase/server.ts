@@ -280,3 +280,261 @@ export async function deleteTeamConnection(firstTeamId: string, secondTeamId: st
     return { success: false, error: "Errore nell'eliminazione della connessione" }
   }
 }
+
+export async function getUserProcesses(userId: string) {
+  try {
+    const supabase = await getServerSupabase()
+    
+    const { data, error } = await supabase
+      .from("user_processes")
+      .select(`
+        id,
+        process:processes (
+          id,
+          name,
+          created_at,
+          questions:questions!processes_linked_question_id_fkey (
+            id,
+            description,
+            type
+          ),
+          team_processes (
+            team:teams (
+              id,
+              name
+            )
+          )
+        )
+      `)
+      .eq("user_id", userId)
+
+    if (error) {
+      console.error("Errore nel recupero dei processi dell'utente:", error)
+      throw error
+    }
+
+    // Formatta i dati per l'interfaccia utente
+    return data
+      .filter((up): up is typeof up & { process: NonNullable<typeof up.process> } => up.process !== null)
+      .map(up => ({
+        id: up.process.id,
+        name: up.process.name,
+        question: up.process.questions ? {
+          id: up.process.questions.id,
+          description: up.process.questions.description,
+          type: up.process.questions.type
+        } : null,
+        team: up.process.team_processes?.[0]?.team?.name || null,
+        created_at: up.process.created_at
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  } catch (err) {
+    console.error("Errore nel recupero dei processi dell'utente:", err)
+    throw err
+  }
+}
+
+export async function assignProcessToUser(userId: string, processId: string) {
+  try {
+    const supabase = await getServerSupabase()
+    
+    // Verifica che l'utente stia assegnando il processo a se stesso
+    const currentUser = await getCurrentUser()
+    if (currentUser.id !== userId) {
+      return { success: false, error: "Non puoi assegnare processi ad altri utenti" }
+    }
+
+    // Verifica che il processo appartenga a un team di cui l'utente fa parte
+    const { data: teamProcesses, error: teamCheckError } = await supabase
+      .from("team_processes")
+      .select(`
+        team:teams!inner (
+          id,
+          user_teams!inner (
+            user_id
+          )
+        )
+      `)
+      .eq("process_id", processId)
+      .eq("team.user_teams.user_id", userId)
+
+    if (teamCheckError) {
+      return { success: false, error: "Errore nella verifica dell'appartenenza al team" }
+    }
+
+    if (!teamProcesses || teamProcesses.length === 0) {
+      return { success: false, error: "Il processo non appartiene a nessun team di cui fai parte" }
+    }
+
+    // Verifica se l'assegnazione esiste già
+    const { data: existingAssignment, error: checkError } = await supabase
+      .from("user_processes")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("process_id", processId)
+      .single()
+
+    if (checkError && checkError.code !== "PGRST116") { // PGRST116 = not found
+      return { success: false, error: "Errore nella verifica dell'assegnazione esistente" }
+    }
+
+    if (existingAssignment) {
+      return { success: false, error: "Processo già assegnato all'utente" }
+    }
+
+    // Crea la nuova assegnazione
+    const { error: insertError } = await supabase
+      .from("user_processes")
+      .insert({
+        id: crypto.randomUUID(),
+        user_id: userId,
+        process_id: processId
+      })
+
+    if (insertError) {
+      return { success: false, error: "Errore nell'assegnazione del processo" }
+    }
+
+    // Invalida la cache dei processi dell'utente
+    revalidatePath("/processes")
+    
+    return { success: true }
+  } catch (err) {
+    console.error("Errore nell'assegnazione del processo:", err)
+    return { success: false, error: "Errore nell'assegnazione del processo" }
+  }
+}
+
+export async function removeProcessFromUser(userId: string, processId: string) {
+  try {
+    const supabase = await getServerSupabase()
+    
+    // Verifica che l'utente stia rimuovendo il processo da se stesso
+    const currentUser = await getCurrentUser()
+    if (currentUser.id !== userId) {
+      return { success: false, error: "Non puoi rimuovere processi da altri utenti" }
+    }
+
+    // Rimuovi l'assegnazione
+    const { error } = await supabase
+      .from("user_processes")
+      .delete()
+      .eq("user_id", userId)
+      .eq("process_id", processId)
+
+    if (error) {
+      return { success: false, error: "Errore nella rimozione del processo" }
+    }
+
+    // Invalida la cache dei processi dell'utente
+    revalidatePath("/processes")
+    
+    return { success: true }
+  } catch (err) {
+    console.error("Errore nella rimozione del processo:", err)
+    return { success: false, error: "Errore nella rimozione del processo" }
+  }
+}
+
+export async function getAvailableTeamProcesses(userId: string) {
+  try {
+    const supabase = await getServerSupabase()
+    
+    // Ottieni prima tutti i processi dei team dell'utente
+    const { data: teamProcesses, error: teamError } = await supabase
+      .from("team_processes")
+      .select(`
+        process_id,
+        team:teams!inner (
+          id,
+          name,
+          user_teams!inner (
+            user_id
+          )
+        )
+      `)
+      .eq("team.user_teams.user_id", userId)
+
+    if (teamError) {
+      console.error("Errore nel recupero dei processi dei team:", teamError)
+      throw teamError
+    }
+
+    if (!teamProcesses || teamProcesses.length === 0) {
+      return []
+    }
+
+    // Estrai gli ID dei processi del team
+    const teamProcessIds = teamProcesses.map(tp => tp.process_id)
+    
+    // Ottieni i processi già assegnati all'utente
+    const { data: userProcesses, error: userError } = await supabase
+      .from("user_processes")
+      .select("process_id")
+      .eq("user_id", userId)
+      .in("process_id", teamProcessIds)
+
+    if (userError) {
+      console.error("Errore nel recupero dei processi dell'utente:", userError)
+      throw userError
+    }
+    
+    // Crea un set di ID dei processi già assegnati all'utente
+    const assignedProcessIds = new Set(userProcesses.map(up => up.process_id))
+    
+    // Filtra i processi dei team per escludere quelli già assegnati
+    const availableTeamProcessIds = teamProcesses
+      .filter(tp => !assignedProcessIds.has(tp.process_id))
+      .map(tp => tp.process_id)
+    
+    if (availableTeamProcessIds.length === 0) {
+      return []
+    }
+    
+    // Ottieni i dettagli completi dei processi disponibili
+    const { data: availableProcesses, error: processError } = await supabase
+      .from("processes")
+      .select(`
+        id,
+        name,
+        questions:questions!processes_linked_question_id_fkey (
+          id,
+          description,
+          type
+        ),
+        team_processes (
+          team:teams (
+            id,
+            name
+          )
+        )
+      `)
+      .in("id", availableTeamProcessIds)
+
+    if (processError) {
+      console.error("Errore nel recupero dei dettagli dei processi:", processError)
+      throw processError
+    }
+    
+    // Crea una mappa per associare i processi ai team
+    const processTeamMap = new Map()
+    teamProcesses.forEach(tp => {
+      processTeamMap.set(tp.process_id, tp.team.name)
+    })
+
+    // Formatta i dati per l'interfaccia utente
+    return availableProcesses.map(process => ({
+      id: process.id,
+      name: process.name,
+      question: process.questions ? {
+        id: process.questions.id,
+        description: process.questions.description,
+        type: process.questions.type
+      } : null,
+      team: processTeamMap.get(process.id) || process.team_processes?.[0]?.team?.name || null
+    }))
+  } catch (err) {
+    console.error("Errore nel recupero dei processi disponibili:", err)
+    throw err
+  }
+}
