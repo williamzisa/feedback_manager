@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import {
   Table,
@@ -7,17 +7,30 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Edit } from 'lucide-react'
-import type { UserTeam } from '@/lib/types/memberships'
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
+import type { UserTeam } from "@/lib/types/memberships";
 
 interface MembershipsTableProps {
-  memberships: UserTeam[]
-  onEdit: (membership: UserTeam) => void
+  memberships: UserTeam[];
+  onEdit: (membership: UserTeam) => void;
 }
 
-export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps) {
+export function MembershipsTable({
+  memberships,
+  onEdit,
+}: MembershipsTableProps) {
+  // Debug per verificare che i dati del team siano presenti
+  console.log(
+    "Tabella memberships:",
+    memberships.map((m) => ({
+      id: m.id,
+      userName: m.users?.name,
+      teamName: m.teams?.name,
+    }))
+  );
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -41,16 +54,19 @@ export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps)
                   </div>
                   {/* Info aggiuntive visibili solo su mobile */}
                   <div className="md:hidden space-y-1 text-sm text-gray-500">
-                    <div>Team: {membership.teams?.name}</div>
+                    <div>
+                      Team:{" "}
+                      {membership.teams?.name || "Nome team non disponibile"}
+                    </div>
                   </div>
                 </div>
               </TableCell>
               <TableCell className="hidden md:table-cell w-[45%]">
-                {membership.teams?.name}
+                {membership.teams?.name || "Nome team non disponibile"}
               </TableCell>
               <TableCell className="w-[10%]">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   onClick={() => onEdit(membership)}
                 >
@@ -69,5 +85,5 @@ export function MembershipsTable({ memberships, onEdit }: MembershipsTableProps)
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

@@ -1,40 +1,49 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { MembershipsTable } from './memberships-table'
-import { CreateMembershipDialog } from './dialogs/create-membership-dialog'
-import { EditMembershipDialog } from './dialogs/edit-membership-dialog'
-import { queries } from '@/lib/supabase/queries'
-import type { UserTeam } from '@/lib/types/memberships'
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { MembershipsTable } from "./memberships-table";
+import { CreateMembershipDialog } from "./dialogs/create-membership-dialog";
+import { EditMembershipDialog } from "./dialogs/edit-membership-dialog";
+import { queries } from "@/lib/supabase/queries";
+import type { UserTeam } from "@/lib/types/memberships";
 
 export function MembershipsView() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [editingMembership, setEditingMembership] = useState<UserTeam | null>(null)
-  const [userFilter, setUserFilter] = useState('')
-  const [teamFilter, setTeamFilter] = useState('')
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingMembership, setEditingMembership] = useState<UserTeam | null>(
+    null
+  );
+  const [userFilter, setUserFilter] = useState("");
+  const [teamFilter, setTeamFilter] = useState("");
 
   const { data: memberships = [], refetch } = useQuery({
-    queryKey: ['memberships'],
-    queryFn: queries.userTeams.getAll
-  })
+    queryKey: ["memberships"],
+    queryFn: queries.userTeams.getAll,
+  });
+
+  // Debug per verificare la struttura delle memberships
+  console.log("Memberships data:", memberships);
 
   // Filtra le membership in base ai criteri di ricerca
-  const filteredMemberships = memberships.filter(membership => {
-    const userName = membership.users ? `${membership.users.name} ${membership.users.surname}`.toLowerCase() : ''
-    const teamName = membership.teams?.name?.toLowerCase() ?? ''
-    const searchUser = userFilter.toLowerCase()
-    const searchTeam = teamFilter.toLowerCase()
+  const filteredMemberships = memberships.filter((membership) => {
+    const userName = membership.users
+      ? `${membership.users.name} ${membership.users.surname}`.toLowerCase()
+      : "";
+    const teamName = membership.teams?.name?.toLowerCase() ?? "";
+    const searchUser = userFilter.toLowerCase();
+    const searchTeam = teamFilter.toLowerCase();
 
-    return (!userFilter || userName.includes(searchUser)) && 
-           (!teamFilter || teamName.includes(searchTeam))
-  })
+    return (
+      (!userFilter || userName.includes(searchUser)) &&
+      (!teamFilter || teamName.includes(searchTeam))
+    );
+  });
 
   const handleEdit = (membership: UserTeam) => {
-    setEditingMembership(membership)
-  }
+    setEditingMembership(membership);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -79,7 +88,7 @@ export function MembershipsView() {
                 onChange={(e) => setTeamFilter(e.target.value)}
               />
             </div>
-            <Button 
+            <Button
               className="w-full sm:w-auto whitespace-nowrap"
               onClick={() => setIsCreateOpen(true)}
             >
@@ -102,17 +111,19 @@ export function MembershipsView() {
 
           <div className="rounded-lg bg-white shadow-sm">
             <div className="px-4 py-3 border-b">
-              <p className="text-sm text-gray-500">{filteredMemberships.length} risultati</p>
+              <p className="text-sm text-gray-500">
+                {filteredMemberships.length} risultati nella tua company
+              </p>
             </div>
             <div className="p-4 overflow-x-auto">
-              <MembershipsTable 
+              <MembershipsTable
                 memberships={filteredMemberships}
                 onEdit={handleEdit}
               />
             </div>
           </div>
 
-          <CreateMembershipDialog 
+          <CreateMembershipDialog
             open={isCreateOpen}
             onOpenChange={setIsCreateOpen}
             onSuccess={refetch}
@@ -127,5 +138,5 @@ export function MembershipsView() {
         </div>
       </main>
     </div>
-  )
+  );
 }

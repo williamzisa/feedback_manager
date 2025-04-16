@@ -422,6 +422,12 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
         const { data, error } = await supabase
           .from("teams")
           .select(
@@ -429,6 +435,7 @@ export const queries = {
             id,
             name,
             project,
+            company,
             leader:users!teams_leader_fkey (
               id,
               name,
@@ -453,6 +460,7 @@ export const queries = {
             reverse_connections:team_teams!team_teams_second_team_id_fkey(first_team_id, second_team_id)
           `
           )
+          .eq("company", currentUser.company)
           .order("name");
 
         if (error) {
@@ -468,6 +476,7 @@ export const queries = {
             id: team.id,
             name: team.name,
             is_project: team.project || false,
+            company: team.company,
             leader: team.leader,
             team_clusters:
               team.team_clusters
@@ -593,16 +602,36 @@ export const queries = {
     getTeamConnections: async (teamId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Prima verifichiamo che il team appartenga alla company dell'utente
+        const { error: teamError } = await supabase
+          .from("teams")
+          .select("id")
+          .eq("id", teamId)
+          .eq("company", currentUser.company)
+          .single();
+
+        if (teamError) {
+          throw new Error("Team non trovato o non autorizzato");
+        }
+
         const { data, error } = await supabase
           .from("team_teams")
           .select(`
             first_team:teams!team_teams_first_team_id_fkey (
               id,
-              name
+              name,
+              company
             ),
             second_team:teams!team_teams_second_team_id_fkey (
               id,
-              name
+              name,
+              company
             )
           `)
           .or(`first_team_id.eq.${teamId},second_team_id.eq.${teamId}`);
@@ -613,17 +642,25 @@ export const queries = {
         }
 
         // Mappiamo i dati per ottenere un array di team connessi
-        return (data || []).map(connection => {
-          // Se il team corrente è first_team, restituiamo second_team e viceversa
-          const connectedTeam = connection.first_team.id === teamId 
-            ? connection.second_team 
-            : connection.first_team;
-          
-          return {
-            id: connectedTeam.id,
-            name: connectedTeam.name
-          };
-        });
+        // Filtriamo per assicurarci che i team connessi appartengano alla stessa company
+        return (data || [])
+          .filter(connection => {
+            const otherTeam = connection.first_team.id === teamId 
+              ? connection.second_team 
+              : connection.first_team;
+            return otherTeam.company === currentUser.company;
+          })
+          .map(connection => {
+            // Se il team corrente è first_team, restituiamo second_team e viceversa
+            const connectedTeam = connection.first_team.id === teamId 
+              ? connection.second_team 
+              : connection.first_team;
+            
+            return {
+              id: connectedTeam.id,
+              name: connectedTeam.name
+            };
+          });
       } catch (err) {
         console.error("Errore nel recupero delle connessioni del team:", err);
         throw err;
@@ -633,6 +670,31 @@ export const queries = {
     createTeamConnection: async (firstTeamId: string, secondTeamId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifichiamo che entrambi i team appartengano alla company dell'utente
+        const { data: teamsData, error: teamsError } = await supabase
+          .from("teams")
+          .select("id, company")
+          .in("id", [firstTeamId, secondTeamId]);
+
+        if (teamsError) {
+          throw new Error("Errore nel verificare i team: " + teamsError.message);
+        }
+
+        if (teamsData.length !== 2) {
+          throw new Error("Uno o entrambi i team non sono stati trovati");
+        }
+
+        // Verifichiamo che entrambi i team appartengano alla company dell'utente
+        if (teamsData.some(team => team.company !== currentUser.company)) {
+          throw new Error("Non hai i permessi per connettere questi team");
+        }
+
         // Assicuriamo che first_team_id sia alfabeticamente minore di second_team_id
         const [first, second] = [firstTeamId, secondTeamId].sort();
         
@@ -660,6 +722,31 @@ export const queries = {
     deleteTeamConnection: async (firstTeamId: string, secondTeamId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifichiamo che entrambi i team appartengano alla company dell'utente
+        const { data: teamsData, error: teamsError } = await supabase
+          .from("teams")
+          .select("id, company")
+          .in("id", [firstTeamId, secondTeamId]);
+
+        if (teamsError) {
+          throw new Error("Errore nel verificare i team: " + teamsError.message);
+        }
+
+        if (teamsData.length !== 2) {
+          throw new Error("Uno o entrambi i team non sono stati trovati");
+        }
+
+        // Verifichiamo che entrambi i team appartengano alla company dell'utente
+        if (teamsData.some(team => team.company !== currentUser.company)) {
+          throw new Error("Non hai i permessi per eliminare questa connessione");
+        }
+
         // Assicuriamo che first_team_id sia alfabeticamente minore di second_team_id
         const [first, second] = [firstTeamId, secondTeamId].sort();
         
@@ -744,23 +831,34 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Utilizziamo una query più specifica per ottenere solo i membri della stessa company
         const { data, error } = await supabase
           .from("user_teams")
-          .select(
-            `
-            *,
-            users (
+          .select(`
+            id,
+            user_id,
+            team_id,
+            created_at,
+            users:users!user_teams_user_id_fkey (
               id,
               name,
               surname,
-              email
+              email,
+              company
             ),
-            teams (
+            teams:teams!user_teams_team_id_fkey (
               id,
-              name
+              name,
+              company
             )
-          `
-          )
+          `)
+          .eq("teams.company", currentUser.company)
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -768,7 +866,13 @@ export const queries = {
           throw error;
         }
 
-        return data;
+        // Verifichiamo anche che sia gli utenti che i team abbiano la company corretta
+        const filteredData = data.filter(membership => 
+          membership.teams?.company === currentUser.company && 
+          membership.users?.company === currentUser.company
+        );
+
+        return filteredData;
       } catch (err) {
         console.error("Errore nel recupero delle user_teams:", err);
         throw err;
@@ -778,6 +882,44 @@ export const queries = {
     create: async (userTeam: { userId: string; teamId: string }) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifica che il team appartenga alla stessa company dell'utente
+        const { data: teamData, error: teamError } = await supabase
+          .from("teams")
+          .select("company")
+          .eq("id", userTeam.teamId)
+          .single();
+
+        if (teamError) {
+          console.error("Errore nel recupero del team:", teamError);
+          throw teamError;
+        }
+
+        if (teamData.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a creare membership per questo team");
+        }
+
+        // Verifica anche che l'utente appartenga alla stessa company
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("company")
+          .eq("id", userTeam.userId)
+          .single();
+
+        if (userError) {
+          console.error("Errore nel recupero dell'utente:", userError);
+          throw userError;
+        }
+
+        if (userData.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a creare membership per utenti di altre company");
+        }
+
         const { data, error } = await supabase
           .from("user_teams")
           .insert([
@@ -787,21 +929,24 @@ export const queries = {
               team_id: userTeam.teamId,
             },
           ])
-          .select(
-            `
-            *,
-            users (
+          .select(`
+            id,
+            user_id,
+            team_id,
+            created_at,
+            users:users!user_teams_user_id_fkey (
               id,
               name,
               surname,
-              email
+              email,
+              company
             ),
-            teams (
+            teams:teams!user_teams_team_id_fkey (
               id,
-              name
+              name,
+              company
             )
-          `
-          )
+          `)
           .single();
 
         if (error) {
@@ -822,6 +967,65 @@ export const queries = {
     ) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifica che il team appartenga alla stessa company dell'utente
+        const { data: teamData, error: teamError } = await supabase
+          .from("teams")
+          .select("company")
+          .eq("id", userTeam.teamId)
+          .single();
+
+        if (teamError) {
+          console.error("Errore nel recupero del team:", teamError);
+          throw teamError;
+        }
+
+        if (teamData.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a modificare membership per questo team");
+        }
+
+        // Verifica anche che l'utente appartenga alla stessa company
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("company")
+          .eq("id", userTeam.userId)
+          .single();
+
+        if (userError) {
+          console.error("Errore nel recupero dell'utente:", userError);
+          throw userError;
+        }
+
+        if (userData.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a modificare membership per utenti di altre company");
+        }
+
+        // Verifica che la membership esista e appartenga alla stessa company
+        const { data: existingData, error: existingError } = await supabase
+          .from("user_teams")
+          .select(`
+            id,
+            teams:teams!user_teams_team_id_fkey (
+              company
+            )
+          `)
+          .eq("id", id)
+          .single();
+
+        if (existingError) {
+          console.error("Errore nel recupero della membership esistente:", existingError);
+          throw existingError;
+        }
+
+        if (!existingData.teams || existingData.teams.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a modificare questa membership");
+        }
+
         const { data, error } = await supabase
           .from("user_teams")
           .update({
@@ -829,21 +1033,24 @@ export const queries = {
             team_id: userTeam.teamId,
           })
           .eq("id", id)
-          .select(
-            `
-            *,
-            users (
+          .select(`
+            id,
+            user_id,
+            team_id,
+            created_at,
+            users:users!user_teams_user_id_fkey (
               id,
               name,
               surname,
-              email
+              email,
+              company
             ),
-            teams (
+            teams:teams!user_teams_team_id_fkey (
               id,
-              name
+              name,
+              company
             )
-          `
-          )
+          `)
           .single();
 
         if (error) {
@@ -861,6 +1068,40 @@ export const queries = {
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifica che la membership appartenga alla stessa company dell'utente
+        const { data: existingData, error: existingError } = await supabase
+          .from("user_teams")
+          .select(`
+            id,
+            teams:teams!user_teams_team_id_fkey (
+              company
+            ),
+            users:users!user_teams_user_id_fkey (
+              company
+            )
+          `)
+          .eq("id", id)
+          .single();
+
+        if (existingError) {
+          console.error("Errore nel recupero della membership:", existingError);
+          throw existingError;
+        }
+
+        if (!existingData.teams || existingData.teams.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a eliminare questa membership: team di un'altra company");
+        }
+
+        if (!existingData.users || existingData.users.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a eliminare questa membership: utente di un'altra company");
+        }
+
         const { error } = await supabase
           .from("user_teams")
           .delete()
@@ -882,6 +1123,12 @@ export const queries = {
     getAll: async () => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
         const { data, error } = await supabase
           .from("clusters")
           .select(
@@ -898,6 +1145,7 @@ export const queries = {
             )
           `
           )
+          .eq("company", currentUser.company)
           .order("name");
 
         if (error) {
@@ -922,6 +1170,12 @@ export const queries = {
     }) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
         const { data, error } = await supabase
           .from("clusters")
           .insert([
@@ -930,6 +1184,7 @@ export const queries = {
               name: cluster.name,
               level: cluster.level,
               leader: cluster.leader,
+              company: currentUser.company,
             },
           ])
           .select(
@@ -969,6 +1224,24 @@ export const queries = {
     ) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifichiamo che il cluster appartenga alla company dell'utente
+        const { error: checkError } = await supabase
+          .from("clusters")
+          .select("id")
+          .eq("id", id)
+          .eq("company", currentUser.company)
+          .single();
+
+        if (checkError) {
+          throw new Error("Cluster non trovato o non autorizzato");
+        }
+          
         const { data, error } = await supabase
           .from("clusters")
           .update({
@@ -977,6 +1250,7 @@ export const queries = {
             leader: cluster.leader,
           })
           .eq("id", id)
+          .eq("company", currentUser.company)
           .select(
             `
             id,
@@ -1011,7 +1285,29 @@ export const queries = {
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        const { error } = await supabase.from("clusters").delete().eq("id", id);
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifichiamo che il cluster appartenga alla company dell'utente
+        const { error: checkError } = await supabase
+          .from("clusters")
+          .select("id")
+          .eq("id", id)
+          .eq("company", currentUser.company)
+          .single();
+
+        if (checkError) {
+          throw new Error("Cluster non trovato o non autorizzato");
+        }
+        
+        const { error } = await supabase
+          .from("clusters")
+          .delete()
+          .eq("id", id)
+          .eq("company", currentUser.company);
 
         if (error) {
           console.error("Errore nell'eliminazione del cluster:", error);
@@ -1427,8 +1723,36 @@ export const queries = {
 
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
-      const { error } = await supabase.from("questions").delete().eq("id", id);
-      if (error) throw error;
+      try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifichiamo che la domanda appartenga alla company dell'utente
+        const { error: checkError } = await supabase
+          .from("questions")
+          .select("id")
+          .eq("id", id)
+          .eq("company", currentUser.company)
+          .single();
+
+        if (checkError) {
+          throw new Error("Domanda non trovata o non autorizzata");
+        }
+
+        const { error } = await supabase
+          .from("questions")
+          .delete()
+          .eq("id", id)
+          .eq("company", currentUser.company);
+          
+        if (error) throw error;
+      } catch (err) {
+        console.error("Errore nell'eliminazione della domanda:", err);
+        throw err;
+      }
     },
   },
 

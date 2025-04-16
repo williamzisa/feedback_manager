@@ -32,12 +32,6 @@ export function UserMenu() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Il Mio Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/teams")}>
-          I Miei Team
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/processes")}>
-          I Miei Processi
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/profile")}>
           Impostazioni Profilo
         </DropdownMenuItem>

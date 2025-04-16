@@ -40,6 +40,7 @@ export interface Team {
   name: string;
   is_project: boolean;
   leader: { id: string; name: string; surname: string } | null;
+  company?: string;
   team_clusters: Array<{
     id: string;
     cluster: { id: string; name: string };
