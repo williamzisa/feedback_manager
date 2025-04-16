@@ -11,39 +11,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TeamConnectionsManager } from "./components/team-connections-manager";
-import { TeamProcessesManager } from "./components/team-processes-manager";
-import { queries } from "@/lib/supabase/queries";
-
-interface TeamPageProps {
-  params: {
-    teamId: string;
-  };
-}
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Dettaglio Team | Feedback Manager",
   description: "Visualizza e gestisci i dettagli del team",
 };
 
-export default async function TeamPage({ params }: TeamPageProps) {
-  const user = await getCurrentUser();
-
+export default async function Page({ params }: { params: { teamId: string } }) {
+  // Controllo se teamId è definito
   if (!params?.teamId) {
     notFound();
   }
 
+  // Recupero informazioni utente
+  const user = await getCurrentUser();
+  if (!user) {
+    notFound();
+  }
+
+  // Recupero dettagli team
   const teamDetails = await getTeamDetails(params.teamId, user.id);
   if (!teamDetails) {
     notFound();
   }
 
-  // Recupera tutti i team disponibili per le connessioni
-  const allTeams = await queries.teams.getAll();
-  const availableTeams = allTeams.map((team) => ({
-    id: team.id,
-    name: team.name,
-  }));
+  // Connessioni team (assicurandoci che non sia undefined)
+  const connectedTeams = teamDetails.connected_teams || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -73,7 +68,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
 
               <div>
                 <h3 className="font-medium mb-2">Cluster</h3>
-                {teamDetails.clusters.length > 0 ? (
+                {teamDetails.clusters && teamDetails.clusters.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {teamDetails.clusters.map((cluster) => (
                       <Badge key={cluster.id} variant="outline">
@@ -90,25 +85,60 @@ export default async function TeamPage({ params }: TeamPageProps) {
             </CardContent>
           </Card>
 
-          {/* Team Connessi */}
+          {/* Team Connessi - Versione semplificata */}
           <Card>
             <CardHeader>
               <CardTitle>Team Connessi</CardTitle>
               <CardDescription>
-                Gestisci le connessioni con altri team
+                Lista dei team connessi a questo team
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TeamConnectionsManager
-                teamId={params.teamId}
-                connectedTeams={teamDetails.connected_teams}
-                availableTeams={availableTeams}
-              />
+              {connectedTeams.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {connectedTeams.map((team) => (
+                    <Badge key={team.id} variant="secondary">
+                      {team.name}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">
+                  Nessun team connesso a questo team
+                </p>
+              )}
+              <div className="mt-4">
+                <Link href={`/admin/teams?teamId=${params.teamId}`} passHref>
+                  <Button variant="outline" size="sm">
+                    Gestisci connessioni
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Processi del Team */}
-          <TeamProcessesManager teamId={params.teamId} />
+          {/* Processi del Team - Versione semplificata */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Processi del Team</CardTitle>
+              <CardDescription>
+                Gestisci i processi associati a questo team
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-6">
+                <p className="text-muted-foreground mb-4">
+                  Visualizza e gestisci i processi del team
+                </p>
+                <Link
+                  href={`/admin/processes?teamId=${params.teamId}`}
+                  passHref
+                >
+                  <Button>Gestisci Processi</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
 

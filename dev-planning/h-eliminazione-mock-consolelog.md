@@ -1,3 +1,5 @@
+--da inserire anche eliminazione consolelog--
+
 # Piano di Implementazione: Eliminazione Dati Mock
 
 ## Riferimenti Generali
