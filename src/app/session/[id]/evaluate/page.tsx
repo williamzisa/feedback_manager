@@ -8,6 +8,8 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "@/lib/supabase/database.types";
 import { queries } from "@/lib/supabase/queries";
 
+type QuestionTag = Database["public"]["Tables"]["question_tags"]["Row"];
+
 interface PageParams {
   id: string;
   [key: string]: string | string[];
@@ -20,7 +22,7 @@ type Person = {
 };
 
 type Skill = {
-  type: 'Execution' | 'Strategy' | 'Soft';
+  type: "Execution" | "Strategy" | "Soft";
   remainingFeedback: number;
 };
 
@@ -51,6 +53,66 @@ type FeedbackWithRelations = FeedbackData & {
   } | null;
 };
 
+interface QuestionTagsDisplayProps {
+  tags: QuestionTag[] | null;
+  selectedRating: number;
+  onTagClick: (description: string) => void;
+  isLoading?: boolean;
+  error?: string | null;
+}
+
+function QuestionTagsDisplay({
+  tags,
+  selectedRating,
+  onTagClick,
+  isLoading,
+  error,
+}: QuestionTagsDisplayProps) {
+  if (error) {
+    return <div className="text-sm text-red-500 mt-2">{error}</div>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 mt-2">
+        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+        <span className="text-sm text-gray-500">
+          Caricamento suggerimenti...
+        </span>
+      </div>
+    );
+  }
+
+  if (!tags || tags.length === 0 || selectedRating === 0) {
+    return null;
+  }
+
+  const filteredTags = tags.filter((tag) => tag.score === selectedRating);
+
+  if (filteredTags.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-gray-500 mb-2">
+        Suggerimenti per il feedback:
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {filteredTags.map((tag) => (
+          <button
+            key={tag.id}
+            onClick={() => onTagClick(tag.description)}
+            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+          >
+            {tag.description}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EvaluateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,7 +120,8 @@ function EvaluateContent() {
   const sessionId = params.id;
   const [isPersonMenuOpen, setIsPersonMenuOpen] = useState<boolean>(false);
   const personId = searchParams.get("person");
-  const [selectedSkill, setSelectedSkill] = useState<Skill["type"]>("Execution");
+  const [selectedSkill, setSelectedSkill] =
+    useState<Skill["type"]>("Execution");
   const [rating, setRating] = useState<Rating>(0);
   const [comment, setComment] = useState<string>("");
   const [isSkillMenuOpen, setIsSkillMenuOpen] = useState<boolean>(false);
@@ -71,11 +134,15 @@ function EvaluateContent() {
   const [currentFeedbackIndex, setCurrentFeedbackIndex] = useState(0);
   const [hasCommentChanged, setHasCommentChanged] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [currentTags, setCurrentTags] = useState<QuestionTag[] | null>(null);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
+  const [tagsError, setTagsError] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = 'auto';
+      textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
   };
@@ -85,57 +152,78 @@ function EvaluateContent() {
   }, [comment]);
 
   // Funzioni helper per i conteggi
-  const countRemainingFeedbacks = useCallback((feedbacks: FeedbackWithRelations[], personId: string) => {
-    return feedbacks.filter(f => 
-      f.receiver === personId && 
-      f.value === null
-    ).length;
-  }, []);
+  const countRemainingFeedbacks = useCallback(
+    (feedbacks: FeedbackWithRelations[], personId: string) => {
+      return feedbacks.filter(
+        (f) => f.receiver === personId && f.value === null
+      ).length;
+    },
+    []
+  );
 
-  const countRemainingByType = useCallback((feedbacks: FeedbackWithRelations[], type: string) => {
-    return feedbacks.filter(f => 
-      f.question?.type.toLowerCase() === type.toLowerCase() && 
-      f.value === null
-    ).length;
-  }, []);
+  const countRemainingByType = useCallback(
+    (feedbacks: FeedbackWithRelations[], type: string) => {
+      return feedbacks.filter(
+        (f) =>
+          f.question?.type.toLowerCase() === type.toLowerCase() &&
+          f.value === null
+      ).length;
+    },
+    []
+  );
 
-  const updatePeopleList = useCallback((feedbacks: FeedbackWithRelations[]) => {
-    const peopleMap = new Map<string, { name: string; remaining: number }>();
-    
-    feedbacks.forEach(feedback => {
-      if (feedback.users) {
-        const personId = feedback.users.id;
-        const fullName = `${feedback.users.name} ${feedback.users.surname}`;
-        
-        if (!peopleMap.has(personId)) {
-          peopleMap.set(personId, {
-            name: fullName,
-            remaining: 0
-          });
+  const updatePeopleList = useCallback(
+    (feedbacks: FeedbackWithRelations[]) => {
+      const peopleMap = new Map<string, { name: string; remaining: number }>();
+
+      feedbacks.forEach((feedback) => {
+        if (feedback.users) {
+          const personId = feedback.users.id;
+          const fullName = `${feedback.users.name} ${feedback.users.surname}`;
+
+          if (!peopleMap.has(personId)) {
+            peopleMap.set(personId, {
+              name: fullName,
+              remaining: 0,
+            });
+          }
         }
-      }
-    });
+      });
 
-    peopleMap.forEach((data, id) => {
-      data.remaining = countRemainingFeedbacks(feedbacks, id);
-    });
+      peopleMap.forEach((data, id) => {
+        data.remaining = countRemainingFeedbacks(feedbacks, id);
+      });
 
-    return Array.from(peopleMap.entries()).map(([id, data]) => ({
-      id,
-      name: data.name,
-      remainingAnswers: data.remaining
-    }));
-  }, [countRemainingFeedbacks]);
+      return Array.from(peopleMap.entries()).map(([id, data]) => ({
+        id,
+        name: data.name,
+        remainingAnswers: data.remaining,
+      }));
+    },
+    [countRemainingFeedbacks]
+  );
 
-  const updateSkillsList = useCallback((feedbacks: FeedbackWithRelations[], personId: string): Skill[] => {
-    const personFeedbacks = feedbacks.filter(f => f.receiver === personId);
-    
-    return [
-      { type: 'Execution' as const, remainingFeedback: countRemainingByType(personFeedbacks, 'execution') },
-      { type: 'Strategy' as const, remainingFeedback: countRemainingByType(personFeedbacks, 'strategy') },
-      { type: 'Soft' as const, remainingFeedback: countRemainingByType(personFeedbacks, 'soft') }
-    ];
-  }, [countRemainingByType]);
+  const updateSkillsList = useCallback(
+    (feedbacks: FeedbackWithRelations[], personId: string): Skill[] => {
+      const personFeedbacks = feedbacks.filter((f) => f.receiver === personId);
+
+      return [
+        {
+          type: "Execution" as const,
+          remainingFeedback: countRemainingByType(personFeedbacks, "execution"),
+        },
+        {
+          type: "Strategy" as const,
+          remainingFeedback: countRemainingByType(personFeedbacks, "strategy"),
+        },
+        {
+          type: "Soft" as const,
+          remainingFeedback: countRemainingByType(personFeedbacks, "soft"),
+        },
+      ];
+    },
+    [countRemainingByType]
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -146,8 +234,9 @@ function EvaluateContent() {
 
         // Carica i dati iniziali
         const { data: feedbacks } = await supabase
-          .from('feedbacks')
-          .select(`
+          .from("feedbacks")
+          .select(
+            `
             id,
             value,
             receiver,
@@ -162,9 +251,10 @@ function EvaluateContent() {
               name,
               surname
             )
-          `)
-          .eq('session_id', sessionId)
-          .eq('sender', currentUser.id);
+          `
+          )
+          .eq("session_id", sessionId)
+          .eq("sender", currentUser.id);
 
         if (feedbacks) {
           // Aggiorna la lista delle persone
@@ -173,34 +263,40 @@ function EvaluateContent() {
 
           // Se abbiamo un personId, aggiorniamo i conteggi per tipo
           if (personId) {
-            const currentPersonData = peopleList.find(p => p.id === personId);
+            const currentPersonData = peopleList.find((p) => p.id === personId);
             setCurrentPerson(currentPersonData || null);
 
             // Aggiorna la lista dei tipi
             setSkills(updateSkillsList(feedbacks, personId));
 
             // Aggiorna i feedback correnti per tipo
-            const personFeedbacks = feedbacks.filter(f => f.receiver === personId);
-            updateCurrentFeedbacks(personFeedbacks, selectedSkill.toLowerCase());
+            const personFeedbacks = feedbacks.filter(
+              (f) => f.receiver === personId
+            );
+            updateCurrentFeedbacks(
+              personFeedbacks,
+              selectedSkill.toLowerCase()
+            );
           }
         }
 
         // Sottoscrizione real-time per i feedback
         supabase
-          .channel('feedbacks-changes')
+          .channel("feedbacks-changes")
           .on(
-            'postgres_changes',
+            "postgres_changes",
             {
-              event: '*',
-              schema: 'public',
-              table: 'feedbacks',
-              filter: `session_id=eq.${sessionId} AND sender=eq.${currentUser.id}`
+              event: "*",
+              schema: "public",
+              table: "feedbacks",
+              filter: `session_id=eq.${sessionId} AND sender=eq.${currentUser.id}`,
             },
             async () => {
               // Ricarica i dati quando ci sono cambiamenti
               const { data: updatedFeedbacks } = await supabase
-                .from('feedbacks')
-                .select(`
+                .from("feedbacks")
+                .select(
+                  `
                   id,
                   value,
                   receiver,
@@ -215,9 +311,10 @@ function EvaluateContent() {
                     name,
                     surname
                   )
-                `)
-                .eq('session_id', sessionId)
-                .eq('sender', currentUser.id);
+                `
+                )
+                .eq("session_id", sessionId)
+                .eq("sender", currentUser.id);
 
               if (updatedFeedbacks) {
                 // Aggiorna la lista delle persone
@@ -226,23 +323,31 @@ function EvaluateContent() {
 
                 // Se abbiamo un personId, aggiorniamo i conteggi per tipo
                 if (personId) {
-                  const currentPersonData = peopleList.find(p => p.id === personId);
+                  const currentPersonData = peopleList.find(
+                    (p) => p.id === personId
+                  );
                   setCurrentPerson(currentPersonData || null);
 
                   // Aggiorna la lista dei tipi
                   setSkills(updateSkillsList(updatedFeedbacks, personId));
 
                   // Aggiorna i feedback correnti per tipo
-                  const personFeedbacks = updatedFeedbacks.filter(f => f.receiver === personId);
-                  updateCurrentFeedbacks(personFeedbacks, selectedSkill.toLowerCase());
+                  const personFeedbacks = updatedFeedbacks.filter(
+                    (f) => f.receiver === personId
+                  );
+                  updateCurrentFeedbacks(
+                    personFeedbacks,
+                    selectedSkill.toLowerCase()
+                  );
                 }
               }
             }
           )
           .subscribe();
-
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Errore nel caricamento dei dati');
+        setError(
+          err instanceof Error ? err.message : "Errore nel caricamento dei dati"
+        );
       } finally {
         setLoading(false);
       }
@@ -251,18 +356,21 @@ function EvaluateContent() {
     loadData();
   }, [sessionId, personId, selectedSkill, updatePeopleList, updateSkillsList]);
 
-  const updateCurrentFeedbacks = (allFeedbacks: FeedbackData[], type: string) => {
-    const feedbacksForType = allFeedbacks.filter(f => 
-      f.question?.type.toLowerCase() === type.toLowerCase()
+  const updateCurrentFeedbacks = (
+    allFeedbacks: FeedbackData[],
+    type: string
+  ) => {
+    const feedbacksForType = allFeedbacks.filter(
+      (f) => f.question?.type.toLowerCase() === type.toLowerCase()
     );
     setCurrentFeedbacks(feedbacksForType);
     setCurrentFeedbackIndex(0);
-    
+
     // Reset form state for new feedback
     const currentFeedback = feedbacksForType[0];
     if (currentFeedback) {
-      setRating(currentFeedback.value as Rating || 0);
-      setComment(currentFeedback.comment || '');
+      setRating((currentFeedback.value as Rating) || 0);
+      setComment(currentFeedback.comment || "");
     }
   };
 
@@ -278,13 +386,14 @@ function EvaluateContent() {
     setSelectedSkill(skill.type);
     setIsSkillMenuOpen(false);
     setIsPersonMenuOpen(false);
-    
+
     // Aggiorna i feedback per il nuovo tipo
     if (personId) {
       const supabase = createClientComponentClient<Database>();
       const { data: feedbacks } = await supabase
-        .from('feedbacks')
-        .select(`
+        .from("feedbacks")
+        .select(
+          `
           id,
           value,
           receiver,
@@ -294,9 +403,10 @@ function EvaluateContent() {
             type,
             description
           )
-        `)
-        .eq('session_id', sessionId)
-        .eq('receiver', personId);
+        `
+        )
+        .eq("session_id", sessionId)
+        .eq("receiver", personId);
 
       if (feedbacks) {
         updateCurrentFeedbacks(feedbacks, skill.type);
@@ -310,18 +420,19 @@ function EvaluateContent() {
     setRating(newRating);
     const supabase = createClientComponentClient<Database>();
     const currentUser = await queries.users.getCurrentUser();
-    
+
     await supabase
-      .from('feedbacks')
-      .update({ 
-        value: newRating
+      .from("feedbacks")
+      .update({
+        value: newRating,
       })
-      .eq('id', currentFeedbacks[currentFeedbackIndex].id);
+      .eq("id", currentFeedbacks[currentFeedbackIndex].id);
 
     // Aggiorna immediatamente i conteggi locali
     const { data: updatedFeedbacks } = await supabase
-      .from('feedbacks')
-      .select(`
+      .from("feedbacks")
+      .select(
+        `
         id,
         value,
         receiver,
@@ -336,9 +447,10 @@ function EvaluateContent() {
           name,
           surname
         )
-      `)
-      .eq('session_id', sessionId)
-      .eq('sender', currentUser.id);
+      `
+      )
+      .eq("session_id", sessionId)
+      .eq("sender", currentUser.id);
 
     if (updatedFeedbacks) {
       // Aggiorna la lista delle persone
@@ -347,7 +459,7 @@ function EvaluateContent() {
 
       // Se abbiamo un personId, aggiorniamo i conteggi per tipo
       if (personId) {
-        const currentPersonData = peopleList.find(p => p.id === personId);
+        const currentPersonData = peopleList.find((p) => p.id === personId);
         setCurrentPerson(currentPersonData || null);
 
         // Aggiorna la lista dei tipi
@@ -359,7 +471,7 @@ function EvaluateContent() {
     const updatedLocalFeedbacks = [...currentFeedbacks];
     updatedLocalFeedbacks[currentFeedbackIndex] = {
       ...updatedLocalFeedbacks[currentFeedbackIndex],
-      value: newRating
+      value: newRating,
     };
     setCurrentFeedbacks(updatedLocalFeedbacks);
   };
@@ -376,24 +488,25 @@ function EvaluateContent() {
       const supabase = createClientComponentClient<Database>();
       const currentUser = await queries.users.getCurrentUser();
       const feedbackId = currentFeedbacks[currentFeedbackIndex].id;
-      
+
       const { error: updateError } = await supabase
-        .from('feedbacks')
+        .from("feedbacks")
         .update({
           value: 0,
-          comment: null
+          comment: null,
         })
-        .eq('id', feedbackId);
+        .eq("id", feedbackId);
 
       if (updateError) {
-        console.error('Errore nell\'aggiornamento:', updateError);
+        console.error("Errore nell'aggiornamento:", updateError);
         throw updateError;
       }
 
       // Aggiorna immediatamente i conteggi locali
       const { data: updatedFeedbacks } = await supabase
-        .from('feedbacks')
-        .select(`
+        .from("feedbacks")
+        .select(
+          `
           id,
           value,
           receiver,
@@ -408,9 +521,10 @@ function EvaluateContent() {
             name,
             surname
           )
-        `)
-        .eq('session_id', sessionId)
-        .eq('sender', currentUser.id);
+        `
+        )
+        .eq("session_id", sessionId)
+        .eq("sender", currentUser.id);
 
       if (updatedFeedbacks) {
         // Aggiorna la lista delle persone
@@ -419,7 +533,7 @@ function EvaluateContent() {
 
         // Se abbiamo un personId, aggiorniamo i conteggi per tipo
         if (personId) {
-          const currentPersonData = peopleList.find(p => p.id === personId);
+          const currentPersonData = peopleList.find((p) => p.id === personId);
           setCurrentPerson(currentPersonData || null);
 
           // Aggiorna la lista dei tipi
@@ -432,14 +546,14 @@ function EvaluateContent() {
       updatedLocalFeedbacks[currentFeedbackIndex] = {
         ...updatedLocalFeedbacks[currentFeedbackIndex],
         value: 0,
-        comment: null
+        comment: null,
       };
       setCurrentFeedbacks(updatedLocalFeedbacks);
       setRating(0);
-      setComment('');
+      setComment("");
       setHasCommentChanged(false);
     } catch (err) {
-      console.error('Errore:', err);
+      console.error("Errore:", err);
     }
   };
 
@@ -447,19 +561,19 @@ function EvaluateContent() {
     if (!currentFeedbacks[currentFeedbackIndex]) return;
 
     const supabase = createClientComponentClient<Database>();
-    
+
     await supabase
-      .from('feedbacks')
-      .update({ 
-        comment: comment || null
+      .from("feedbacks")
+      .update({
+        comment: comment || null,
       })
-      .eq('id', currentFeedbacks[currentFeedbackIndex].id);
+      .eq("id", currentFeedbacks[currentFeedbackIndex].id);
 
     // Aggiorna il feedback locale
     const updatedFeedbacks = [...currentFeedbacks];
     updatedFeedbacks[currentFeedbackIndex] = {
       ...updatedFeedbacks[currentFeedbackIndex],
-      comment: comment || null
+      comment: comment || null,
     };
     setCurrentFeedbacks(updatedFeedbacks);
     setHasCommentChanged(false);
@@ -474,22 +588,23 @@ function EvaluateContent() {
       const feedbackId = currentFeedbacks[currentFeedbackIndex].id;
 
       const { error: updateError } = await supabase
-        .from('feedbacks')
+        .from("feedbacks")
         .update({
           value: null,
-          comment: null
+          comment: null,
         })
-        .eq('id', feedbackId);
+        .eq("id", feedbackId);
 
       if (updateError) {
-        console.error('Errore nell\'annullamento:', updateError);
+        console.error("Errore nell'annullamento:", updateError);
         throw updateError;
       }
 
       // Aggiorna immediatamente i conteggi locali
       const { data: updatedFeedbacks } = await supabase
-        .from('feedbacks')
-        .select(`
+        .from("feedbacks")
+        .select(
+          `
           id,
           value,
           receiver,
@@ -504,9 +619,10 @@ function EvaluateContent() {
             name,
             surname
           )
-        `)
-        .eq('session_id', sessionId)
-        .eq('sender', currentUser.id);
+        `
+        )
+        .eq("session_id", sessionId)
+        .eq("sender", currentUser.id);
 
       if (updatedFeedbacks) {
         // Aggiorna la lista delle persone
@@ -515,7 +631,7 @@ function EvaluateContent() {
 
         // Se abbiamo un personId, aggiorniamo i conteggi per tipo
         if (personId) {
-          const currentPersonData = peopleList.find(p => p.id === personId);
+          const currentPersonData = peopleList.find((p) => p.id === personId);
           setCurrentPerson(currentPersonData || null);
 
           // Aggiorna la lista dei tipi
@@ -528,14 +644,14 @@ function EvaluateContent() {
       updatedLocalFeedbacks[currentFeedbackIndex] = {
         ...updatedLocalFeedbacks[currentFeedbackIndex],
         value: null,
-        comment: null
+        comment: null,
       };
       setCurrentFeedbacks(updatedLocalFeedbacks);
       setRating(0);
-      setComment('');
+      setComment("");
       setHasCommentChanged(false);
     } catch (err) {
-      console.error('Errore:', err);
+      console.error("Errore:", err);
     }
   };
 
@@ -544,18 +660,26 @@ function EvaluateContent() {
       const newIndex = currentFeedbackIndex - 1;
       setCurrentFeedbackIndex(newIndex);
       const prevFeedback = currentFeedbacks[newIndex];
-      setRating(prevFeedback.value as Rating || 0);
-      setComment(prevFeedback.comment || '');
+      setRating((prevFeedback.value as Rating) || 0);
+      setComment(prevFeedback.comment || "");
     }
   };
 
   const handleNext = () => {
+    // Validazione commento
+    if (rating > 0 && comment.trim() === "") {
+      setCommentError(
+        "È necessario inserire un commento quando si lascia una valutazione"
+      );
+      return;
+    }
+
+    setCommentError(null);
     if (currentFeedbackIndex < currentFeedbacks.length - 1) {
-      const newIndex = currentFeedbackIndex + 1;
-      setCurrentFeedbackIndex(newIndex);
-      const nextFeedback = currentFeedbacks[newIndex];
-      setRating(nextFeedback.value as Rating || 0);
-      setComment(nextFeedback.comment || '');
+      setCurrentFeedbackIndex(currentFeedbackIndex + 1);
+      setRating(0);
+      setComment("");
+      setHasCommentChanged(false);
     }
   };
 
@@ -568,6 +692,39 @@ function EvaluateContent() {
   const handleSkillMenuClick = () => {
     setIsSkillMenuOpen(!isSkillMenuOpen);
     setIsPersonMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const loadTags = async () => {
+      if (!currentFeedbacks[currentFeedbackIndex]?.question?.id) return;
+
+      setIsLoadingTags(true);
+      setTagsError(null);
+
+      try {
+        const tags = await queries.tags.getForQuestion(
+          currentFeedbacks[currentFeedbackIndex].question.id
+        );
+        setCurrentTags(tags);
+      } catch (err) {
+        console.error("Errore nel caricamento dei tag:", err);
+        setTagsError("Impossibile caricare i suggerimenti per il feedback");
+      } finally {
+        setIsLoadingTags(false);
+      }
+    };
+
+    loadTags();
+  }, [currentFeedbacks, currentFeedbackIndex]);
+
+  const handleTagClick = (description: string) => {
+    const newComment = comment ? `${comment}\n${description}` : description;
+
+    setComment(newComment);
+    setHasCommentChanged(true);
+
+    // Aggiusta l'altezza della textarea dopo l'aggiunta del tag
+    setTimeout(adjustTextareaHeight, 0);
   };
 
   if (loading) {
@@ -599,14 +756,14 @@ function EvaluateContent() {
     );
   }
 
-  const currentSkill = skills.find(s => s.type === selectedSkill);
+  const currentSkill = skills.find((s) => s.type === selectedSkill);
   const currentFeedback = currentFeedbacks[currentFeedbackIndex];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header 
-        title="Feedback" 
-        showBackButton={true} 
+      <Header
+        title="Feedback"
+        showBackButton={true}
         backUrl={`/session/${sessionId}`}
       />
 
@@ -617,7 +774,9 @@ function EvaluateContent() {
             className="flex justify-between items-center cursor-pointer"
             onClick={handlePersonMenuClick}
           >
-            <span className="text-lg font-medium">{currentPerson?.name || 'Seleziona persona'}</span>
+            <span className="text-lg font-medium">
+              {currentPerson?.name || "Seleziona persona"}
+            </span>
             <div className="flex items-center gap-2">
               <span className="text-red-500 text-sm">
                 {currentPerson?.remainingAnswers} rimanenti
@@ -725,7 +884,8 @@ function EvaluateContent() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
                   {/* Star Rating - Mostra solo se value è null o tra 1-5 */}
-                  {(currentFeedback.value === null || currentFeedback.value > 0) && (
+                  {(currentFeedback.value === null ||
+                    currentFeedback.value > 0) && (
                     <div className="flex justify-center w-full sm:w-auto gap-1 sm:gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -733,14 +893,20 @@ function EvaluateContent() {
                           onClick={() => handleRatingChange(star as Rating)}
                           disabled={currentFeedback.value !== null}
                           className={`text-xl sm:text-2xl transition-transform ${
-                            currentFeedback.value === null ? 'hover:scale-110' : ''
+                            currentFeedback.value === null
+                              ? "hover:scale-110"
+                              : ""
                           } ${
-                            currentFeedback.value !== null ? 'cursor-default' : ''
+                            currentFeedback.value !== null
+                              ? "cursor-default"
+                              : ""
                           }`}
                         >
                           <svg
                             className={`w-6 h-6 sm:w-8 sm:h-8 ${
-                              rating >= star ? "text-[#F4B400]" : "text-gray-300"
+                              rating >= star
+                                ? "text-[#F4B400]"
+                                : "text-gray-300"
                             } transition-colors`}
                             fill={rating >= star ? "currentColor" : "none"}
                             stroke="currentColor"
@@ -759,12 +925,15 @@ function EvaluateContent() {
                   )}
 
                   {/* No Feedback Button - Mostra solo se value è null o 0 */}
-                  {(currentFeedback.value === null || currentFeedback.value === 0) && (
-                    <button 
+                  {(currentFeedback.value === null ||
+                    currentFeedback.value === 0) && (
+                    <button
                       onClick={handleNoFeedback}
                       disabled={currentFeedback.value === 0}
                       className={`bg-[#F4B400] text-white py-2 px-3 sm:px-4 rounded-full transition-colors whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${
-                        currentFeedback.value === 0 ? 'bg-[#E5A800] shadow-inner opacity-70 cursor-not-allowed' : 'hover:bg-[#E5A800]'
+                        currentFeedback.value === 0
+                          ? "bg-[#E5A800] shadow-inner opacity-70 cursor-not-allowed"
+                          : "hover:bg-[#E5A800]"
                       }`}
                     >
                       NON HO ELEMENTI PER UN FEEDBACK UTILE
@@ -783,6 +952,17 @@ function EvaluateContent() {
                 )}
               </div>
 
+              {/* Tags Display - Add after Rating Section */}
+              {currentFeedback.value !== null && currentFeedback.value > 0 && (
+                <QuestionTagsDisplay
+                  tags={currentTags}
+                  selectedRating={rating}
+                  onTagClick={handleTagClick}
+                  isLoading={isLoadingTags}
+                  error={tagsError}
+                />
+              )}
+
               {/* Comment Box */}
               {currentFeedback && currentFeedback.value !== null && (
                 <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-4 sm:mb-6">
@@ -792,9 +972,14 @@ function EvaluateContent() {
                       value={comment}
                       onChange={handleCommentChange}
                       placeholder="Aggiungi un commento qui.."
-                      className="w-full min-h-[80px] resize-none focus:outline-none text-gray-700 p-2 pb-12 bg-white overflow-hidden"
+                      className={`w-full min-h-[80px] resize-none focus:outline-none text-gray-700 p-2 pb-12 bg-white overflow-hidden ${
+                        commentError ? "border-red-500" : "border-gray-200"
+                      }`}
                       rows={1}
                     />
+                    {commentError && (
+                      <p className="text-sm text-red-500">{commentError}</p>
+                    )}
                     <div className="absolute bottom-3 right-2">
                       {hasCommentChanged && (
                         <button
@@ -825,9 +1010,20 @@ function EvaluateContent() {
                   </button>
                 )}
                 {currentFeedbackIndex < currentFeedbacks.length - 1 && (
-                  <button 
+                  <button
                     onClick={handleNext}
-                    className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-[#4285F4] text-white hover:bg-[#3367D6]"
+                    disabled={
+                      currentFeedback?.value === null ||
+                      (currentFeedback?.value > 0 && !comment.trim()) ||
+                      hasCommentChanged
+                    }
+                    className={`flex-1 py-3 rounded-full text-lg font-medium transition-colors ${
+                      currentFeedback?.value === null ||
+                      (currentFeedback?.value > 0 && !comment.trim()) ||
+                      hasCommentChanged
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-[#4285F4] text-white hover:bg-[#3367D6]"
+                    }`}
                   >
                     AVANTI
                   </button>
@@ -844,7 +1040,5 @@ function EvaluateContent() {
 }
 
 export default function EvaluatePage() {
-  return (
-    <EvaluateContent />
-  );
+  return <EvaluateContent />;
 }

@@ -71,7 +71,7 @@
     - Passare la nuova prop `onManageTags` a `QuestionsTable` per impostare `selectedQuestionIdForTags` e `isTagsDialogOpen`.
     - Renderizzare `<QuestionTagsDialog>` condizionalmente, passando `questionId={selectedQuestionIdForTags}` e gestendo `open` e `onOpenChange`.
 
-### 3. Integrazione Tag in `evaluate/page.tsx`
+### 3. Integrazione Tag in `evaluate/page.tsx`✅
 
 - **State**: Aggiungere uno stato per memorizzare i tag relativi alla domanda corrente: `useState<QuestionTag[] | null>(null)`.
 - **Data Fetching**: All'interno dell'`useEffect` che carica i dati o quando `currentFeedbackIndex` cambia:
@@ -80,7 +80,7 @@
   - Aggiornare lo stato dei tag.
   - Gestire stati di caricamento e errore specifici per i tag.
 
-### 4. Componente Visualizzazione Tag (`QuestionTagsDisplay`)
+### 4. Componente Visualizzazione Tag (`QuestionTagsDisplay`)✅
 
 - **Componente (Client)**: Creare `src/components/feedback/question-tags-display.tsx`.
   - Props: `tags: QuestionTag[] | null`, `selectedRating: number`, `onTagClick: (description: string) => void`.
@@ -88,7 +88,7 @@
   - UI: Mostra i tag filtrati (es. usando `Badge` Shadcn). Applica stili per indicarli come cliccabili.
   - Event Handler: Al click su un tag, chiama `onTagClick` passando `tag.description`.
 
-### 5. Utilizzo di `QuestionTagsDisplay` in `evaluate/page.tsx`
+### 5. Utilizzo di `QuestionTagsDisplay` in `evaluate/page.tsx`✅
 
 - **Rendering**: Includere `<QuestionTagsDisplay />` sotto la sezione di rating.
   - Passare lo stato dei tag, lo stato `rating` attuale e una funzione `handleTagClick` come props.
@@ -102,22 +102,6 @@
 
 - **Logica in `evaluate/page.tsx`**: Modificare la condizione di abilitazione/disabilitazione del pulsante "AVANTI" (o `handleNext`):
   - Se `rating > 0`, il pulsante è abilitato solo se `comment.trim() !== ''`.
-  - Se `rating === 0` (Nessun feedback), il commento non è richiesto per procedere.
-- **UI Feedback**: Mostrare un messaggio di errore (es. sotto la textarea) se l'utente prova ad andare avanti con `rating > 0` ma senza commento.
+  - Se `rating === 0` (L'utente ha schiacciato "Non ho elementi per un feedback utile"), il commento non è richiesto per procedere.
+- **UI Feedback**: Mostrare un messaggio di errore (es. sotto la textarea) se l'utente prova ad andare avanti con `rating > 0` ma senza commento indicando che è necessario il commento se si lascia un feedback.
 - _Nota_: Non è necessario modificare `queries.ts` per questa validazione.
-
-### 7. Ottimizzazioni e Testing
-
-- **Performance**: Valutare se il fetch dei tag per ogni cambio domanda è sufficientemente performante. Se necessario, ottimizzare pre-fetching o caching.
-- **Testing**: Verificare:
-  - Visualizzazione corretta dei tag per diversi rating.
-  - Funzionamento del copia/incolla nel commento.
-  - Logica di validazione del commento obbligatorio.
-  - Reattività e usabilità su mobile.
-
-### 8. Miglioramenti all'Esperienza Utente
-
-- Aggiungere animazioni subtili per migliorare il feedback quando un tag viene selezionato
-- Implementare suggerimenti dinamici basati sui tag più utilizzati
-- Aggiungere la possibilità di filtrare o cercare tra i tag disponibili
-- Migliorare l'accessibilità dell'interfaccia dei tag seguendo le best practices WCAG

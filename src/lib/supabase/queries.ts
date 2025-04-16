@@ -1338,12 +1338,19 @@ export const queries = {
     async getAll() {
       const supabase = createClientComponentClient<Database>()
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
         const { data, error } = await supabase
           .from('questions')
           .select(`
             *,
             tags_count:question_tags(count)
           `)
+          .eq('company', currentUser.company)
           .order('created_at', { ascending: false })
 
         if (error) {
@@ -2005,27 +2012,18 @@ export const queries = {
   tags: {
     async getForQuestion(questionId: string) {
       const supabase = createClientComponentClient<Database>();
-      try {
-        const { data, error } = await supabase
-          .from("question_tags")
-          .select(`
-            id,
-            score,
-            description
-          `)
-          .eq("question_id", questionId)
-          .order("score", { ascending: true })
+      const { data, error } = await supabase
+        .from('question_tags')
+        .select('*')
+        .eq('question_id', questionId)
+        .order('score');
 
-        if (error) {
-          console.error("Errore nel recupero dei tag:", error)
-          throw error
-        }
-
-        return data || []
-      } catch (err) {
-        console.error("Errore nella query dei tag:", err)
-        throw err
+      if (error) {
+        console.error('Error fetching tags:', error);
+        return [];
       }
+
+      return data;
     }
   }
 };
