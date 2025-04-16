@@ -2043,6 +2043,9 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
           name,
           end_time,
           status
+        ),
+        user:users!user_sessions_user_id_fkey (
+          mentor
         )
       `
       )
@@ -2056,6 +2059,27 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
         userSessionError
       );
       throw userSessionError;
+    }
+
+    // Se l'utente ha un mentor, recupera il suo feedback
+    let mentorValue = null;
+    if (userSession.user?.mentor) {
+      const { data: mentorFeedbacks, error: mentorError } = await supabase
+        .from("feedbacks")
+        .select("value")
+        .eq("session_id", sessionId)
+        .eq("sender", userSession.user.mentor)
+        .eq("receiver", userId);
+
+      if (mentorError) {
+        console.error("Errore nel recupero dei feedback del mentor:", mentorError);
+      } else {
+        // Calcola la media dei feedback del mentor
+        const validMentorFeedbacks = mentorFeedbacks.filter(f => f.value && f.value > 0);
+        if (validMentorFeedbacks.length > 0) {
+          mentorValue = validMentorFeedbacks.reduce((acc, curr) => acc + (curr.value || 0), 0) / validMentorFeedbacks.length;
+        }
+      }
     }
 
     // Poi recupera i feedback con tutti i campi necessari
@@ -2122,7 +2146,8 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
           question: feedback.question,
           feedbacks: [],
           overall: 0,
-          count: 0
+          count: 0,
+          commentCount: 0
         };
       }
       
@@ -2130,6 +2155,11 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
       if (feedback.value && feedback.value > 0) {
         acc[questionId].feedbacks.push(feedback);
         acc[questionId].count++;
+        
+        // Contiamo i commenti validi
+        if (feedback.comment) {
+          acc[questionId].commentCount++;
+        }
         
         // Ricalcoliamo l'overall solo per i feedback validi
         const validValues = acc[questionId].feedbacks
@@ -2147,6 +2177,7 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
       feedbacks: typeof feedbacks;
       overall: number;
       count: number;
+      commentCount: number;
     }>);
 
     // Organizziamo i self-feedback per question_id
@@ -2161,7 +2192,8 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
       userSession: {
         ...userSession,
         session_name: userSession.session?.name || "",
-        session_end_time: userSession.session?.end_time || null
+        session_end_time: userSession.session?.end_time || null,
+        mentor_value: mentorValue
       },
       feedbacksByQuestion,
       selfFeedbacksByQuestion

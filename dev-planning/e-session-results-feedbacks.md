@@ -14,7 +14,7 @@
 
 ## Task di Implementazione
 
-### 1. Adeguamento Query e Data Fetching
+### 1. Adeguamento Query e Data Fetching ✅
 
 - **`queries.ts` (`getSessionFeedback`)**: Modificare la funzione per:
   - Restituire anche i dettagli della `sessions` associata (`name`, `end_time`) tramite join o query separata efficiente.
@@ -25,7 +25,7 @@
   - Filtrare i `feedbacks` ricevuti dalla query in base al `selectedSkill` (confrontando con `feedback.question.type`). Conservare questi feedback filtrati in uno stato (es. `filteredSkillFeedbacks`).
   - Introdurre uno stato per l'indice del feedback attualmente visualizzato all'interno della lista filtrata (es. `currentFeedbackIndex`).
 
-### 2. Visualizzazione Feedback Individuali per Skill
+### 2. Visualizzazione Feedback Individuali per Skill✅
 
 - **`feedback/page.tsx`**: Modificare la sezione "Question and Rating" per:
   - Mostrare la descrizione della domanda del feedback corrente: `filteredSkillFeedbacks[currentFeedbackIndex].question.description`.
@@ -50,7 +50,7 @@
 ### 5. Gestione Azioni (Iniziativa)
 
 - **`feedback/page.tsx`**:
-  - Collegare il pulsante "Crea iniziativa" a una futura funzionalità (potrebbe aprire un dialog o navigare a una nuova pagina).
+  - Collegare il pulsante "Crea iniziativa" a una futura funzionalità (potrebbe aprire un dialog).
   - La logica specifica della creazione di iniziative è fuori dallo scope di _questo_ piano ma il collegamento UI va predisposto.
 
 ### 6. Ottimizzazioni e Testing

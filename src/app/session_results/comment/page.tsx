@@ -40,6 +40,7 @@ export default function CommentPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
   const userId = searchParams.get("userId");
+  const questionId = searchParams.get("questionId");
   const initialSkill = searchParams.get("skill") as SkillKey;
   const [selectedSkill, setSelectedSkill] = useState<SkillKey>(
     initialSkill || "Execution Skills"
@@ -52,7 +53,10 @@ export default function CommentPage() {
       if (sessionId && userId) {
         try {
           const data = await getSessionComments(sessionId, userId);
-          setComments(data.filter((f) => f.comment));
+          const filteredComments = questionId
+            ? data.filter((f) => f.question_id === questionId && f.comment)
+            : data.filter((f) => f.comment);
+          setComments(filteredComments);
         } catch (error) {
           console.error("Errore nel caricamento dei commenti:", error);
         } finally {
@@ -61,7 +65,7 @@ export default function CommentPage() {
       }
     }
     loadComments();
-  }, [sessionId, userId]);
+  }, [sessionId, userId, questionId]);
 
   if (isLoading) {
     return <div>Caricamento...</div>;

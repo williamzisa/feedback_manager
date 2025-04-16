@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import { useState, Suspense, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import BottomNav from "@/components/navigation/bottom-nav";
 import Header from "@/components/navigation/header";
@@ -8,10 +8,12 @@ import { getSessionFeedback } from "@/lib/supabase/queries";
 import { Database } from "@/lib/supabase/database.types";
 import {
   Select,
+  SelectTrigger,
   SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
+import { ArrowLeft } from "lucide-react";
+import { FeedbackScoreCard } from "@/components/stats/feedback-score-card";
 
 type BaseFeedback = Database["public"]["Tables"]["feedbacks"]["Row"];
 
@@ -43,6 +45,10 @@ type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   session_name: string;
   session_end_time: string | null;
   val_gap: number | null;
+  val_soft: number | null;
+  val_strategy: number | null;
+  val_execution: number | null;
+  mentor_value?: number | null;
 };
 
 type FeedbacksByQuestion = {
@@ -61,60 +67,81 @@ type FeedbackData = {
   >;
 };
 
-const skillsData = {
-  "Strategy Skills": {
-    name: "Strategy Skills",
-    color: "#00BFA5",
-    weight: "weight_strategy",
-    value: "val_strategy",
-    self: "self_strategy",
-  },
-  "Execution Skills": {
-    name: "Execution Skills",
-    color: "#4285F4",
-    weight: "weight_execution",
-    value: "val_execution",
-    self: "self_execution",
-  },
-  "Soft Skills": {
-    name: "Soft Skills",
-    color: "#F5A623",
-    weight: "weight_soft",
-    value: "val_soft",
-    self: "self_soft",
-  },
-} as const;
-
-type SkillKey = keyof typeof skillsData;
-
 function FeedbackContent() {
   const searchParams = useSearchParams();
   const urlUserId = searchParams.get("userId");
   const userName = searchParams.get("userName");
   const sessionId = searchParams.get("sessionId");
+  const urlSkillType = searchParams.get("skill");
   const [userId] = useState<string | null>(urlUserId);
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(
     null
+  );
+
+  // Mapping tra i tipi visualizzati e i tipi del backend
+  const skillTypeMapping = useMemo(
+    () =>
+      ({
+        "Soft Skills": "SOFT",
+        "Strategy Skills": "STRATEGY",
+        "Execution Skills": "EXECUTION",
+      } as const),
+    []
+  );
+
+  // Mapping inverso per la visualizzazione
+  const reverseSkillTypeMapping = useMemo(
+    () =>
+      ({
+        SOFT: "Soft Skills",
+        STRATEGY: "Strategy Skills",
+        EXECUTION: "Execution Skills",
+      } as const),
+    []
+  );
+
+  // Inizializza con il tipo corretto mappato dal parametro URL o default
+  const getInitialSkillType = () => {
+    if (!urlSkillType) return "Strategy Skills";
+    return (
+      reverseSkillTypeMapping[
+        urlSkillType as keyof typeof reverseSkillTypeMapping
+      ] || "Strategy Skills"
+    );
+  };
+
+  const [selectedSkillType, setSelectedSkillType] = useState<string>(
+    getInitialSkillType()
   );
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Ottieni tutte le domande con feedback
-  const allQuestions = feedbackData
-    ? Object.entries(feedbackData.feedbacksByQuestion).sort(
-        (a, b) => b[1].overall - a[1].overall
-      ) // Ordina per overall decrescente
-    : [];
+  // Ottieni tutte le domande con feedback filtrate per tipo
+  const filteredQuestions = useMemo(
+    () =>
+      feedbackData
+        ? Object.entries(feedbackData.feedbacksByQuestion)
+            .filter(
+              ([, data]) =>
+                data.question.type ===
+                skillTypeMapping[
+                  selectedSkillType as keyof typeof skillTypeMapping
+                ]
+            )
+            .sort((a, b) => b[1].overall - a[1].overall)
+        : [],
+    [feedbackData, selectedSkillType, skillTypeMapping]
+  );
 
-  // Imposta la prima domanda quando arrivano i dati
+  // Imposta la prima domanda quando arrivano i dati o cambia il tipo
   useEffect(() => {
-    if (allQuestions.length > 0) {
-      setCurrentQuestionId(allQuestions[0][0]);
+    if (filteredQuestions.length > 0) {
+      setCurrentQuestionId(filteredQuestions[0][0]);
     } else {
       setCurrentQuestionId(null);
     }
-  }, [feedbackData]);
+  }, [feedbackData, selectedSkillType, filteredQuestions]);
 
   useEffect(() => {
     async function loadFeedback() {
@@ -154,21 +181,21 @@ function FeedbackContent() {
   // Funzioni di navigazione
   const goToNextQuestion = () => {
     if (!currentQuestionId) return;
-    const currentIndex = allQuestions.findIndex(
+    const currentIndex = filteredQuestions.findIndex(
       ([id]) => id === currentQuestionId
     );
-    if (currentIndex < allQuestions.length - 1) {
-      setCurrentQuestionId(allQuestions[currentIndex + 1][0]);
+    if (currentIndex < filteredQuestions.length - 1) {
+      setCurrentQuestionId(filteredQuestions[currentIndex + 1][0]);
     }
   };
 
   const goToPreviousQuestion = () => {
     if (!currentQuestionId) return;
-    const currentIndex = allQuestions.findIndex(
+    const currentIndex = filteredQuestions.findIndex(
       ([id]) => id === currentQuestionId
     );
     if (currentIndex > 0) {
-      setCurrentQuestionId(allQuestions[currentIndex - 1][0]);
+      setCurrentQuestionId(filteredQuestions[currentIndex - 1][0]);
     }
   };
 
@@ -176,6 +203,43 @@ function FeedbackContent() {
   const formatNumber = (num: number | null): string => {
     if (num === null) return "N/A";
     return num.toFixed(2);
+  };
+
+  const getQuestionsCountByType = (type: string) => {
+    if (!feedbackData) return 0;
+    return Object.values(feedbackData.feedbacksByQuestion).filter(
+      (data) =>
+        data.question.type ===
+        skillTypeMapping[type as keyof typeof skillTypeMapping]
+    ).length;
+  };
+
+  const getSessionValueByType = (type: string): number | null => {
+    if (!feedbackData?.userSession) return null;
+    const session = feedbackData.userSession;
+    switch (type) {
+      case "Soft Skills":
+        return session.val_soft;
+      case "Strategy Skills":
+        return session.val_strategy;
+      case "Execution Skills":
+        return session.val_execution;
+      default:
+        return null;
+    }
+  };
+
+  const handleBackToResults = () => {
+    const queryParams = new URLSearchParams();
+    if (userId) {
+      queryParams.set("userId", userId);
+      if (userName) {
+        queryParams.set("userName", userName);
+      }
+    }
+    window.location.href = `/session_results${
+      queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
   };
 
   if (isLoading) {
@@ -215,6 +279,17 @@ function FeedbackContent() {
       <Header title={pageTitle} />
 
       <main className="container mx-auto max-w-2xl px-4 py-6 pb-32">
+        {/* Back Button */}
+        <div className="absolute top-20 left-4 md:left-8">
+          <button
+            onClick={handleBackToResults}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+            aria-label="Torna ai risultati"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+
         {/* Session Info */}
         <div className="mb-4">
           <div className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
@@ -238,6 +313,38 @@ function FeedbackContent() {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Skill Type Selector */}
+        <div className="mb-6">
+          <Select
+            value={selectedSkillType}
+            onValueChange={setSelectedSkillType}
+          >
+            <SelectTrigger className="w-full bg-white">
+              <div className="flex justify-between items-center w-full">
+                <span>{selectedSkillType}</span>
+                <span className="text-gray-500">
+                  {getQuestionsCountByType(selectedSkillType)} domande ·{" "}
+                  {formatNumber(getSessionValueByType(selectedSkillType) || 0)}
+                  /5
+                </span>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(skillTypeMapping).map((type) => (
+                <SelectItem key={type} value={type}>
+                  <div className="flex justify-between items-center w-full">
+                    <span>{type}</span>
+                    <span className="text-gray-500 ml-4">
+                      {getQuestionsCountByType(type)} domande ·{" "}
+                      {formatNumber(getSessionValueByType(type) || 0)}/5
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Question and Rating */}
@@ -271,67 +378,31 @@ function FeedbackContent() {
                 </div>
                 <div className="mt-4 text-center text-gray-600">
                   Domanda{" "}
-                  {allQuestions.findIndex(([id]) => id === currentQuestionId) +
-                    1}{" "}
-                  di {allQuestions.length}
+                  {filteredQuestions.findIndex(
+                    ([id]) => id === currentQuestionId
+                  ) + 1}{" "}
+                  di {filteredQuestions.length}
                 </div>
+
+                <FeedbackScoreCard
+                  overall={currentQuestionData.overall}
+                  self={currentSelfFeedback?.value || 0}
+                  mentor={userSession?.mentor_value || 0}
+                  commentCount={
+                    currentQuestionData.feedbacks.filter(
+                      (f) => f.comment !== null
+                    ).length
+                  }
+                  sessionId={sessionId || ""}
+                  userId={userId || ""}
+                  questionId={currentQuestionId || ""}
+                />
               </>
             ) : (
               <p className="text-center text-gray-500">
-                Nessun feedback disponibile
+                Nessun feedback disponibile per questa tipologia di skill
               </p>
             )}
-          </div>
-
-          {/* Overall Rating */}
-          <div className="space-y-4 mt-8">
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-lg font-semibold">
-                Overall: {formatNumber(currentQuestionData?.overall || 0)}/5
-              </span>
-              <span className="text-sm text-gray-500">
-                {currentQuestionData?.count || 0} feedback validi
-              </span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-lg">
-                Self: {formatNumber(currentSelfFeedback?.value || 0)}
-                /5
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Comments Section */}
-        <div className="bg-white rounded-[20px] p-6">
-          <div
-            className="flex justify-between items-center cursor-pointer hover:opacity-80"
-            onClick={() =>
-              (window.location.href = `/session_results/comment?sessionId=${sessionId}&userId=${userId}`)
-            }
-          >
-            <h3 className="text-lg font-semibold">
-              Hai ricevuto{" "}
-              {currentQuestionData?.feedbacks.filter(
-                (f) => f.comment && (f.value ?? 0) > 0
-              ).length || 0}{" "}
-              commenti, guardali qui:
-            </h3>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </div>
           </div>
         </div>
 
@@ -345,11 +416,15 @@ function FeedbackContent() {
               onClick={goToPreviousQuestion}
               disabled={
                 !currentQuestionId ||
-                allQuestions.findIndex(([id]) => id === currentQuestionId) === 0
+                filteredQuestions.findIndex(
+                  ([id]) => id === currentQuestionId
+                ) === 0
               }
               className={`flex-1 bg-blue-500 text-white py-4 rounded-full text-lg font-medium transition-colors ${
                 !currentQuestionId ||
-                allQuestions.findIndex(([id]) => id === currentQuestionId) === 0
+                filteredQuestions.findIndex(
+                  ([id]) => id === currentQuestionId
+                ) === 0
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-blue-600"
               }`}
@@ -360,13 +435,17 @@ function FeedbackContent() {
               onClick={goToNextQuestion}
               disabled={
                 !currentQuestionId ||
-                allQuestions.findIndex(([id]) => id === currentQuestionId) ===
-                  allQuestions.length - 1
+                filteredQuestions.findIndex(
+                  ([id]) => id === currentQuestionId
+                ) ===
+                  filteredQuestions.length - 1
               }
               className={`flex-1 bg-blue-500 text-white py-4 rounded-full text-lg font-medium transition-colors ${
                 !currentQuestionId ||
-                allQuestions.findIndex(([id]) => id === currentQuestionId) ===
-                  allQuestions.length - 1
+                filteredQuestions.findIndex(
+                  ([id]) => id === currentQuestionId
+                ) ===
+                  filteredQuestions.length - 1
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-blue-600"
               }`}

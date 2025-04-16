@@ -22,6 +22,18 @@ type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   sessions: Database["public"]["Tables"]["sessions"]["Row"];
 };
 
+type BaseFeedback = Database["public"]["Tables"]["feedbacks"]["Row"];
+
+type FeedbackQuestion = {
+  id: string;
+  description: string;
+  type: string;
+} | null;
+
+type Feedback = BaseFeedback & {
+  question: FeedbackQuestion;
+};
+
 function SessionResultsContent() {
   const searchParams = useSearchParams();
   const urlUserId = searchParams.get("userId");
@@ -31,6 +43,7 @@ function SessionResultsContent() {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const supabase = createClientComponentClient<Database>();
 
   // Recupera l'userId dall'URL o dalla sessione
@@ -152,6 +165,37 @@ function SessionResultsContent() {
     fetchSessions();
   }, [userId, supabase]);
 
+  useEffect(() => {
+    async function fetchFeedbacks() {
+      if (!userId || !selectedSession) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("feedbacks")
+          .select(
+            `
+            *,
+            question:question_id (
+              id,
+              description,
+              type
+            )
+          `
+          )
+          .eq("session_id", selectedSession)
+          .eq("receiver", userId);
+
+        if (error) throw error;
+
+        setFeedbacks(data as Feedback[]);
+      } catch (err) {
+        console.error("Errore durante il caricamento dei feedback:", err);
+      }
+    }
+
+    fetchFeedbacks();
+  }, [userId, selectedSession, supabase]);
+
   const currentSession = sessions.find((s) => s.session_id === selectedSession);
 
   const handleViewDetails = (
@@ -193,6 +237,12 @@ function SessionResultsContent() {
     window.location.href = `/session_results/comment${
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
+  };
+
+  const getQuestionsCountByType = (feedbacks: Feedback[], type: string) => {
+    if (!feedbacks) return 0;
+    return feedbacks.filter((feedback) => feedback.question?.type === type)
+      .length;
   };
 
   if (isLoading) {
@@ -361,6 +411,9 @@ function SessionResultsContent() {
               <p className="text-[#F5A623]">
                 Peso: {currentSession.weight_soft}%
               </p>
+              <p className="text-[#F5A623]">
+                {getQuestionsCountByType(feedbacks, "SOFT")} feedback ricevuti
+              </p>
             </div>
           </div>
 
@@ -379,6 +432,10 @@ function SessionResultsContent() {
               <p className="text-[#00BFA5]">
                 Peso: {currentSession.weight_strategy}%
               </p>
+              <p className="text-[#00BFA5]">
+                {getQuestionsCountByType(feedbacks, "STRATEGY")} feedback
+                ricevuti
+              </p>
             </div>
           </div>
 
@@ -396,6 +453,10 @@ function SessionResultsContent() {
             <div className="space-y-1">
               <p className="text-[#4285F4]">
                 Peso: {currentSession.weight_execution}%
+              </p>
+              <p className="text-[#4285F4]">
+                {getQuestionsCountByType(feedbacks, "EXECUTION")} feedback
+                ricevuti
               </p>
             </div>
           </div>
