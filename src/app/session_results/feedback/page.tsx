@@ -14,6 +14,15 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
 import { FeedbackScoreCard } from "@/components/stats/feedback-score-card";
+import { InitiativesSection } from "@/components/initiatives/initiatives-section";
+import { InitiativeDialog } from "@/components/initiatives/initiative-dialog";
+import {
+  createInitiative,
+  deleteInitiative,
+  getInitiativesByQuestionId,
+  updateInitiative,
+} from "@/lib/supabase/server";
+import { Initiative, InitiativeType } from "@/lib/types/initiatives";
 
 type BaseFeedback = Database["public"]["Tables"]["feedbacks"]["Row"];
 
@@ -116,6 +125,12 @@ function FeedbackContent() {
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [initiatives, setInitiatives] = useState<Initiative[]>([]);
+  const [isInitiativeDialogOpen, setIsInitiativeDialogOpen] = useState(false);
+  const [selectedInitiative, setSelectedInitiative] = useState<
+    Initiative | undefined
+  >();
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
 
   // Ottieni tutte le domande con feedback filtrate per tipo
   const filteredQuestions = useMemo(
@@ -175,6 +190,20 @@ function FeedbackContent() {
 
     loadFeedback();
   }, [sessionId, userId]);
+
+  // Fetch initiatives when question changes
+  useEffect(() => {
+    async function fetchInitiatives() {
+      if (!currentQuestionId) return;
+      try {
+        const data = await getInitiativesByQuestionId(currentQuestionId);
+        setInitiatives(data as Initiative[]);
+      } catch (error) {
+        console.error("Errore nel caricamento delle iniziative:", error);
+      }
+    }
+    fetchInitiatives();
+  }, [currentQuestionId]);
 
   const pageTitle = userName || "I miei Risultati";
 
@@ -240,6 +269,73 @@ function FeedbackContent() {
     window.location.href = `/session_results${
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
+  };
+
+  const handleNewInitiative = () => {
+    if (!currentQuestionId) return;
+    setSelectedInitiative(undefined);
+    setDialogMode("create");
+    setIsInitiativeDialogOpen(true);
+  };
+
+  const handleEditInitiative = (initiative: Initiative) => {
+    setSelectedInitiative(initiative);
+    setDialogMode("edit");
+    setIsInitiativeDialogOpen(true);
+  };
+
+  const handleDeleteInitiative = async (id: string) => {
+    if (!confirm("Sei sicuro di voler eliminare questa iniziativa?")) return;
+    try {
+      const result = await deleteInitiative(id);
+      if (result.success) {
+        setInitiatives((prev) => prev.filter((i) => i.id !== id));
+      } else {
+        alert(result.error || "Errore durante l'eliminazione dell'iniziativa");
+      }
+    } catch (error) {
+      console.error("Errore durante l'eliminazione:", error);
+      alert("Errore durante l'eliminazione dell'iniziativa");
+    }
+  };
+
+  const handleInitiativeSubmit = async (data: { description: string }) => {
+    if (!currentQuestionId || !sessionId || !currentQuestionData) return;
+
+    try {
+      if (dialogMode === "create") {
+        const result = await createInitiative({
+          description: data.description,
+          question_id: currentQuestionId,
+          session_id: sessionId,
+          type: currentQuestionData.question.type as InitiativeType,
+        });
+
+        if (result.success) {
+          const updatedInitiatives = await getInitiativesByQuestionId(
+            currentQuestionId
+          );
+          setInitiatives(updatedInitiatives as Initiative[]);
+        } else {
+          alert(result.error || "Errore durante la creazione dell'iniziativa");
+        }
+      } else if (selectedInitiative) {
+        const result = await updateInitiative(selectedInitiative.id, data);
+        if (result.success) {
+          const updatedInitiatives = await getInitiativesByQuestionId(
+            currentQuestionId
+          );
+          setInitiatives(updatedInitiatives as Initiative[]);
+        } else {
+          alert(
+            result.error || "Errore durante l'aggiornamento dell'iniziativa"
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Errore durante il salvataggio:", error);
+      alert("Errore durante il salvataggio dell'iniziativa");
+    }
   };
 
   if (isLoading) {
@@ -397,6 +493,26 @@ function FeedbackContent() {
                   userId={userId || ""}
                   questionId={currentQuestionId || ""}
                 />
+
+                <InitiativesSection
+                  initiatives={initiatives}
+                  onNewInitiative={handleNewInitiative}
+                  onEditInitiative={handleEditInitiative}
+                  onDeleteInitiative={handleDeleteInitiative}
+                />
+
+                <InitiativeDialog
+                  isOpen={isInitiativeDialogOpen}
+                  onClose={() => setIsInitiativeDialogOpen(false)}
+                  onSubmit={handleInitiativeSubmit}
+                  initiative={selectedInitiative}
+                  questionId={currentQuestionId || ""}
+                  sessionId={sessionId!}
+                  questionType={
+                    currentQuestionData.question.type as InitiativeType
+                  }
+                  mode={dialogMode}
+                />
               </>
             ) : (
               <p className="text-center text-gray-500">
@@ -408,9 +524,6 @@ function FeedbackContent() {
 
         {/* Action Buttons */}
         <div className="mt-6 space-y-4">
-          <button className="w-full bg-emerald-500 text-white py-4 rounded-full text-lg font-medium hover:bg-emerald-600 transition-colors">
-            Crea iniziativa
-          </button>
           <div className="flex gap-4">
             <button
               onClick={goToPreviousQuestion}
