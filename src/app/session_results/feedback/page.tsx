@@ -3,27 +3,63 @@
 import { useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import BottomNav from "@/components/navigation/bottom-nav";
+import Header from "@/components/navigation/header";
+import { getSessionFeedback } from "@/lib/supabase/queries";
+import { Database } from "@/lib/supabase/database.types";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import Header from "@/components/navigation/header";
-import { getSessionFeedback } from "@/lib/supabase/queries";
-import { Database } from "@/lib/supabase/database.types";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
-  sender: { name: string; surname: string };
-  receiver: { name: string; surname: string };
-  question: {
-    description: string;
-    type: string;
-  };
+type BaseFeedback = Database["public"]["Tables"]["feedbacks"]["Row"];
+
+type FeedbackSender = {
+  id: string;
+  name: string;
+  surname: string;
+} | null;
+
+type FeedbackReceiver = {
+  id: string;
+  name: string;
+  surname: string;
+} | null;
+
+type FeedbackQuestion = {
+  id: string;
+  description: string;
+  type: string;
+} | null;
+
+type Feedback = BaseFeedback & {
+  sender: FeedbackSender;
+  receiver: FeedbackReceiver;
+  question: FeedbackQuestion;
 };
 
-type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"];
+type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
+  session_name: string;
+  session_end_time: string | null;
+  val_gap: number | null;
+};
+
+type FeedbacksByQuestion = {
+  question: { id: string; description: string; type: string };
+  feedbacks: Feedback[];
+  overall: number;
+  count: number;
+};
+
+type FeedbackData = {
+  userSession: UserSession | null;
+  feedbacksByQuestion: Record<string, FeedbacksByQuestion>;
+  selfFeedbacksByQuestion: Record<
+    string,
+    Omit<Feedback, "sender" | "receiver">
+  >;
+};
 
 const skillsData = {
   "Strategy Skills": {
@@ -56,78 +92,29 @@ function FeedbackContent() {
   const urlUserId = searchParams.get("userId");
   const userName = searchParams.get("userName");
   const sessionId = searchParams.get("sessionId");
-  const urlSkill = searchParams.get("skill") as SkillKey;
-  const [userId, setUserId] = useState<string | null>(urlUserId);
-  const [selectedSession, setSelectedSession] = useState(
-    "Sessione terminata il 31/12/24"
+  const [userId] = useState<string | null>(urlUserId);
+  const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(
+    null
   );
-  const [selectedSkill, setSelectedSkill] = useState<SkillKey>(
-    urlSkill || "Strategy Skills"
-  );
-  const [feedbackData, setFeedbackData] = useState<{
-    userSession: UserSession | null;
-    feedbacks: Feedback[];
-  } | null>(null);
+  const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClientComponentClient<Database>();
 
-  // Recupera l'userId se non presente nell'URL
+  // Ottieni tutte le domande con feedback
+  const allQuestions = feedbackData
+    ? Object.entries(feedbackData.feedbacksByQuestion).sort(
+        (a, b) => b[1].overall - a[1].overall
+      ) // Ordina per overall decrescente
+    : [];
+
+  // Imposta la prima domanda quando arrivano i dati
   useEffect(() => {
-    async function getUserId() {
-      if (urlUserId) return; // Se c'è già un userId nell'URL, non fare nulla
-
-      try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError) {
-          console.error("Auth error:", authError);
-          setError("Errore di autenticazione");
-          setIsLoading(false);
-          return;
-        }
-
-        if (!user) {
-          console.error("No authenticated user found");
-          setError("Utente non autenticato");
-          setIsLoading(false);
-          return;
-        }
-
-        const { data: userData, error: userError } = await supabase
-          .from("users")
-          .select("id")
-          .eq("auth_id", user.id)
-          .single();
-
-        if (userError) {
-          console.error("User fetch error:", userError);
-          setError("Errore nel recupero dati utente");
-          setIsLoading(false);
-          return;
-        }
-
-        if (!userData) {
-          console.error("No user data found");
-          setError("Utente non trovato nel database");
-          setIsLoading(false);
-          return;
-        }
-
-        console.log("Setting userId from auth:", userData.id);
-        setUserId(userData.id);
-      } catch (err) {
-        console.error("Error in getUserId:", err);
-        setError("Errore nel recupero dell'utente");
-        setIsLoading(false);
-      }
+    if (allQuestions.length > 0) {
+      setCurrentQuestionId(allQuestions[0][0]);
+    } else {
+      setCurrentQuestionId(null);
     }
-
-    getUserId();
-  }, [supabase, urlUserId]);
+  }, [feedbackData]);
 
   useEffect(() => {
     async function loadFeedback() {
@@ -162,8 +149,28 @@ function FeedbackContent() {
     loadFeedback();
   }, [sessionId, userId]);
 
-  const currentSkill = skillsData[selectedSkill];
   const pageTitle = userName || "I miei Risultati";
+
+  // Funzioni di navigazione
+  const goToNextQuestion = () => {
+    if (!currentQuestionId) return;
+    const currentIndex = allQuestions.findIndex(
+      ([id]) => id === currentQuestionId
+    );
+    if (currentIndex < allQuestions.length - 1) {
+      setCurrentQuestionId(allQuestions[currentIndex + 1][0]);
+    }
+  };
+
+  const goToPreviousQuestion = () => {
+    if (!currentQuestionId) return;
+    const currentIndex = allQuestions.findIndex(
+      ([id]) => id === currentQuestionId
+    );
+    if (currentIndex > 0) {
+      setCurrentQuestionId(allQuestions[currentIndex - 1][0]);
+    }
+  };
 
   // Funzione helper per formattare i numeri con 2 decimali
   const formatNumber = (num: number | null): string => {
@@ -195,127 +202,100 @@ function FeedbackContent() {
     );
   }
 
-  const { userSession, feedbacks } = feedbackData;
+  const { userSession } = feedbackData;
+  const currentQuestionData = currentQuestionId
+    ? feedbackData.feedbacksByQuestion[currentQuestionId]
+    : null;
+  const currentSelfFeedback = currentQuestionId
+    ? feedbackData.selfFeedbacksByQuestion[currentQuestionId]
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title={pageTitle} />
 
       <main className="container mx-auto max-w-2xl px-4 py-6 pb-32">
-        {/* Session Selector */}
+        {/* Session Info */}
         <div className="mb-4">
-          <Select value={selectedSession} onValueChange={setSelectedSession}>
-            <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
-              <div className="flex justify-between items-center w-full pr-4">
-                <span className="text-gray-900">{selectedSession}</span>
-                <span className="text-yellow-600 font-medium">
-                  GAP: {formatNumber(userSession?.val_gap)}%
-                </span>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Sessione terminata il 31/12/24">
-                <div className="flex justify-between items-center w-full pr-4">
-                  <span>Sessione terminata il 31/12/24</span>
-                  <span className="text-yellow-600">
-                    GAP: {formatNumber(userSession?.val_gap)}%
-                  </span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Skills Selector */}
-        <div className="mb-6">
-          <Select
-            value={selectedSkill}
-            onValueChange={(value) => setSelectedSkill(value as SkillKey)}
-          >
-            <SelectTrigger className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
-              <div className="flex justify-between items-center w-full pr-4">
-                <span className="text-gray-900">{selectedSkill}</span>
-                <span
-                  className="text-white px-3 py-0.5 rounded-full text-sm font-medium"
-                  style={{ backgroundColor: currentSkill.color }}
-                >
-                  {formatNumber(
-                    Number(
-                      userSession?.[currentSkill.value as keyof UserSession]
-                    )
-                  )}
-                </span>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(skillsData).map(([key, skill]) => (
-                <SelectItem key={key} value={key}>
-                  <div className="flex items-center gap-2 pr-4">
-                    <span>{skill.name}</span>
-                    <span className="text-sm" style={{ color: skill.color }}>
-                      {formatNumber(
-                        Number(userSession?.[skill.value as keyof UserSession])
-                      )}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 shadow-sm">
+            <div className="flex justify-between items-center w-full pr-4">
+              <span className="text-gray-900">
+                Sessione terminata il{" "}
+                {new Date(
+                  userSession.session_end_time || ""
+                ).toLocaleDateString("it-IT")}
+              </span>
+              <span
+                className={`font-medium ${
+                  Number(userSession?.val_gap) > 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                GAP:{" "}
+                {userSession?.val_gap && userSession.val_gap > 0 ? "+" : ""}
+                {formatNumber(userSession?.val_gap)}%
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Question and Rating */}
         <div className="bg-white rounded-[20px] p-6 mb-4">
           <div className="mb-8">
-            <p className="text-lg mb-6">
-              {feedbacks[0]?.question?.description ||
-                "Nessuna domanda disponibile"}
-            </p>
-            <div className="flex justify-center gap-4 px-4">
-              {[1, 2, 3, 3.5, 4].map((rating, index) => (
-                <div key={index} className="flex flex-col items-center">
-                  <div
-                    className={`w-12 h-12 ${
-                      rating <= Number(feedbacks[0]?.value)
-                        ? "text-yellow-400"
-                        : "text-gray-200"
-                    }`}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="w-full h-full"
-                    >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  </div>
+            {currentQuestionData ? (
+              <>
+                <p className="text-lg mb-6">
+                  {currentQuestionData.question.description}
+                </p>
+                <div className="flex justify-center gap-4 px-4">
+                  {[1, 2, 3, 4, 5].map((rating, index) => (
+                    <div key={index} className="flex flex-col items-center">
+                      <div
+                        className={`w-12 h-12 ${
+                          rating <= currentQuestionData.overall
+                            ? "text-yellow-400"
+                            : "text-gray-200"
+                        }`}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-full h-full"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+                <div className="mt-4 text-center text-gray-600">
+                  Domanda{" "}
+                  {allQuestions.findIndex(([id]) => id === currentQuestionId) +
+                    1}{" "}
+                  di {allQuestions.length}
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-gray-500">
+                Nessun feedback disponibile
+              </p>
+            )}
           </div>
 
           {/* Overall Rating */}
           <div className="space-y-4 mt-8">
             <div className="flex justify-between items-center py-2 border-b border-gray-100">
               <span className="text-lg font-semibold">
-                Overall: {formatNumber(Number(userSession?.val_overall))}/5
+                Overall: {formatNumber(currentQuestionData?.overall || 0)}/5
               </span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-              <span className="text-lg">
-                Il mio Mentor:{" "}
-                {formatNumber(
-                  Number(userSession?.[currentSkill.value as keyof UserSession])
-                )}
-                /5
+              <span className="text-sm text-gray-500">
+                {currentQuestionData?.count || 0} feedback validi
               </span>
             </div>
             <div className="flex justify-between items-center py-2">
               <span className="text-lg">
-                Self:{" "}
-                {formatNumber(
-                  Number(userSession?.[currentSkill.self as keyof UserSession])
-                )}
+                Self: {formatNumber(currentSelfFeedback?.value || 0)}
                 /5
               </span>
             </div>
@@ -327,12 +307,15 @@ function FeedbackContent() {
           <div
             className="flex justify-between items-center cursor-pointer hover:opacity-80"
             onClick={() =>
-              (window.location.href = `/session_results/comment?sessionId=${sessionId}&userId=${userId}&skill=${selectedSkill}`)
+              (window.location.href = `/session_results/comment?sessionId=${sessionId}&userId=${userId}`)
             }
           >
             <h3 className="text-lg font-semibold">
-              Hai ricevuto {feedbacks.filter((f) => f.comment).length} commenti,
-              guardali qui:
+              Hai ricevuto{" "}
+              {currentQuestionData?.feedbacks.filter(
+                (f) => f.comment && (f.value ?? 0) > 0
+              ).length || 0}{" "}
+              commenti, guardali qui:
             </h3>
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100">
               <svg
@@ -357,9 +340,40 @@ function FeedbackContent() {
           <button className="w-full bg-emerald-500 text-white py-4 rounded-full text-lg font-medium hover:bg-emerald-600 transition-colors">
             Crea iniziativa
           </button>
-          <button className="w-full bg-blue-500 text-white py-4 rounded-full text-lg font-medium hover:bg-blue-600 transition-colors">
-            Prossima Domanda
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={goToPreviousQuestion}
+              disabled={
+                !currentQuestionId ||
+                allQuestions.findIndex(([id]) => id === currentQuestionId) === 0
+              }
+              className={`flex-1 bg-blue-500 text-white py-4 rounded-full text-lg font-medium transition-colors ${
+                !currentQuestionId ||
+                allQuestions.findIndex(([id]) => id === currentQuestionId) === 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-blue-600"
+              }`}
+            >
+              Domanda Precedente
+            </button>
+            <button
+              onClick={goToNextQuestion}
+              disabled={
+                !currentQuestionId ||
+                allQuestions.findIndex(([id]) => id === currentQuestionId) ===
+                  allQuestions.length - 1
+              }
+              className={`flex-1 bg-blue-500 text-white py-4 rounded-full text-lg font-medium transition-colors ${
+                !currentQuestionId ||
+                allQuestions.findIndex(([id]) => id === currentQuestionId) ===
+                  allQuestions.length - 1
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-blue-600"
+              }`}
+            >
+              Prossima Domanda
+            </button>
+          </div>
         </div>
       </main>
 

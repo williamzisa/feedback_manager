@@ -7,9 +7,10 @@ import type { RuleInsert, RuleUpdate } from "../types/rules";
 import type { PreSessionStats } from "../types/feedbacks";
 
 type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
-  sender: { name: string; surname: string };
-  receiver: { name: string; surname: string };
+  sender: { id: string; name: string; surname: string };
+  receiver: { id: string; name: string; surname: string };
   question: {
+    id: string;
     description: string;
     type: string;
   };
@@ -2031,20 +2032,17 @@ export const queries = {
 export async function getSessionFeedback(sessionId: string, userId: string) {
   const supabase = createClientComponentClient<Database>();
   try {
-    // Prima recupera i dati della sessione utente
+    // Prima recupera i dati della sessione utente e della sessione
     const { data: userSession, error: userSessionError } = await supabase
       .from("user_sessions")
       .select(
         `
         *,
-        sessions (
+        session:sessions (
           id,
           name,
-          start_time,
           end_time,
-          status,
-          company,
-          created_at
+          status
         )
       `
       )
@@ -2060,33 +2058,113 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
       throw userSessionError;
     }
 
-    // Poi recupera i feedback
+    // Poi recupera i feedback con tutti i campi necessari
     const { data: feedbacks, error: feedbacksError } = await supabase
       .from("feedbacks")
       .select(
         `
         *,
-        sender:users!feedbacks_sender_fkey(name, surname),
-        receiver:users!feedbacks_receiver_fkey(name, surname),
-        question:questions(description)
+        sender:users!feedbacks_sender_fkey(
+          id,
+          name, 
+          surname
+        ),
+        receiver:users!feedbacks_receiver_fkey(
+          id,
+          name, 
+          surname
+        ),
+        question:questions(
+          id,
+          description,
+          type
+        )
       `
       )
       .eq("session_id", sessionId)
-      .eq("receiver", userId);
+      .eq("receiver", userId)
+      .not("sender", "eq", userId); // Escludiamo i self-feedback
 
     if (feedbacksError) {
       console.error("Errore nel recupero dei feedback:", feedbacksError);
       throw feedbacksError;
     }
 
+    // Recupera i self-feedback separatamente
+    const { data: selfFeedbacks, error: selfFeedbacksError } = await supabase
+      .from("feedbacks")
+      .select(
+        `
+        *,
+        question:questions(
+          id,
+          description,
+          type
+        )
+      `
+      )
+      .eq("session_id", sessionId)
+      .eq("receiver", userId)
+      .eq("sender", userId);
+
+    if (selfFeedbacksError) {
+      console.error("Errore nel recupero dei self-feedback:", selfFeedbacksError);
+      throw selfFeedbacksError;
+    }
+
+    // Organizziamo i feedback per question_id
+    const feedbacksByQuestion = feedbacks.reduce((acc, feedback) => {
+      const questionId = feedback.question?.id;
+      if (!questionId || !feedback.question) return acc;
+      
+      if (!acc[questionId]) {
+        acc[questionId] = {
+          question: feedback.question,
+          feedbacks: [],
+          overall: 0,
+          count: 0
+        };
+      }
+      
+      // Aggiungiamo solo i feedback con value > 0
+      if (feedback.value && feedback.value > 0) {
+        acc[questionId].feedbacks.push(feedback);
+        acc[questionId].count++;
+        
+        // Ricalcoliamo l'overall solo per i feedback validi
+        const validValues = acc[questionId].feedbacks
+          .map(f => f.value || 0)
+          .filter(v => v > 0);
+        
+        acc[questionId].overall = validValues.length > 0 
+          ? validValues.reduce((a, b) => a + b, 0) / validValues.length 
+          : 0;
+      }
+      
+      return acc;
+    }, {} as Record<string, {
+      question: { id: string; description: string; type: string };
+      feedbacks: typeof feedbacks;
+      overall: number;
+      count: number;
+    }>);
+
+    // Organizziamo i self-feedback per question_id
+    const selfFeedbacksByQuestion = selfFeedbacks.reduce((acc, feedback) => {
+      const questionId = feedback.question?.id;
+      if (!questionId) return acc;
+      acc[questionId] = feedback;
+      return acc;
+    }, {} as Record<string, typeof selfFeedbacks[0]>);
+
     return {
-      userSession,
-      feedbacks: feedbacks.map((feedback) => ({
-        ...feedback,
-        sender: feedback.sender || { name: "", surname: "" },
-        receiver: feedback.receiver || { name: "", surname: "" },
-        question: feedback.question || { description: "" },
-      })) as Feedback[],
+      userSession: {
+        ...userSession,
+        session_name: userSession.session?.name || "",
+        session_end_time: userSession.session?.end_time || null
+      },
+      feedbacksByQuestion,
+      selfFeedbacksByQuestion
     };
   } catch (err) {
     console.error("Errore nel recupero dei feedback:", err);
