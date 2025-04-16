@@ -1335,19 +1335,29 @@ export const queries = {
 
   // Questions
   questions: {
-    getAll: async () => {
-      const supabase = createClientComponentClient<Database>();
+    async getAll() {
+      const supabase = createClientComponentClient<Database>()
       try {
         const { data, error } = await supabase
-          .from("questions")
-          .select("id, description, type, created_at, company")
-          .order("created_at", { ascending: false });
+          .from('questions')
+          .select(`
+            *,
+            tags_count:question_tags(count)
+          `)
+          .order('created_at', { ascending: false })
 
-        if (error) throw error;
-        return data;
+        if (error) {
+          console.error("Errore nel recupero delle domande:", error)
+          throw error
+        }
+
+        return data?.map(question => ({
+          ...question,
+          tags_count: question.tags_count?.[0]?.count || 0
+        })) || []
       } catch (err) {
-        console.error("Errore nel recupero delle domande:", err);
-        throw err;
+        console.error("Errore nella query delle domande:", err)
+        throw err
       }
     },
 
@@ -1991,6 +2001,33 @@ export const queries = {
       }
     }
   },
+
+  tags: {
+    async getForQuestion(questionId: string) {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from("question_tags")
+          .select(`
+            id,
+            score,
+            description
+          `)
+          .eq("question_id", questionId)
+          .order("score", { ascending: true })
+
+        if (error) {
+          console.error("Errore nel recupero dei tag:", error)
+          throw error
+        }
+
+        return data || []
+      } catch (err) {
+        console.error("Errore nella query dei tag:", err)
+        throw err
+      }
+    }
+  }
 };
 
 export async function getSessionFeedback(sessionId: string, userId: string) {

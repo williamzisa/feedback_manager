@@ -7,6 +7,7 @@ import { AuthError } from "@supabase/supabase-js";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -30,11 +31,10 @@ export default function LoginPage() {
       if (error) throw error;
 
       toast.success("Login effettuato con successo");
-      
+
       setTimeout(() => {
         router.push("/");
       }, 500);
-      
     } catch (err) {
       if (err instanceof AuthError) {
         setError(err.message);
@@ -86,13 +86,22 @@ export default function LoginPage() {
             <div className="text-red-500 text-sm text-center">{error}</div>
           )}
 
-          <div>
+          <div className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Accesso in corso..." : "Accedi"}
             </Button>
+
+            <div className="text-center">
+              <Link
+                href="/reset-password"
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Password dimenticata?
+              </Link>
+            </div>
           </div>
         </form>
       </div>
     </div>
   );
-} 
+}

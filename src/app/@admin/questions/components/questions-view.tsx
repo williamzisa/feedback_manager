@@ -16,6 +16,7 @@ import {
 import { QuestionsTable } from "./questions-table";
 import { CreateQuestionDialog } from "./dialogs/create-question-dialog";
 import { EditQuestionDialog } from "./dialogs/edit-question-dialog";
+import { QuestionTagsDialog } from "./dialogs/question-tags-dialog";
 
 export function QuestionsView() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -25,6 +26,10 @@ export function QuestionsView() {
   const [typeFilter, setTypeFilter] = useState<Question["type"] | "ALL">("ALL");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestion, setEditQuestion] = useState<Question | null>(null);
+  const [selectedQuestionIdForTags, setSelectedQuestionIdForTags] = useState<
+    string | null
+  >(null);
+  const [isTagsDialogOpen, setIsTagsDialogOpen] = useState(false);
 
   const fetchQuestions = async () => {
     try {
@@ -50,7 +55,7 @@ export function QuestionsView() {
       await queries.questions.create({
         description: data.text,
         type: data.type,
-        company: currentUser.company || ''
+        company: currentUser.company || "",
       });
       await fetchQuestions();
       return true;
@@ -67,7 +72,7 @@ export function QuestionsView() {
     try {
       await queries.questions.update(id, {
         description: data.text,
-        type: data.type
+        type: data.type,
       });
       await fetchQuestions();
       return true;
@@ -88,6 +93,11 @@ export function QuestionsView() {
     }
   };
 
+  const handleManageTags = async (id: string) => {
+    setSelectedQuestionIdForTags(id);
+    setIsTagsDialogOpen(true);
+  };
+
   const filteredQuestions = questions.filter((question) => {
     const matchesSearch = question.description
       .toLowerCase()
@@ -98,9 +108,13 @@ export function QuestionsView() {
 
   // Calcolo statistiche
   const totalQuestions = questions.length;
-  const softQuestions = questions.filter(q => q.type === 'SOFT').length;
-  const strategyQuestions = questions.filter(q => q.type === 'STRATEGY').length;
-  const executionQuestions = questions.filter(q => q.type === 'EXECUTION').length;
+  const softQuestions = questions.filter((q) => q.type === "SOFT").length;
+  const strategyQuestions = questions.filter(
+    (q) => q.type === "STRATEGY"
+  ).length;
+  const executionQuestions = questions.filter(
+    (q) => q.type === "EXECUTION"
+  ).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,9 +145,21 @@ export function QuestionsView() {
             value={totalQuestions}
             className="bg-white shadow-sm"
           />
-          <StatCard title="Soft Skills" value={softQuestions} className="bg-blue-100" />
-          <StatCard title="Strategy" value={strategyQuestions} className="bg-purple-100" />
-          <StatCard title="Execution" value={executionQuestions} className="bg-green-100" />
+          <StatCard
+            title="Soft Skills"
+            value={softQuestions}
+            className="bg-blue-100"
+          />
+          <StatCard
+            title="Strategy"
+            value={strategyQuestions}
+            className="bg-purple-100"
+          />
+          <StatCard
+            title="Execution"
+            value={executionQuestions}
+            className="bg-green-100"
+          />
         </div>
 
         {error && (
@@ -190,6 +216,7 @@ export function QuestionsView() {
                       setEditQuestion(question);
                     }
                   }}
+                  onManageTags={handleManageTags}
                 />
               </div>
             </div>
@@ -221,6 +248,20 @@ export function QuestionsView() {
             }
           }}
           onClose={() => setEditQuestion(null)}
+        />
+      )}
+
+      {selectedQuestionIdForTags && (
+        <QuestionTagsDialog
+          questionId={selectedQuestionIdForTags}
+          open={isTagsDialogOpen}
+          onOpenChange={(open: boolean) => {
+            setIsTagsDialogOpen(open);
+            if (!open) {
+              setSelectedQuestionIdForTags(null);
+              fetchQuestions(); // Ricarica le domande per aggiornare i conteggi dei tag
+            }
+          }}
         />
       )}
     </div>

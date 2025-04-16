@@ -651,3 +651,113 @@ export async function removeProcessFromTeam(teamId: string, processId: string) {
     return { success: false, error: err instanceof Error ? err.message : "Errore sconosciuto" }
   }
 }
+
+export async function getQuestionTags(questionId: string) {
+  try {
+    const supabase = await getServerSupabase()
+    const { data, error } = await supabase
+      .from("question_tags")
+      .select(`
+        id,
+        score,
+        description
+      `)
+      .eq("question_id", questionId)
+      .order("score", { ascending: true })
+
+    if (error) {
+      console.error("Errore nel recupero dei tag:", error)
+      throw error
+    }
+
+    return data || []
+  } catch (err) {
+    console.error("Errore nella query dei tag:", err)
+    throw err
+  }
+}
+
+export async function createQuestionTag(data: { question_id: string; score: number; description: string }) {
+  try {
+    const currentUser = await getCurrentUser()
+    if (!currentUser.admin) {
+      throw new Error("Non hai i permessi per creare tag")
+    }
+
+    const supabase = await getServerSupabase()
+    const { error } = await supabase
+      .from("question_tags")
+      .insert({
+        id: crypto.randomUUID(),
+        question_id: data.question_id,
+        score: data.score,
+        description: data.description.trim(),
+        company: currentUser.company!
+      })
+
+    if (error) {
+      throw error
+    }
+
+    revalidatePath("/admin/questions")
+    return { success: true }
+  } catch (err) {
+    console.error("Errore nella creazione del tag:", err)
+    return { success: false, error: err instanceof Error ? err.message : "Errore sconosciuto" }
+  }
+}
+
+export async function updateQuestionTag(id: string, data: { score?: number; description?: string }) {
+  try {
+    const currentUser = await getCurrentUser()
+    if (!currentUser.admin) {
+      throw new Error("Non hai i permessi per modificare tag")
+    }
+
+    const supabase = await getServerSupabase()
+    const { error } = await supabase
+      .from("question_tags")
+      .update({
+        ...(data.score !== undefined && { score: data.score }),
+        ...(data.description !== undefined && { description: data.description.trim() })
+      })
+      .eq("id", id)
+      .eq("company", currentUser.company!)
+
+    if (error) {
+      throw error
+    }
+
+    revalidatePath("/admin/questions")
+    return { success: true }
+  } catch (err) {
+    console.error("Errore nell'aggiornamento del tag:", err)
+    return { success: false, error: err instanceof Error ? err.message : "Errore sconosciuto" }
+  }
+}
+
+export async function deleteQuestionTag(id: string) {
+  try {
+    const currentUser = await getCurrentUser()
+    if (!currentUser.admin) {
+      throw new Error("Non hai i permessi per eliminare tag")
+    }
+
+    const supabase = await getServerSupabase()
+    const { error } = await supabase
+      .from("question_tags")
+      .delete()
+      .eq("id", id)
+      .eq("company", currentUser.company!)
+
+    if (error) {
+      throw error
+    }
+
+    revalidatePath("/admin/questions")
+    return { success: true }
+  } catch (err) {
+    console.error("Errore nell'eliminazione del tag:", err)
+    return { success: false, error: err instanceof Error ? err.message : "Errore sconosciuto" }
+  }
+}
