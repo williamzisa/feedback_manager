@@ -7,6 +7,14 @@ import Header from "@/components/navigation/header";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "@/lib/supabase/database.types";
 import { queries } from "@/lib/supabase/queries";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type QuestionTag = Database["public"]["Tables"]["question_tags"]["Row"];
 
@@ -138,6 +146,10 @@ function EvaluateContent() {
   const [isLoadingTags, setIsLoadingTags] = useState(false);
   const [tagsError, setTagsError] = useState<string | null>(null);
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [pendingRatingChange, setPendingRatingChange] = useState<Rating | null>(
+    null
+  );
 
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
@@ -417,16 +429,50 @@ function EvaluateContent() {
   const handleRatingChange = async (newRating: Rating) => {
     if (!currentFeedbacks[currentFeedbackIndex]) return;
 
+    // Se c'è già un valore e un commento, chiedi conferma
+    if (
+      currentFeedbacks[currentFeedbackIndex].value !== null &&
+      currentFeedbacks[currentFeedbackIndex].comment
+    ) {
+      setPendingRatingChange(newRating);
+      setIsConfirmDialogOpen(true);
+      return;
+    }
+
+    // Impostiamo il rating visivamente senza salvarlo nel database
     setRating(newRating);
+
+    // Reset del commento nell'interfaccia
+    setComment("");
+    setHasCommentChanged(false);
+
+    // Imposta il value a NULL nel database
+    await resetRatingInDatabase();
+  };
+
+  const resetRatingInDatabase = async () => {
+    if (!currentFeedbacks[currentFeedbackIndex]) return;
+
     const supabase = createClientComponentClient<Database>();
     const currentUser = await queries.users.getCurrentUser();
 
+    // Imposta il value a NULL nel database
     await supabase
       .from("feedbacks")
       .update({
-        value: newRating,
+        value: null,
+        comment: null,
       })
       .eq("id", currentFeedbacks[currentFeedbackIndex].id);
+
+    // Aggiorna il feedback locale
+    const updatedLocalFeedbacks = [...currentFeedbacks];
+    updatedLocalFeedbacks[currentFeedbackIndex] = {
+      ...updatedLocalFeedbacks[currentFeedbackIndex],
+      value: null,
+      comment: null,
+    };
+    setCurrentFeedbacks(updatedLocalFeedbacks);
 
     // Aggiorna immediatamente i conteggi locali
     const { data: updatedFeedbacks } = await supabase
@@ -466,14 +512,22 @@ function EvaluateContent() {
         setSkills(updateSkillsList(updatedFeedbacks, personId));
       }
     }
+  };
 
-    // Aggiorna il feedback locale
-    const updatedLocalFeedbacks = [...currentFeedbacks];
-    updatedLocalFeedbacks[currentFeedbackIndex] = {
-      ...updatedLocalFeedbacks[currentFeedbackIndex],
-      value: newRating,
-    };
-    setCurrentFeedbacks(updatedLocalFeedbacks);
+  const handleConfirmRatingChange = async () => {
+    if (pendingRatingChange !== null) {
+      // Reset del commento nell'interfaccia
+      setComment("");
+      setHasCommentChanged(false);
+
+      // Impostiamo il rating visivamente
+      setRating(pendingRatingChange);
+
+      // Reset del valore nel database
+      await resetRatingInDatabase();
+      setPendingRatingChange(null);
+    }
+    setIsConfirmDialogOpen(false);
   };
 
   const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -674,13 +728,39 @@ function EvaluateContent() {
       return;
     }
 
-    setCommentError(null);
-    if (currentFeedbackIndex < currentFeedbacks.length - 1) {
-      setCurrentFeedbackIndex(currentFeedbackIndex + 1);
-      setRating(0);
-      setComment("");
-      setHasCommentChanged(false);
-    }
+    saveCurrentFeedback().then(() => {
+      setCommentError(null);
+      if (currentFeedbackIndex < currentFeedbacks.length - 1) {
+        setCurrentFeedbackIndex(currentFeedbackIndex + 1);
+        setRating(0);
+        setComment("");
+        setHasCommentChanged(false);
+      }
+    });
+  };
+
+  const saveCurrentFeedback = async () => {
+    if (!currentFeedbacks[currentFeedbackIndex]) return;
+
+    const supabase = createClientComponentClient<Database>();
+
+    // Salva il rating effettivo e il commento
+    await supabase
+      .from("feedbacks")
+      .update({
+        value: rating,
+        comment: comment || null,
+      })
+      .eq("id", currentFeedbacks[currentFeedbackIndex].id);
+
+    // Aggiorna il feedback locale
+    const updatedLocalFeedbacks = [...currentFeedbacks];
+    updatedLocalFeedbacks[currentFeedbackIndex] = {
+      ...updatedLocalFeedbacks[currentFeedbackIndex],
+      value: rating,
+      comment: comment || null,
+    };
+    setCurrentFeedbacks(updatedLocalFeedbacks);
   };
 
   // Modifica dei click handler per i dropdown
@@ -886,24 +966,15 @@ function EvaluateContent() {
                   {/* Star Rating - Mostra solo se value è null o tra 1-5 */}
                   {(currentFeedback.value === null ||
                     currentFeedback.value > 0) && (
-                    <div className="flex justify-center w-full sm:w-auto gap-1 sm:gap-2">
+                    <div className="flex justify-center w-full sm:w-auto gap-3 sm:gap-6">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           key={star}
                           onClick={() => handleRatingChange(star as Rating)}
-                          disabled={currentFeedback.value !== null}
-                          className={`text-xl sm:text-2xl transition-transform ${
-                            currentFeedback.value === null
-                              ? "hover:scale-110"
-                              : ""
-                          } ${
-                            currentFeedback.value !== null
-                              ? "cursor-default"
-                              : ""
-                          }`}
+                          className={`text-2xl sm:text-4xl transition-transform hover:scale-110`}
                         >
                           <svg
-                            className={`w-6 h-6 sm:w-8 sm:h-8 ${
+                            className={`w-10 h-10 sm:w-14 sm:h-14 ${
                               rating >= star
                                 ? "text-[#F4B400]"
                                 : "text-gray-300"
@@ -945,53 +1016,53 @@ function EvaluateContent() {
                 {currentFeedback.value !== null && (
                   <button
                     onClick={handleCancelRating}
-                    className="w-full sm:w-auto py-2 px-3 sm:px-4 rounded-full transition-colors whitespace-nowrap text-sm sm:text-base flex-shrink-0 border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                    className="w-full sm:w-auto py-2 px-3 sm:px-4 rounded-full transition-colors whitespace-nowrap text-sm sm:text-base flex-shrink-0 border border-red-500 bg-white text-red-500 hover:bg-red-50"
                   >
                     ANNULLA VALUTAZIONE
                   </button>
                 )}
               </div>
 
-              {/* Tags Display - Add after Rating Section */}
-              {currentFeedback.value !== null && currentFeedback.value > 0 && (
-                <QuestionTagsDisplay
-                  tags={currentTags}
-                  selectedRating={rating}
-                  onTagClick={handleTagClick}
-                  isLoading={isLoadingTags}
-                  error={tagsError}
-                />
-              )}
-
               {/* Comment Box */}
-              {currentFeedback && currentFeedback.value !== null && (
-                <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-4 sm:mb-6">
-                  <div className="relative">
-                    <textarea
-                      ref={textareaRef}
-                      value={comment}
-                      onChange={handleCommentChange}
-                      placeholder="Aggiungi un commento qui.."
-                      className={`w-full min-h-[80px] resize-none focus:outline-none text-gray-700 p-2 pb-12 bg-white overflow-hidden ${
-                        commentError ? "border-red-500" : "border-gray-200"
-                      }`}
-                      rows={1}
-                    />
-                    {commentError && (
-                      <p className="text-sm text-red-500">{commentError}</p>
-                    )}
-                    <div className="absolute bottom-3 right-2">
-                      {hasCommentChanged && (
-                        <button
-                          onClick={handleSaveComment}
-                          className="px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors text-base shadow-sm"
-                        >
-                          Salva
-                        </button>
+              {currentFeedback && rating > 0 && (
+                <>
+                  {/* Tags Display - Add before Comment Box */}
+                  <QuestionTagsDisplay
+                    tags={currentTags}
+                    selectedRating={rating}
+                    onTagClick={handleTagClick}
+                    isLoading={isLoadingTags}
+                    error={tagsError}
+                  />
+
+                  <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-4 sm:mb-6">
+                    <div className="relative">
+                      <textarea
+                        ref={textareaRef}
+                        value={comment}
+                        onChange={handleCommentChange}
+                        placeholder="Aggiungi un commento qui.."
+                        className={`w-full min-h-[80px] resize-none focus:outline-none text-gray-700 p-2 pb-12 bg-white overflow-hidden ${
+                          commentError ? "border-red-500" : "border-gray-200"
+                        }`}
+                        rows={1}
+                      />
+                      {commentError && (
+                        <p className="text-sm text-red-500">{commentError}</p>
                       )}
+                      <div className="absolute bottom-3 right-2">
+                        {hasCommentChanged && (
+                          <button
+                            onClick={handleSaveComment}
+                            className="px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors text-base shadow-sm"
+                          >
+                            Salva
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* Question Counter */}
@@ -1013,13 +1084,13 @@ function EvaluateContent() {
                   <button
                     onClick={handleNext}
                     disabled={
-                      currentFeedback?.value === null ||
-                      (currentFeedback?.value > 0 && !comment.trim()) ||
+                      rating === 0 ||
+                      (rating > 0 && !comment.trim()) ||
                       hasCommentChanged
                     }
                     className={`flex-1 py-3 rounded-full text-lg font-medium transition-colors ${
-                      currentFeedback?.value === null ||
-                      (currentFeedback?.value > 0 && !comment.trim()) ||
+                      rating === 0 ||
+                      (rating > 0 && !comment.trim()) ||
                       hasCommentChanged
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-[#4285F4] text-white hover:bg-[#3367D6]"
@@ -1035,6 +1106,33 @@ function EvaluateContent() {
       </main>
 
       <BottomNav />
+
+      {/* Confirmation Dialog */}
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Conferma modifica valutazione</DialogTitle>
+            <DialogDescription>
+              Modificando la valutazione, il commento associato verrà eliminato
+              e dovrai inserirne uno nuovo. Sei sicuro di voler procedere?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <button
+              onClick={() => setIsConfirmDialogOpen(false)}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Annulla
+            </button>
+            <button
+              onClick={handleConfirmRatingChange}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600"
+            >
+              Conferma
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
