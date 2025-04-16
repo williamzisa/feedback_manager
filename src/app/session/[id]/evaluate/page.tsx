@@ -909,7 +909,13 @@ function EvaluateContent() {
           >
             <span className="text-lg font-medium">{selectedSkill}</span>
             <div className="flex items-center gap-2">
-              <span className="text-[#F4B400] text-sm">
+              <span
+                className={`text-sm ${
+                  currentSkill?.remainingFeedback === 0
+                    ? "text-green-500"
+                    : "text-red-500"
+                }`}
+              >
                 {currentSkill?.remainingFeedback} rimanenti
               </span>
               <svg
@@ -942,7 +948,13 @@ function EvaluateContent() {
                   >
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-medium">{skill.type}</span>
-                      <span className="text-[#F4B400] text-sm">
+                      <span
+                        className={`text-sm ${
+                          skill.remainingFeedback === 0
+                            ? "text-green-500"
+                            : "text-red-500"
+                        }`}
+                      >
                         {skill.remainingFeedback} rimanenti
                       </span>
                     </div>
@@ -1072,9 +1084,38 @@ function EvaluateContent() {
 
               {/* Navigation Buttons */}
               <div className="flex gap-4">
-                {currentFeedbackIndex > 0 && (
+                {currentFeedbackIndex === currentFeedbacks.length - 1 ? (
+                  <button
+                    onClick={() => router.push(`/session/${sessionId}`)}
+                    disabled={
+                      hasCommentChanged ||
+                      (currentFeedback.value === null && rating === 0) ||
+                      (currentFeedback.value === null &&
+                        rating > 0 &&
+                        !comment.trim())
+                    }
+                    className={`flex-1 py-3 rounded-full text-lg font-medium transition-colors ${
+                      hasCommentChanged ||
+                      (currentFeedback.value === null && rating === 0) ||
+                      (currentFeedback.value === null &&
+                        rating > 0 &&
+                        !comment.trim())
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    }`}
+                  >
+                    VAI ALLA SESSIONE
+                  </button>
+                ) : currentFeedbackIndex > 0 ? (
                   <button
                     onClick={handlePrevious}
+                    className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  >
+                    INDIETRO
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => router.push(`/session/${sessionId}`)}
                     className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
                   >
                     INDIETRO
@@ -1084,14 +1125,18 @@ function EvaluateContent() {
                   <button
                     onClick={handleNext}
                     disabled={
-                      rating === 0 ||
-                      (rating > 0 && !comment.trim()) ||
-                      hasCommentChanged
+                      hasCommentChanged ||
+                      (currentFeedback.value === null && rating === 0) ||
+                      (currentFeedback.value === null &&
+                        rating > 0 &&
+                        !comment.trim())
                     }
                     className={`flex-1 py-3 rounded-full text-lg font-medium transition-colors ${
-                      rating === 0 ||
-                      (rating > 0 && !comment.trim()) ||
-                      hasCommentChanged
+                      hasCommentChanged ||
+                      (currentFeedback.value === null && rating === 0) ||
+                      (currentFeedback.value === null &&
+                        rating > 0 &&
+                        !comment.trim())
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-[#4285F4] text-white hover:bg-[#3367D6]"
                     }`}
