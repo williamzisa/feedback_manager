@@ -24,10 +24,14 @@ export function TeamsView() {
       setIsLoading(true);
       setError(null);
       const data = await queries.teams.getAll();
-      setTeams(data);
+      setTeams(data as Team[]);
     } catch (err) {
-      console.error('Errore nel caricamento dei team:', err);
-      setError(err instanceof Error ? err.message : 'Errore nel caricamento dei team. Controlla la console per i dettagli.');
+      console.error("Errore nel caricamento dei team:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Errore nel caricamento dei team. Controlla la console per i dettagli."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -38,7 +42,7 @@ export function TeamsView() {
       const clusters = await queries.clusters.getAll();
       setTotalClusters(clusters.length);
     } catch (err) {
-      console.error('Errore nel caricamento dei cluster:', err);
+      console.error("Errore nel caricamento dei cluster:", err);
     }
   };
 
@@ -57,7 +61,10 @@ export function TeamsView() {
   // Calcola le statistiche
   const totalTeams = teams.length;
   const projectTeams = teams.filter((t) => t.is_project).length;
-  const totalMembers = teams.reduce((acc, team) => acc + (team.user_teams?.length || 0), 0);
+  const totalMembers = teams.reduce(
+    (acc, team) => acc + (team.user_teams?.length || 0),
+    0
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -125,10 +132,10 @@ export function TeamsView() {
                 Nuovo Team
               </Button>
             </div>
-            <TeamsTable 
-              teams={filteredTeams} 
+            <TeamsTable
+              teams={filteredTeams}
               onSuccess={loadTeams}
-              isLoading={isLoading} 
+              isLoading={isLoading}
             />
           </div>
         </div>

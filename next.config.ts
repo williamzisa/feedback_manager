@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   typescript: {
     // Ignora errori di TypeScript durante la build
     // per permettere all'app di avviarsi anche con problemi di tipizzazione
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   }
 };
 
