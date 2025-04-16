@@ -23,6 +23,7 @@ import {
   updateInitiative,
 } from "@/lib/supabase/server";
 import { Initiative, InitiativeType } from "@/lib/types/initiatives";
+import { CommentsDialog } from "@/components/feedback/comments-dialog";
 
 type BaseFeedback = Database["public"]["Tables"]["feedbacks"]["Row"];
 
@@ -82,9 +83,10 @@ function FeedbackContent() {
   const userName = searchParams.get("userName");
   const sessionId = searchParams.get("sessionId");
   const urlSkillType = searchParams.get("skill");
+  const urlQuestionId = searchParams.get("questionId");
   const [userId] = useState<string | null>(urlUserId);
   const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(
-    null
+    urlQuestionId
   );
 
   // Mapping tra i tipi visualizzati e i tipi del backend
@@ -127,6 +129,7 @@ function FeedbackContent() {
   const [error, setError] = useState<string | null>(null);
   const [initiatives, setInitiatives] = useState<Initiative[]>([]);
   const [isInitiativeDialogOpen, setIsInitiativeDialogOpen] = useState(false);
+  const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
   const [selectedInitiative, setSelectedInitiative] = useState<
     Initiative | undefined
   >();
@@ -480,25 +483,26 @@ function FeedbackContent() {
                   di {filteredQuestions.length}
                 </div>
 
-                <FeedbackScoreCard
-                  overall={currentQuestionData.overall}
-                  self={currentSelfFeedback?.value || 0}
-                  mentor={userSession?.mentor_value || 0}
-                  commentCount={
-                    currentQuestionData.feedbacks.filter(
-                      (f) => f.comment !== null
-                    ).length
-                  }
-                  sessionId={sessionId || ""}
-                  userId={userId || ""}
-                  questionId={currentQuestionId || ""}
-                />
+                <div className="mt-8">
+                  <FeedbackScoreCard
+                    overall={currentQuestionData.overall}
+                    self={currentSelfFeedback?.value || 0}
+                    mentor={userSession?.mentor_value || 0}
+                    commentCount={
+                      currentQuestionData.feedbacks.filter(
+                        (f) => f.comment !== null
+                      ).length
+                    }
+                    onViewComments={() => setIsCommentsDialogOpen(true)}
+                  />
+                </div>
 
                 <InitiativesSection
                   initiatives={initiatives}
                   onNewInitiative={handleNewInitiative}
                   onEditInitiative={handleEditInitiative}
                   onDeleteInitiative={handleDeleteInitiative}
+                  buttonClassName="h-10 text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 />
 
                 <InitiativeDialog
@@ -512,6 +516,16 @@ function FeedbackContent() {
                     currentQuestionData.question.type as InitiativeType
                   }
                   mode={dialogMode}
+                />
+
+                <CommentsDialog
+                  isOpen={isCommentsDialogOpen}
+                  onClose={() => setIsCommentsDialogOpen(false)}
+                  sessionId={sessionId || ""}
+                  userId={userId || ""}
+                  questionId={currentQuestionId || ""}
+                  questionDescription={currentQuestionData.question.description}
+                  onCreateInitiative={handleNewInitiative}
                 />
               </>
             ) : (

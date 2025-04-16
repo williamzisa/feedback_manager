@@ -8,6 +8,7 @@ interface InitiativesSectionProps {
   onNewInitiative: () => void;
   onEditInitiative: (initiative: Initiative) => void;
   onDeleteInitiative: (id: string) => void;
+  buttonClassName?: string;
 }
 
 export function InitiativesSection({
@@ -15,6 +16,7 @@ export function InitiativesSection({
   onNewInitiative,
   onEditInitiative,
   onDeleteInitiative,
+  buttonClassName,
 }: InitiativesSectionProps) {
   return (
     <div className="mt-6">
@@ -23,7 +25,9 @@ export function InitiativesSection({
         <Button
           onClick={onNewInitiative}
           variant="default"
-          className="bg-emerald-500 hover:bg-emerald-600"
+          className={`bg-emerald-500 hover:bg-emerald-600 ${
+            buttonClassName || ""
+          }`}
           size="sm"
         >
           <Plus className="h-4 w-4 mr-2" />
