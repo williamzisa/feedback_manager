@@ -18,16 +18,31 @@ export function ProcessesView() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [userCompany, setUserCompany] = useState<string | null>(null);
 
   const loadProcesses = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await queries.processes.getAll();
+
+      // Prima otteniamo l'utente corrente per trovare la sua company
+      const currentUser = await queries.users.getCurrentUserClient();
+      if (!currentUser || !currentUser.company) {
+        throw new Error("Utente non autorizzato o company non configurata");
+      }
+
+      setUserCompany(currentUser.company);
+
+      // Poi recuperiamo i processi filtrando per company
+      const data = await queries.processes.getByCompany(currentUser.company);
       setProcesses(data);
     } catch (err) {
-      console.error('Errore nel caricamento dei processi:', err);
-      setError(err instanceof Error ? err.message : 'Errore nel caricamento dei processi');
+      console.error("Errore nel caricamento dei processi:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Errore nel caricamento dei processi"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -44,9 +59,8 @@ export function ProcessesView() {
   // Calcola le statistiche
   const totalProcesses = processes.length;
   const totalUsers = processes.reduce((acc, p) => acc + p.user_count, 0);
-  const averageUsersPerProcess = totalProcesses > 0 
-    ? Math.round(totalUsers / totalProcesses) 
-    : 0;
+  const averageUsersPerProcess =
+    totalProcesses > 0 ? Math.round(totalUsers / totalProcesses) : 0;
 
   const handleCreateSuccess = () => {
     loadProcesses();
@@ -136,7 +150,10 @@ export function ProcessesView() {
                 Caricamento processi...
               </div>
             ) : (
-              <ProcessesTable processes={filteredProcesses} onEdit={handleEdit} />
+              <ProcessesTable
+                processes={filteredProcesses}
+                onEdit={handleEdit}
+              />
             )}
           </div>
         </div>
@@ -145,6 +162,7 @@ export function ProcessesView() {
           open={isCreateDialogOpen}
           onOpenChange={setIsCreateDialogOpen}
           onSuccess={handleCreateSuccess}
+          userCompany={userCompany}
         />
 
         <EditProcessDialog
@@ -152,6 +170,7 @@ export function ProcessesView() {
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           onSuccess={handleEditSuccess}
+          userCompany={userCompany}
         />
       </main>
     </div>

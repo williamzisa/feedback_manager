@@ -1,75 +1,108 @@
-'use client'
+"use client";
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ProcessForm } from "../forms/process-form"
-import type { Process, ProcessFormData } from "@/lib/types/processes"
-import { queries } from "@/lib/supabase/queries"
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ProcessForm } from "../forms/process-form";
+import type { Process, ProcessFormData } from "@/lib/types/processes";
+import { queries } from "@/lib/supabase/queries";
 
 interface EditProcessDialogProps {
-  process: Process | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSuccess?: () => void
+  process: Process | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+  userCompany: string | null;
 }
 
 export function EditProcessDialog({
   process,
   open,
   onOpenChange,
-  onSuccess
+  onSuccess,
+  userCompany,
 }: EditProcessDialogProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (data: ProcessFormData) => {
     try {
-      if (!process) return
-      
-      setIsLoading(true)
-      setError(null)
+      if (!process) return;
+      if (!userCompany) {
+        throw new Error("Company non configurata per questo utente");
+      }
+
+      // Verifica che il processo appartenga alla company dell'utente
+      if (process.company !== userCompany) {
+        throw new Error("Non sei autorizzato a modificare questo processo");
+      }
+
+      setIsLoading(true);
+      setError(null);
 
       await queries.processes.update(process.id, {
         name: data.name.trim(),
-        linked_question_id: data.linked_question_id
-      })
-      
-      onOpenChange(false)
-      onSuccess?.()
+        linked_question_id: data.linked_question_id,
+      });
+
+      onOpenChange(false);
+      onSuccess?.();
     } catch (err) {
-      console.error('Errore:', err)
-      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento del processo')
+      console.error("Errore:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Errore durante l'aggiornamento del processo"
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
     try {
-      if (!process) return
-      
-      setIsLoading(true)
-      setError(null)
+      if (!process) return;
+      if (!userCompany) {
+        throw new Error("Company non configurata per questo utente");
+      }
 
-      await queries.processes.delete(process.id)
-      
-      onOpenChange(false)
-      onSuccess?.()
+      // Verifica che il processo appartenga alla company dell'utente
+      if (process.company !== userCompany) {
+        throw new Error("Non sei autorizzato a eliminare questo processo");
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      await queries.processes.delete(process.id);
+
+      onOpenChange(false);
+      onSuccess?.();
     } catch (err) {
-      console.error('Errore:', err)
-      setError(err instanceof Error ? err.message : 'Errore durante l\'eliminazione del processo')
+      console.error("Errore:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Errore durante l'eliminazione del processo"
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  if (!process) return null
+  if (!process) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold">Modifica Processo</DialogTitle>
+          <DialogTitle className="text-2xl font-semibold">
+            Modifica Processo
+          </DialogTitle>
         </DialogHeader>
         <div className="mt-6">
           {error && (
@@ -87,5 +120,5 @@ export function EditProcessDialog({
         </div>
       </DialogContent>
     </Dialog>
-  )
-} 
+  );
+}

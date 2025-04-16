@@ -18,8 +18,8 @@ export function UsersView() {
   const [mentorFilter, setMentorFilter] = useState("");
 
   const { data: users = [], refetch } = useQuery({
-    queryKey: ['users'],
-    queryFn: queries.users.getAll
+    queryKey: ["users"],
+    queryFn: queries.users.getAllByCompany,
   });
 
   // Filtra gli utenti in base ai criteri di ricerca
@@ -27,16 +27,16 @@ export function UsersView() {
     // Funzione per trovare il mentor di un utente
     const findMentor = (mentorId: string | null) => {
       if (!mentorId) return null;
-      return users.find(u => u.id === mentorId);
+      return users.find((u) => u.id === mentorId);
     };
 
     return users.filter((user) => {
       const userName = `${user.name} ${user.surname}`.toLowerCase();
       const userEmail = user.email.toLowerCase();
       const mentor = findMentor(user.mentor);
-      const mentorName = mentor 
+      const mentorName = mentor
         ? `${mentor.name} ${mentor.surname}`.toLowerCase()
-        : '';
+        : "";
       const searchUser = userFilter.toLowerCase();
       const searchMentor = mentorFilter.toLowerCase();
 
@@ -51,9 +51,9 @@ export function UsersView() {
   // Calcola le statistiche sui risultati filtrati
   const totalUsers = filteredUsers.length;
   const totalMentors = filteredUsers.filter((u) => u.mentor).length;
-  const activeUsers = filteredUsers.filter((u) => u.status === 'active').length;
+  const activeUsers = filteredUsers.filter((u) => u.status === "active").length;
   const activeMentors = filteredUsers.filter(
-    (u) => u.mentor && u.status === 'active'
+    (u) => u.mentor && u.status === "active"
   ).length;
 
   return (

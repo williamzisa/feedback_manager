@@ -1,41 +1,48 @@
-'use client'
+"use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Edit } from 'lucide-react'
-import type { User } from '@/lib/types/users'
-import { Badge } from '@/components/ui/badge'
-import { useQuery } from '@tanstack/react-query'
-import { queries } from '@/lib/supabase/queries'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
+import type { User } from "@/lib/types/users";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/lib/supabase/queries";
 
 interface UsersTableProps {
-  users: User[]
-  onEdit: (user: User) => void
+  users: User[];
+  onEdit: (user: User) => void;
 }
 
 export function UsersTable({ users, onEdit }: UsersTableProps) {
   // Ottieni tutti gli utenti per trovare i mentor
   const { data: allUsers = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: queries.users.getAll
+    queryKey: ["users"],
+    queryFn: queries.users.getAllByCompany,
   });
 
   // Ottieni tutti i livelli
   const { data: levels = [] } = useQuery({
-    queryKey: ['levels'],
-    queryFn: queries.levels.getAll
+    queryKey: ["levels"],
+    queryFn: queries.levels.getAll,
   });
 
   // Funzione per trovare il mentor di un utente
   const findMentor = (mentorId: string | null) => {
     if (!mentorId) return null;
-    return allUsers.find(u => u.id === mentorId);
+    return allUsers.find((u) => u.id === mentorId);
   };
 
   // Funzione per trovare il livello di un utente
   const findLevel = (levelId: string | null) => {
     if (!levelId) return null;
-    return levels.find(l => l.id === levelId);
+    return levels.find((l) => l.id === levelId);
   };
 
   return (
@@ -58,12 +65,24 @@ export function UsersTable({ users, onEdit }: UsersTableProps) {
               <TableRow key={user.id}>
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="font-medium">{user.name} {user.surname}</div>
+                    <div className="font-medium">
+                      {user.name} {user.surname}
+                    </div>
                     <div className="text-sm text-gray-500">{user.email}</div>
                     {/* Info aggiuntive visibili solo su mobile */}
                     <div className="md:hidden space-y-1 text-sm text-gray-500">
-                      <div>Mentor: {mentor ? `${mentor.name} ${mentor.surname}` : 'Nessun mentor'}</div>
-                      <div>Livello: {level ? `${level.role} ${level.step}` : 'Non specificato'}</div>
+                      <div>
+                        Mentor:{" "}
+                        {mentor
+                          ? `${mentor.name} ${mentor.surname}`
+                          : "Nessun mentor"}
+                      </div>
+                      <div>
+                        Livello:{" "}
+                        {level
+                          ? `${level.role} ${level.step}`
+                          : "Non specificato"}
+                      </div>
                       <div>Stato: {user.status}</div>
                     </div>
                   </div>
@@ -85,13 +104,15 @@ export function UsersTable({ users, onEdit }: UsersTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  <Badge variant={user.status === 'active' ? "default" : "secondary"}>
-                    {user.status === 'active' ? 'Attivo' : 'Inattivo'}
+                  <Badge
+                    variant={user.status === "active" ? "default" : "secondary"}
+                  >
+                    {user.status === "active" ? "Attivo" : "Inattivo"}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="icon"
                     onClick={() => onEdit(user)}
                   >
@@ -111,5 +132,5 @@ export function UsersTable({ users, onEdit }: UsersTableProps) {
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

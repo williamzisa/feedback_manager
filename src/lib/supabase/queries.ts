@@ -161,6 +161,59 @@ export const queries = {
       }
     },
 
+    getAllByCompany: async () => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Prima otteniamo l'utente corrente per trovare la sua company
+        const currentUser = await queries.users.getCurrentUserClient();
+        
+        if (!currentUser || !currentUser.company) {
+          throw new Error("Utente non autorizzato o company non configurata");
+        }
+
+        // Poi recuperiamo tutti gli utenti della stessa company
+        const { data, error } = await supabase
+          .from("users")
+          .select(
+            `
+            id,
+            name,
+            surname,
+            email,
+            level,
+            mentor,
+            company,
+            admin,
+            status,
+            auth_id,
+            created_at,
+            last_login
+          `
+          )
+          .eq("company", currentUser.company)
+          .order("name");
+
+        if (error) {
+          console.error("Errore nel recupero degli utenti:", error.message);
+          throw new Error(`Errore nel recupero degli utenti: ${error.message}`);
+        }
+
+        if (!data) {
+          console.error("Nessun dato ricevuto dal database");
+          throw new Error("Nessun dato ricevuto dal database");
+        }
+
+        return data;
+      } catch (err) {
+        console.error("Errore nel recupero degli utenti per company:", err);
+        throw new Error(
+          err instanceof Error
+            ? err.message
+            : "Errore sconosciuto nel recupero degli utenti per company"
+        );
+      }
+    },
+
     getById: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
       const { data, error } = await supabase
@@ -280,7 +333,7 @@ export const queries = {
       }
     },
 
-    getByCompany: async (company: string) => {
+    getByCompany: async (companyId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data, error } = await supabase
@@ -301,22 +354,26 @@ export const queries = {
             last_login
           `
           )
-          .eq("company", company)
-          .eq("status", "active")
+          .eq("company", companyId)
           .order("name");
 
         if (error) {
-          console.error("Errore nel recupero degli utenti:", error.message);
-          throw new Error(`Errore nel recupero degli utenti: ${error.message}`);
+          console.error("Errore nel recupero degli utenti per company:", error.message);
+          throw new Error(`Errore nel recupero degli utenti per company: ${error.message}`);
         }
 
-        return data || [];
+        if (!data) {
+          console.error("Nessun dato ricevuto dal database");
+          throw new Error("Nessun dato ricevuto dal database");
+        }
+
+        return data;
       } catch (err) {
-        console.error("Errore nel recupero degli utenti:", err);
+        console.error("Errore nel recupero degli utenti per company:", err);
         throw new Error(
           err instanceof Error
             ? err.message
-            : "Errore sconosciuto nel recupero degli utenti"
+            : "Errore sconosciuto nel recupero degli utenti per company"
         );
       }
     },
@@ -357,7 +414,7 @@ export const queries = {
               new Date(a.created_at).getTime()
             );
           }),
-        }));
+        })) || [];
 
         return { data: processedData, error: null };
       } catch (err) {
@@ -1494,6 +1551,47 @@ export const queries = {
       }
     },
 
+    getByCompany: async (companyId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from("processes")
+          .select(
+            `
+            *,
+            user_processes (
+              id,
+              user_id
+            ),
+            questions!processes_linked_question_id_fkey (
+              id,
+              description
+            )
+          `
+          )
+          .eq("company", companyId)
+          .order("name");
+
+        if (error) {
+          console.error("Errore nel recupero dei processi per company:", error);
+          throw error;
+        }
+
+        return data.map((process) => ({
+          id: process.id,
+          name: process.name,
+          linked_question_id: process.linked_question_id,
+          linked_question: process.questions,
+          user_count: process.user_processes?.length || 0,
+          company: process.company,
+          created_at: process.created_at,
+        }));
+      } catch (err) {
+        console.error("Errore nel recupero dei processi per company:", err);
+        throw err;
+      }
+    },
+
     create: async (processData: {
       name: string;
       linked_question_id: string;
@@ -1554,6 +1652,28 @@ export const queries = {
     ) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifichiamo che il processo appartenga alla company dell'utente
+        const { data: processCheck, error: checkError } = await supabase
+          .from("processes")
+          .select("company")
+          .eq("id", id)
+          .single();
+
+        if (checkError) {
+          console.error("Errore nella verifica del processo:", checkError);
+          throw checkError;
+        }
+
+        if (processCheck.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a modificare questo processo");
+        }
+
         const { data, error } = await supabase
           .from("processes")
           .update({
@@ -1561,6 +1681,7 @@ export const queries = {
             linked_question_id: processData.linked_question_id,
           })
           .eq("id", id)
+          .eq("company", currentUser.company) // Verifica ulteriore
           .select(
             `
             *,
@@ -1599,6 +1720,28 @@ export const queries = {
     delete: async (id: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Verifichiamo che il processo appartenga alla company dell'utente
+        const { data: processCheck, error: checkError } = await supabase
+          .from("processes")
+          .select("company")
+          .eq("id", id)
+          .single();
+
+        if (checkError) {
+          console.error("Errore nella verifica del processo:", checkError);
+          throw checkError;
+        }
+
+        if (processCheck.company !== currentUser.company) {
+          throw new Error("Non sei autorizzato a eliminare questo processo");
+        }
+
         // Prima elimino le associazioni user_processes
         const { error: userProcessesError } = await supabase
           .from("user_processes")
@@ -1617,7 +1760,8 @@ export const queries = {
         const { error: processError } = await supabase
           .from("processes")
           .delete()
-          .eq("id", id);
+          .eq("id", id)
+          .eq("company", currentUser.company); // Verifica ulteriore
 
         if (processError) {
           console.error("Errore nell'eliminazione del processo:", processError);
