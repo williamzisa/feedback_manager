@@ -17,21 +17,4 @@ JOIN questions q ON q.type = 'soft' AND q.process_id IS NULL
 WHERE cs.session_id = '1e167f13-35fe-4655-b77c-c3c167ca81c3'
   AND q.companies_id = cs.company_id;  -- Filtro per la companies_id della sessione
 
--- Regola 3b: Eliminazione dei duplicati della Regola 3 rispetto alla Regola 1 e Regola 2
-WITH DuplicateFeedbacks AS (
-    SELECT 
-        f3.id
-    FROM feedbacks f3
-    JOIN feedbacks f_other ON 
-        f3.sender_id = f_other.sender_id 
-        AND f3.receiver_id = f_other.receiver_id
-        AND f3.question_id = f_other.question_id
-        AND f3.session_id = f_other.session_id
-        AND f_other.regola IN (1, 2)  -- Consideriamo i feedback delle Regole 1 e 2 come base
-    WHERE f3.regola = 3
-      AND f3.session_id = '6476c0a5-2a9f-4d34-a689-94342b4b104f'
-)
-DELETE FROM feedbacks
-WHERE id IN (
-    SELECT id FROM DuplicateFeedbacks
-);
+
