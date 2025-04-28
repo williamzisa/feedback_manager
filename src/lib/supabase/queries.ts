@@ -2265,7 +2265,7 @@ export const queries = {
             ? `${feedback.receiver.name} ${feedback.receiver.surname}`
             : "",
           question: feedback.question?.description || "",
-          rule: feedback.rule?.number || 0,
+          rule: feedback.rule_number || 0,
           tags: [], // TODO: Implementare i tag quando disponibili
           value: feedback.value,
           comment: feedback.comment,

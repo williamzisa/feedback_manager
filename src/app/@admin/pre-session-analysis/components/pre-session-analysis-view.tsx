@@ -13,11 +13,18 @@ import { PreSessionStats } from "@/lib/types/feedbacks";
 import { Badge } from "@/components/ui/badge";
 import { queries } from "@/lib/supabase/queries";
 import { Session } from "@/lib/types/sessions";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PreSessionFeedbacksTable } from "./pre-session-feedbacks-table";
+import { Button } from "@/components/ui/button";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export function PreSessionAnalysisView() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const [loadingRule, setLoadingRule] = useState<number | string | null>(null);
+  const queryClient = useQueryClient();
+  const supabase = createClientComponentClient();
   
   // Ottieni l'utente corrente
   const { data: currentUser } = useQuery({
@@ -63,6 +70,81 @@ export function PreSessionAnalysisView() {
     setSelectedSessionId(sessionId);
   };
 
+  // Mutation per generare i feedback secondo una regola
+  const generateFeedbackMutation = useMutation({
+    mutationFn: async ({ ruleNumber, sessionId }: { ruleNumber: number | string, sessionId: string }) => {
+      setLoadingRule(ruleNumber);
+      
+      // Configurazione parametri per le chiamate RPC
+      let params = {};
+      let functionName = '';
+      
+      // Configurazione corretta dei parametri in base alla struttura delle funzioni su Supabase
+      switch(ruleNumber) {
+        case '1':
+          functionName = 'generate_rule1_feedbacks';
+          params = { "session_id": sessionId };
+          break;
+        case '2':
+          functionName = 'generate_rule2_feedbacks';
+          params = { "session_id": sessionId };
+          break;
+        case '3a':
+          functionName = 'generate_rule3a_feedbacks';
+          params = { "session_id": sessionId };
+          break;
+        case '3b':
+          functionName = 'generate_rule3b_feedbacks';
+          params = { "session_id": sessionId };
+          break;
+        case '4':
+          functionName = 'generate_rule4_feedbacks';
+          params = { "session_id_input": sessionId };
+          break;
+        case '5':
+          functionName = 'generate_rule5_feedbacks';
+          params = { "session_uuid": sessionId };
+          break;
+        case '6':
+          functionName = 'generate_rule6_feedbacks';
+          params = { "session_uuid": sessionId };
+          break;
+        case '7':
+          functionName = 'generate_rule7_feedbacks';
+          params = { "p_session_id": sessionId };
+          break;
+        case 'duplicates':
+          functionName = 'remove_duplicate_feedbacks';
+          params = { "session_id": sessionId };
+          break;
+        default:
+          throw new Error(`Regola non supportata: ${ruleNumber}`);
+      }
+      
+      const { data, error } = await supabase.rpc(functionName, params);
+      
+      if (error) {
+        console.error(`Errore nell'esecuzione di ${functionName}:`, error);
+        throw new Error(`Errore nell'esecuzione della regola ${ruleNumber}: ${error.message}`);
+      }
+      
+      return { success: true, ruleNumber, data };
+    },
+    onSuccess: (result, variables) => {
+      toast.success(`Regola ${variables.ruleNumber === 'duplicates' ? 'Elimina Duplicati' : variables.ruleNumber} applicata con successo`);
+      // Aggiorniamo i dati dopo la generazione dei feedback
+      queryClient.invalidateQueries({ queryKey: ['sessionStats', selectedSessionId] });
+      queryClient.invalidateQueries({ queryKey: ['feedbacks', selectedSessionId] });
+    },
+    onError: (error) => {
+      console.error("Errore mutation:", error);
+      toast.error(error instanceof Error ? error.message : 'Errore sconosciuto');
+    },
+    onSettled: () => {
+      setLoadingRule(null);
+    }
+  });
+
   if (isLoadingSessions) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -96,33 +178,31 @@ export function PreSessionAnalysisView() {
         </div>
 
         {/* Session Selector */}
-        <div className="mb-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-          <div className="w-full sm:w-96">
-            <Select
-              value={selectedSessionId}
-              onValueChange={handleSessionChange}
-            >
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Seleziona una sessione in preparazione" />
-              </SelectTrigger>
-              <SelectContent>
-                {preparationSessions.map((session) => (
-                  <SelectItem key={session.id} value={session.id}>
-                    {session.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedSession && (
-              <div className="mt-2">
-                <Badge variant="default">{selectedSession.status}</Badge>
-              </div>
-            )}
-          </div>
+        <div className="w-full sm:w-96">
+          <Select
+            value={selectedSessionId}
+            onValueChange={handleSessionChange}
+          >
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Seleziona una sessione in preparazione" />
+            </SelectTrigger>
+            <SelectContent>
+              {preparationSessions.map((session) => (
+                <SelectItem key={session.id} value={session.id}>
+                  {session.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedSession && (
+            <div className="mt-2">
+              <Badge variant="default">{selectedSession.status}</Badge>
+            </div>
+          )}
         </div>
 
         {/* Stats Section */}
-        <div className="space-y-8">
+        <div className="mt-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <StatCard 
               title="FEEDBACK TOTALI" 
@@ -151,6 +231,135 @@ export function PreSessionAnalysisView() {
 
           {selectedSessionId && (
             <div className="mt-6">
+              {/* Rules Buttons Section */}
+              <div className="mb-4 flex flex-wrap gap-2">
+                {/* Regola 1 */}
+                <Button 
+                  variant="outline" 
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '1', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === '1' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generazione...
+                    </>
+                  ) : 'Regola 1'}
+                </Button>
+                
+                {/* Regola 2 */}
+                <Button 
+                  variant="outline" 
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '2', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === '2' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generazione...
+                    </>
+                  ) : 'Regola 2'}
+                </Button>
+                
+                {/* Regola 3A */}
+                <Button 
+                  variant="outline" 
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '3a', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === '3a' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generazione...
+                    </>
+                  ) : 'Regola 3A'}
+                </Button>
+                
+                {/* Regola 3B */}
+                <Button 
+                  variant="outline" 
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '3b', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === '3b' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generazione...
+                    </>
+                  ) : 'Regola 3B'}
+                </Button>
+                
+                {/* Regola 4 */}
+                <Button 
+                  variant="outline" 
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '4', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === '4' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generazione...
+                    </>
+                  ) : 'Regola 4'}
+                </Button>
+                
+                {/* Regola 5 */}
+                <Button 
+                  variant="outline" 
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '5', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === '5' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generazione...
+                    </>
+                  ) : 'Regola 5'}
+                </Button>
+                
+                {/* Regola 6 */}
+                <Button 
+                  variant="outline" 
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '6', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === '6' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generazione...
+                    </>
+                  ) : 'Regola 6'}
+                </Button>
+                
+                {/* Regola 7 */}
+                <Button
+                  variant="outline"
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '7', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === '7' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generazione...
+                    </>
+                  ) : 'Regola 7 (TL Connessi)'}
+                </Button>
+                
+                {/* Elimina Duplicati */}
+                <Button 
+                  variant="destructive" 
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: 'duplicates', sessionId: selectedSessionId })}
+                  disabled={loadingRule !== null}
+                >
+                  {loadingRule === 'duplicates' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Elaborazione...
+                    </>
+                  ) : 'Elimina duplicati'}
+                </Button>
+              </div>
+              
               {/* Pre Session Analysis Content */}
               <div className="rounded-lg bg-white shadow-sm">
                 <div className="px-4 py-3 border-b">
