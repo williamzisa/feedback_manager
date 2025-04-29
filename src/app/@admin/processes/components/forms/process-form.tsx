@@ -36,7 +36,9 @@ export function ProcessForm({
   useEffect(() => {
     const loadQuestions = async () => {
       try {
-        const data = await queries.questions.getAll()
+        const data = await queries.questions.getAvailableForProcess(
+          mode === 'edit' ? initialData?.linked_question_id : undefined
+        )
         setQuestions(data)
       } catch (err) {
         console.error('Errore nel caricamento delle domande:', err)
@@ -46,7 +48,7 @@ export function ProcessForm({
     }
 
     loadQuestions()
-  }, [])
+  }, [mode, initialData?.linked_question_id])
 
   return (
     <Form {...form}>

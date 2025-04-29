@@ -1898,6 +1898,58 @@ export const queries = {
         throw err;
       }
     },
+
+    // NUOVA FUNZIONE AGGIUNTA QUI
+    async getAvailableForProcess(currentLinkedQuestionId?: string) {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUserClient(); // Usiamo Client per componenti client
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+        const companyId = currentUser.company;
+
+        // 1. Recupera tutti i linked_question_id usati dai processi della company
+        const { data: linkedIdsData, error: linkedIdsError } = await supabase
+          .from('processes')
+          .select('linked_question_id')
+          .eq('company', companyId)
+          .not('linked_question_id', 'is', null);
+
+        if (linkedIdsError) {
+          console.error("Errore nel recupero dei linked_question_id:", linkedIdsError);
+          throw linkedIdsError;
+        }
+        // Rimuoviamo l'ID corrente (se presente) dalla lista degli ID collegati,
+        // così la domanda corrente sarà sempre selezionabile in modalità modifica.
+        const linkedQuestionIds = new Set(linkedIdsData.map(p => p.linked_question_id).filter(id => id !== currentLinkedQuestionId));
+
+        // 2. Recupera tutte le domande 'execution' della company
+        const { data: questionsData, error: questionsError } = await supabase
+          .from('questions')
+          .select('id, description')
+          .eq('company', companyId)
+          .ilike('type', 'execution'); // Filtro case-insensitive
+
+        if (questionsError) {
+          console.error("Errore nel recupero delle domande execution:", questionsError);
+          throw questionsError;
+        }
+
+        // 3. Filtra le domande: non devono avere un ID presente in linkedQuestionIds
+        const availableQuestions = questionsData.filter(q =>
+          !linkedQuestionIds.has(q.id)
+        );
+
+        return availableQuestions;
+
+      } catch (err) {
+        console.error("Errore nel recupero delle domande disponibili per i processi:", err);
+        throw err;
+      }
+    },
+    // FINE NUOVA FUNZIONE
   },
 
   rules: {
