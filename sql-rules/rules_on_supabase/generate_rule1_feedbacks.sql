@@ -1,4 +1,3 @@
-
 BEGIN
   INSERT INTO feedbacks (
     sender,
@@ -24,7 +23,6 @@ BEGIN
   JOIN questions q ON q.company = c.company
   WHERE sc.session_id = $1
     AND LOWER(q.type) IN ('soft', 'strategy')  -- Case-insensitive type check
-    AND q.id NOT IN (SELECT linked_question_id FROM processes)
     AND c.leader IS NOT NULL
     AND t.leader IS NOT NULL;
 END;

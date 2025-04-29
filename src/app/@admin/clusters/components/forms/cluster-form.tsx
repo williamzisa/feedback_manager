@@ -43,9 +43,10 @@ export function ClusterForm({
     }
   })
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: queries.users.getAll
+  // Fetch users of the same company as the current user
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['usersByCompany'],
+    queryFn: queries.users.getAllByCompany
   })
 
   return (
@@ -111,11 +112,15 @@ export function ClusterForm({
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="none">Nessun leader</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name} {user.surname}
-                    </SelectItem>
-                  ))}
+                  {isLoadingUsers ? (
+                    <SelectItem value="loading" disabled>Caricamento utenti...</SelectItem>
+                  ) : (
+                    users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name} {user.surname}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />

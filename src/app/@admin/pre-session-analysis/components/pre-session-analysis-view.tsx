@@ -89,12 +89,8 @@ export function PreSessionAnalysisView() {
           functionName = 'generate_rule2_feedbacks';
           params = { "session_id": sessionId };
           break;
-        case '3a':
+        case '3':
           functionName = 'generate_rule3a_feedbacks';
-          params = { "session_id": sessionId };
-          break;
-        case '3b':
-          functionName = 'generate_rule3b_feedbacks';
           params = { "session_id": sessionId };
           break;
         case '4':
@@ -261,32 +257,18 @@ export function PreSessionAnalysisView() {
                   ) : 'Regola 2'}
                 </Button>
                 
-                {/* Regola 3A */}
+                {/* Regola 3 (ex 3a) */}
                 <Button 
                   variant="outline" 
-                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '3a', sessionId: selectedSessionId })}
+                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '3', sessionId: selectedSessionId })}
                   disabled={loadingRule !== null}
                 >
-                  {loadingRule === '3a' ? (
+                  {loadingRule === '3' ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Generazione...
                     </>
-                  ) : 'Regola 3A'}
-                </Button>
-                
-                {/* Regola 3B */}
-                <Button 
-                  variant="outline" 
-                  onClick={() => generateFeedbackMutation.mutate({ ruleNumber: '3b', sessionId: selectedSessionId })}
-                  disabled={loadingRule !== null}
-                >
-                  {loadingRule === '3b' ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generazione...
-                    </>
-                  ) : 'Regola 3B'}
+                  ) : 'Regola 3'}
                 </Button>
                 
                 {/* Regola 4 */}

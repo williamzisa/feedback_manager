@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useQuery } from "@tanstack/react-query";
 import {
   Form,
   FormControl,
@@ -23,19 +23,22 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { queries } from "@/lib/supabase/queries";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
   name: z.string().min(1, {
     message: "Il nome del team è obbligatorio",
   }),
   clusterId: z.string().nullable(),
-  leaderId: z.string(),
+  leaderId: z.string().min(1, { message: "Il team leader è obbligatorio" }),
   project: z.boolean().default(false),
 });
 
+export type TeamFormValues = z.infer<typeof formSchema>;
+
 interface TeamFormProps {
-  initialData?: z.infer<typeof formSchema>;
-  onSubmit: (data: z.infer<typeof formSchema>) => void;
+  initialData?: TeamFormValues;
+  onSubmit: (data: TeamFormValues) => void;
   onDelete?: () => void;
   isLoading?: boolean;
   mode?: "create" | "edit";
@@ -48,12 +51,7 @@ export function TeamForm({
   isLoading,
   mode = "create",
 }: TeamFormProps) {
-  const [users, setUsers] = useState<Array<{ id: string; name: string; surname: string }>>([]);
-  const [clusters, setClusters] = useState<Array<{ id: string; name: string }>>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<TeamFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || "",
@@ -63,36 +61,45 @@ export function TeamForm({
     },
   });
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoadingData(true);
-        setError(null);
+  const {
+    data: users = [],
+    isLoading: isLoadingUsers,
+    error: usersError,
+  } = useQuery({
+    queryKey: ["usersByCompany"],
+    queryFn: queries.users.getAllByCompany,
+  });
 
-        // Carica gli utenti
-        const usersData = await queries.users.getAll();
-        setUsers(usersData);
+  const {
+    data: clusters = [],
+    isLoading: isLoadingClusters,
+    error: clustersError,
+  } = useQuery({
+    queryKey: ["clusters"],
+    queryFn: queries.clusters.getAll,
+  });
 
-        // Carica i cluster
-        const clustersData = await queries.clusters.getAll();
-        setClusters(clustersData);
-      } catch (err) {
-        console.error('Errore nel caricamento dei dati:', err);
-        setError('Errore nel caricamento dei dati del form');
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  const isLoadingData = isLoadingUsers || isLoadingClusters;
+  const error = usersError || clustersError;
 
   if (isLoadingData) {
-    return <div>Caricamento...</div>;
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-6 w-32" />
+        <div className="flex gap-4">
+          <Skeleton className="h-10 w-24" />
+          {mode === "edit" && <Skeleton className="h-10 w-28" />}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    const errorMessage = error instanceof Error ? error.message : 'Errore nel caricamento dei dati del form';
+    return <div className="text-red-500">Errore: {errorMessage}</div>;
   }
 
   return (
@@ -119,8 +126,8 @@ export function TeamForm({
             <FormItem>
               <FormLabel>Cluster</FormLabel>
               <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value || undefined}
+                onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                value={field.value ?? "none"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -128,6 +135,7 @@ export function TeamForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="none">Nessun Cluster</SelectItem>
                   {clusters.map((cluster) => (
                     <SelectItem key={cluster.id} value={cluster.id}>
                       {cluster.name}
@@ -148,7 +156,7 @@ export function TeamForm({
               <FormLabel>Team Leader</FormLabel>
               <Select
                 onValueChange={field.onChange}
-                defaultValue={field.value || undefined}
+                value={field.value || ""}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -172,7 +180,7 @@ export function TeamForm({
           control={form.control}
           name="project"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -184,14 +192,12 @@ export function TeamForm({
                   Team di Progetto
                 </FormLabel>
               </div>
+              <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="flex gap-4">
-          <Button type="submit" disabled={isLoading}>
-            {mode === "create" ? "Crea Team" : "Salva Modifiche"}
-          </Button>
+        <div className="flex justify-end gap-4 pt-4">
           {mode === "edit" && onDelete && (
             <Button
               type="button"
@@ -202,6 +208,9 @@ export function TeamForm({
               Elimina Team
             </Button>
           )}
+          <Button type="submit" disabled={isLoading || isLoadingData}>
+            {mode === "create" ? "Crea Team" : "Salva Modifiche"}
+          </Button>
         </div>
       </form>
     </Form>
