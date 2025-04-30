@@ -23,6 +23,7 @@ import { userSchema } from "./user-schema";
 import type { UserFormData } from "@/lib/types/users";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/lib/supabase/queries";
+import { useEffect } from "react";
 
 interface UserFormProps {
   initialData?: Partial<UserFormData>;
@@ -52,7 +53,8 @@ export function UserForm({
       company: initialData?.company ?? null,
       admin: initialData?.admin ?? false,
       status: initialData?.status ?? "active",
-      auth_id: initialData?.auth_id ?? null
+      auth_id: initialData?.auth_id ?? null,
+      processes: initialData?.processes ?? [],
     },
   });
 
@@ -80,9 +82,35 @@ export function UserForm({
     enabled: !!currentUser?.company
   });
 
+  // Ottieni la lista dei processi per la company
+  const { data: processes = [] } = useQuery({
+    queryKey: ['processes', currentUser?.company],
+    queryFn: () => currentUser?.company ? queries.processes.getByCompany(currentUser.company) : Promise.resolve([]),
+    enabled: !!currentUser?.company
+  });
+
+  // Carica i processi assegnati all'utente se in modalità edit
+  const { data: userProcesses = [] } = useQuery({
+    queryKey: ['userProcesses', userId],
+    queryFn: () => userId ? queries.user_processes.getByUserId(userId) : Promise.resolve([]),
+    enabled: !!userId && mode === "edit"
+  });
+
+  // Imposta i processi dell'utente quando vengono caricati
+  useEffect(() => {
+    if (userProcesses.length > 0) {
+      const processIds = userProcesses
+        .map(up => up.process_id)
+        .filter((id): id is string => !!id);
+      
+      form.setValue('processes', processIds);
+    }
+  }, [userProcesses, form]);
+
   const handleSubmit = async (data: UserFormData) => {
     try {
       await onSubmit(data);
+      
       if (mode === "create") {
         form.reset();
       }
@@ -193,6 +221,52 @@ export function UserForm({
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="processes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Processi assegnati</FormLabel>
+              <div className="border rounded-md p-4">
+                <div className="max-h-60 overflow-auto space-y-2">
+                  {processes.map((process) => {
+                    const isSelected = field.value?.includes(process.id);
+                    return (
+                      <div key={process.id} className="flex items-center space-x-2">
+                        <input 
+                          type="checkbox" 
+                          id={`process-${process.id}`}
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            const newValue = checked
+                              ? [...(field.value || []), process.id]
+                              : (field.value || []).filter(id => id !== process.id);
+                            field.onChange(newValue);
+                          }}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <label 
+                          htmlFor={`process-${process.id}`}
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          {process.name}
+                        </label>
+                      </div>
+                    );
+                  })}
+                  {processes.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Nessun processo disponibile per questa company
+                    </p>
+                  )}
+                </div>
+              </div>
               <FormMessage />
             </FormItem>
           )}

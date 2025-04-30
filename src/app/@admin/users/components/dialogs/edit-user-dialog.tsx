@@ -50,11 +50,17 @@ export function EditUserDialog({
       console.log('ID utente:', user.id);
 
       try {
+        // Aggiorna i dati dell'utente
         const result = await queries.users.update(user.id, updateData);
         console.log('Risultato aggiornamento:', result);
 
         if (!result) {
           throw new Error('Nessun dato ricevuto dopo l\'aggiornamento');
+        }
+
+        // Aggiorna i processi assegnati all'utente
+        if (data.processes) {
+          await queries.user_processes.syncUserProcesses(user.id, data.processes);
         }
 
         onOpenChange(false);

@@ -7,6 +7,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export interface Option {
   value: string
@@ -40,11 +41,11 @@ export function MultiSelect({
 
   const handleSelect = React.useCallback((value: string) => {
     if (selected.includes(value)) {
-      handleUnselect(value)
+      onChange(selected.filter((v) => v !== value))
     } else {
       onChange([...selected, value])
     }
-  }, [handleUnselect, onChange, selected])
+  }, [onChange, selected])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -59,6 +60,7 @@ export function MultiSelect({
             className
           )}
           disabled={disabled}
+          onClick={() => setOpen(!open)}
         >
           <div className="flex flex-wrap gap-1">
             {selectedItems.length > 0 ? (
@@ -70,6 +72,7 @@ export function MultiSelect({
                 >
                   {option.label}
                   <button
+                    type="button"
                     className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -107,30 +110,16 @@ export function MultiSelect({
                 value={option.value}
                 onSelect={() => {
                   handleSelect(option.value)
+                  setOpen(true)
                 }}
+                className="flex items-center gap-2"
               >
-                <div
-                  className={cn(
-                    'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                    selected.includes(option.value)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'opacity-50 [&_svg]:invisible'
-                  )}
-                >
-                  <svg
-                    className={cn('h-4 w-4')}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
+                <Checkbox
+                  checked={selected.includes(option.value)}
+                  onCheckedChange={() => handleSelect(option.value)}
+                  className="mr-2"
+                  id={`checkbox-${option.value}`}
+                />
                 <span>{option.label}</span>
               </CommandItem>
             ))}

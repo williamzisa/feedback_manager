@@ -2269,6 +2269,71 @@ export const queries = {
         throw err;
       }
     },
+
+    getSessionResults: async () => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Otteniamo la company dell'utente corrente
+        const currentUser = await queries.users.getCurrentUser();
+        if (!currentUser.company) {
+          throw new Error("Company non configurata per questo utente");
+        }
+
+        // Eseguiamo la query per ottenere i risultati delle sessioni
+        // filtrando per utenti della stessa company dell'utente corrente
+        const { data, error } = await supabase
+          .from("user_sessions")
+          .select(`
+            session_id,
+            user_id,
+            level_name,
+            val_overall,
+            val_gap,
+            val_execution,
+            val_strategy,
+            val_soft,
+            users:users!user_sessions_user_id_fkey (
+              id,
+              name,
+              surname,
+              company
+            ),
+            sessions:sessions!user_sessions_session_id_fkey (
+              id,
+              name,
+              company
+            )
+          `)
+          .eq("sessions.company", currentUser.company)
+          .eq("users.company", currentUser.company)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Errore nel recupero dei risultati delle sessioni:", error);
+          throw error;
+        }
+
+        if (!data) {
+          return [];
+        }
+
+        // Trasformiamo i dati nel formato richiesto dall'interfaccia
+        return data.map(result => ({
+          id: `${result.session_id}_${result.user_id}`,
+          session_name: result.sessions?.name || "",
+          level_name: result.level_name || "",
+          user_name: `${result.users?.name || ""} ${result.users?.surname || ""}`,
+          overall: result.val_overall || 0,
+          gap: result.val_gap || 0,
+          execution: result.val_execution || 0,
+          strategy: result.val_strategy || 0,
+          soft: result.val_soft || 0
+        }));
+      } catch (err) {
+        console.error("Errore nel recupero dei risultati delle sessioni:", err);
+        throw err;
+      }
+    },
   },
 
   // Feedbacks
@@ -2408,51 +2473,6 @@ export const queries = {
     assignProcessToUser: async (userId: string, processId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        // Verifica che l'utente stia assegnando il processo a se stesso
-        const currentUser = await queries.users.getCurrentUser();
-        if (currentUser.id !== userId) {
-          throw new Error("Non puoi assegnare processi ad altri utenti");
-        }
-
-        // Verifica che il processo appartenga a un team di cui l'utente fa parte
-        const { data: teamProcesses, error: teamCheckError } = await supabase
-          .from("team_processes")
-          .select(`
-            team:teams!inner (
-              id,
-              user_teams!inner (
-                user_id
-              )
-            )
-          `)
-          .eq("process_id", processId)
-          .eq("team.user_teams.user_id", userId);
-
-        if (teamCheckError) {
-          throw new Error("Errore nella verifica dell'appartenenza al team");
-        }
-
-        if (!teamProcesses || teamProcesses.length === 0) {
-          throw new Error("Il processo non appartiene a nessun team di cui fai parte");
-        }
-
-        // Verifica se l'assegnazione esiste già
-        const { data: existingAssignment, error: checkError } = await supabase
-          .from("user_processes")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("process_id", processId)
-          .single();
-
-        if (checkError && checkError.code !== "PGRST116") { // PGRST116 = not found
-          throw checkError;
-        }
-
-        if (existingAssignment) {
-          throw new Error("Processo già assegnato all'utente");
-        }
-
-        // Crea la nuova assegnazione
         const { data, error } = await supabase
           .from("user_processes")
           .insert({
@@ -2460,16 +2480,17 @@ export const queries = {
             user_id: userId,
             process_id: processId
           })
-          .select()
+          .select("*")
           .single();
 
         if (error) {
-          throw error;
+          console.error("Errore nell'assegnazione del processo all'utente:", error.message);
+          throw new Error(`Errore nell'assegnazione del processo all'utente: ${error.message}`);
         }
 
         return data;
       } catch (err) {
-        console.error("Errore nell'assegnazione del processo:", err);
+        console.error("Errore nell'assegnazione del processo all'utente:", err);
         throw err;
       }
     },
@@ -2477,57 +2498,102 @@ export const queries = {
     removeProcessFromUser: async (userId: string, processId: string) => {
       const supabase = createClientComponentClient<Database>();
       try {
-        // Verifica che l'utente stia rimuovendo il processo da se stesso
-        const currentUser = await queries.users.getCurrentUser();
-        if (currentUser.id !== userId) {
-          throw new Error("Non puoi rimuovere processi da altri utenti");
-        }
-
-        // Rimuovi l'assegnazione
-        const { error } = await supabase
-          .from("user_processes")
-          .delete()
-          .eq("user_id", userId)
-          .eq("process_id", processId);
-
-        if (error) {
-          throw error;
-        }
-
-        return { success: true };
-      } catch (err) {
-        console.error("Errore nella rimozione del processo:", err);
-        throw err;
-      }
-    },
-
-    getUserProcessAssignments: async (userId: string) => {
-      const supabase = createClientComponentClient<Database>();
-      try {
         const { data, error } = await supabase
           .from("user_processes")
-          .select(`
-            id,
-            process:processes (
-              id,
-              name,
-              linked_question_id,
-              questions!processes_linked_question_id_fkey (
-                id,
-                description,
-                type
-              )
-            )
-          `)
-          .eq("user_id", userId);
+          .delete()
+          .match({ user_id: userId, process_id: processId })
+          .select("*")
+          .single();
 
         if (error) {
-          throw error;
+          console.error("Errore nella rimozione del processo dall'utente:", error.message);
+          throw new Error(`Errore nella rimozione del processo dall'utente: ${error.message}`);
         }
 
         return data;
       } catch (err) {
-        console.error("Errore nel recupero delle assegnazioni:", err);
+        console.error("Errore nella rimozione del processo dall'utente:", err);
+        throw err;
+      }
+    },
+
+    getByUserId: async (userId: string) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        const { data, error } = await supabase
+          .from("user_processes")
+          .select("*")
+          .eq("user_id", userId);
+
+        if (error) {
+          console.error("Errore nel recupero dei processi dell'utente:", error.message);
+          throw new Error(`Errore nel recupero dei processi dell'utente: ${error.message}`);
+        }
+
+        return data || [];
+      } catch (err) {
+        console.error("Errore nel recupero dei processi dell'utente:", err);
+        throw err;
+      }
+    },
+
+    syncUserProcesses: async (userId: string, processIds: string[]) => {
+      const supabase = createClientComponentClient<Database>();
+      try {
+        // Prima otteniamo i processi attualmente assegnati all'utente
+        const { data: currentProcesses, error: fetchError } = await supabase
+          .from("user_processes")
+          .select("process_id")
+          .eq("user_id", userId);
+
+        if (fetchError) {
+          console.error("Errore nel recupero dei processi attuali:", fetchError.message);
+          throw new Error(`Errore nel recupero dei processi attuali: ${fetchError.message}`);
+        }
+
+        const currentProcessIds = (currentProcesses || []).map(p => p.process_id).filter(Boolean) as string[];
+        
+        // Processi da aggiungere (presenti nel nuovo array ma non nell'attuale)
+        const processesToAdd = processIds.filter(id => !currentProcessIds.includes(id));
+        
+        // Processi da rimuovere (presenti nell'attuale ma non nel nuovo array)
+        const processesToRemove = currentProcessIds.filter(id => !processIds.includes(id));
+
+        // Rimuovi i processi non più selezionati
+        if (processesToRemove.length > 0) {
+          const { error: removeError } = await supabase
+            .from("user_processes")
+            .delete()
+            .eq("user_id", userId)
+            .in("process_id", processesToRemove);
+
+          if (removeError) {
+            console.error("Errore nella rimozione dei processi:", removeError.message);
+            throw new Error(`Errore nella rimozione dei processi: ${removeError.message}`);
+          }
+        }
+
+        // Aggiungi i nuovi processi selezionati
+        if (processesToAdd.length > 0) {
+          const newUserProcesses = processesToAdd.map(processId => ({
+            id: crypto.randomUUID(),
+            user_id: userId,
+            process_id: processId
+          }));
+
+          const { error: addError } = await supabase
+            .from("user_processes")
+            .insert(newUserProcesses);
+
+          if (addError) {
+            console.error("Errore nell'aggiunta dei processi:", addError.message);
+            throw new Error(`Errore nell'aggiunta dei processi: ${addError.message}`);
+          }
+        }
+
+        return true;
+      } catch (err) {
+        console.error("Errore nella sincronizzazione dei processi dell'utente:", err);
         throw err;
       }
     }
