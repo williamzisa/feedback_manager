@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label'
 import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { queries } from '@/lib/supabase/queries'
+import * as XLSX from 'xlsx'
+import { toast } from 'sonner'
 
 interface PreSessionFeedbacksTableProps {
   sessionId: string
@@ -45,6 +47,36 @@ export const PreSessionFeedbacksTable = ({ sessionId }: PreSessionFeedbacksTable
     }
     return true
   })
+
+  // Funzione per esportare i feedback in Excel
+  const handleExportExcel = () => {
+    try {
+      // Prepara i dati per l'export
+      const data = filteredFeedbacks.map(feedback => ({
+        ID: feedback.id,
+        Mittente: feedback.sender,
+        Destinatario: feedback.receiver,
+        Domanda: feedback.question,
+        Regola: feedback.rule,
+        Tags: feedback.tags.join(', ')
+      }));
+
+      // Crea un nuovo workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+      
+      // Aggiungi il foglio al workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Feedback');
+      
+      // Scarica il file
+      XLSX.writeFile(wb, 'feedback_export.xlsx');
+      
+      toast.success('Esportazione completata con successo');
+    } catch (error) {
+      console.error('Errore durante l\'esportazione:', error);
+      toast.error('Errore durante l\'esportazione');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -101,8 +133,12 @@ export const PreSessionFeedbacksTable = ({ sessionId }: PreSessionFeedbacksTable
             <Label htmlFor="filterDuplicates" className="leading-none">Filtra duplicati</Label>
           </div>
         </div>
-        <Button variant="outline" className="w-full sm:w-auto whitespace-nowrap">
-          Export .csv
+        <Button 
+          variant="outline" 
+          className="w-full sm:w-auto whitespace-nowrap"
+          onClick={handleExportExcel}
+        >
+          Export excel
         </Button>
       </div>
 

@@ -87,7 +87,7 @@ export function PreSessionAnalysisView() {
           break;
         case '2':
           functionName = 'generate_rule2_feedbacks';
-          params = { "session_id": sessionId };
+          params = { "p_session_id": sessionId };
           break;
         case '3':
           functionName = 'generate_rule3a_feedbacks';
