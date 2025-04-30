@@ -2614,6 +2614,41 @@ export const queries = {
       }
 
       return data;
+    },
+    
+    async getQuestionsWithTags() {
+      const supabase = createClientComponentClient<Database>();
+      
+      try {
+        // Prima recuperiamo l'utente corrente per trovare la sua company
+        const currentUser = await queries.users.getCurrentUserClient();
+        
+        if (!currentUser || !currentUser.company) {
+          throw new Error("Utente non autorizzato o company non configurata");
+        }
+        
+        // Recuperiamo tutte le domande con i loro tag
+        const { data, error } = await supabase
+          .from('questions')
+          .select(`
+            id,
+            description,
+            type,
+            tags:question_tags(id)
+          `)
+          .eq('company', currentUser.company)
+          .order('description');
+
+        if (error) {
+          throw error;
+        }
+
+        // Filtriamo le domande che hanno effettivamente dei tag (count > 0)
+        return (data || []).filter(question => question.tags && question.tags.length > 0);
+      } catch (error) {
+        console.error('Error fetching questions with tags:', error);
+        return [];
+      }
     }
   }
 };

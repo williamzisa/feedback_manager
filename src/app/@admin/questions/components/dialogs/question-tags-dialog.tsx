@@ -31,6 +31,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Copy,
 } from "lucide-react";
 import { queries } from "@/lib/supabase/queries";
 import { QuestionTag, QuestionTagFormData } from "@/lib/types/questions";
@@ -40,6 +41,13 @@ interface QuestionTagsDialogProps {
   questionId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface QuestionWithTags {
+  id: string;
+  description: string;
+  type: string;
+  tags: { id: string }[];
 }
 
 export function QuestionTagsDialog({
@@ -57,6 +65,9 @@ export function QuestionTagsDialog({
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [scoreFilter, setScoreFilter] = useState<string>("ALL");
+  const [questionsWithTags, setQuestionsWithTags] = useState<QuestionWithTags[]>([]);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string>("");
+  const [isCopyingTags, setIsCopyingTags] = useState(false);
   const { toast } = useToast();
 
   const ITEMS_PER_PAGE = 5;
@@ -76,12 +87,30 @@ export function QuestionTagsDialog({
       setIsLoading(false);
     }
   }, [questionId, toast]);
+  
+  const fetchQuestionsWithTags = useCallback(async () => {
+    try {
+      const data = await queries.tags.getQuestionsWithTags();
+      // Filtra la domanda corrente dalla lista
+      const filteredData = data.filter(q => q.id !== questionId);
+      setQuestionsWithTags(filteredData);
+    } catch (error) {
+      console.error("Errore nel caricamento delle domande con tag:", error);
+      toast({
+        title: "Errore",
+        description: "Impossibile caricare le domande con tag",
+        variant: "destructive",
+      });
+      setQuestionsWithTags([]);
+    }
+  }, [questionId, toast]);
 
   useEffect(() => {
     if (open) {
       fetchTags();
+      fetchQuestionsWithTags();
     }
-  }, [open, fetchTags]);
+  }, [open, fetchTags, fetchQuestionsWithTags]);
 
   // Reset alla prima pagina quando cambia il filtro
   useEffect(() => {
@@ -168,6 +197,69 @@ export function QuestionTagsDialog({
       });
     }
   };
+  
+  const handleCopyTags = async () => {
+    if (!selectedQuestionId) {
+      toast({
+        title: "Attenzione",
+        description: "Seleziona prima una domanda da cui copiare i tag",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsCopyingTags(true);
+    
+    try {
+      // 1. Ottieni i tag della domanda selezionata
+      const sourceTags = await queries.tags.getForQuestion(selectedQuestionId);
+      
+      if (!sourceTags || sourceTags.length === 0) {
+        toast({
+          title: "Attenzione",
+          description: "La domanda selezionata non ha tag da copiare",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // 2. Crea i nuovi tag per la domanda corrente
+      for (const tag of sourceTags) {
+        const response = await fetch("/api/questions/tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question_id: questionId,
+            score: tag.score,
+            description: tag.description,
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Errore nella creazione del tag: ${tag.description}`);
+        }
+      }
+      
+      toast({
+        title: "Successo",
+        description: `Copiati ${sourceTags.length} tag con successo`,
+      });
+      
+      // 3. Aggiorna la visualizzazione dei tag
+      fetchTags();
+      
+    } catch (error) {
+      console.error("Errore durante la copia dei tag:", error);
+      toast({
+        title: "Errore",
+        description: "Si è verificato un errore durante la copia dei tag",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCopyingTags(false);
+      setSelectedQuestionId("");
+    }
+  };
 
   // Filtra i tag in base allo score selezionato
   const filteredTags = tags.filter(
@@ -188,6 +280,46 @@ export function QuestionTagsDialog({
         <DialogHeader>
           <DialogTitle>Gestione Tag</DialogTitle>
         </DialogHeader>
+        
+        {/* Sezione per copiare i tag da altre domande */}
+        <div className="mb-6 p-4 border rounded-md bg-gray-50">
+          <h3 className="text-sm font-medium mb-2">Copia tag da altre domande</h3>
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedQuestionId}
+              onValueChange={setSelectedQuestionId}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Seleziona una domanda con tag" />
+              </SelectTrigger>
+              <SelectContent>
+                {questionsWithTags.length === 0 ? (
+                  <SelectItem value="no-options" disabled>
+                    Nessuna domanda disponibile con tag
+                  </SelectItem>
+                ) : (
+                  questionsWithTags.map((q) => (
+                    <SelectItem key={q.id} value={q.id}>
+                      {q.description} ({q.tags ? q.tags.length : 0} tag)
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={handleCopyTags} 
+              disabled={!selectedQuestionId || isCopyingTags}
+              variant="outline"
+            >
+              {isCopyingTags ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Copy className="h-4 w-4 mr-2" />
+              )}
+              Copia Tag
+            </Button>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-4">
