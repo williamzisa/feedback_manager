@@ -29,7 +29,7 @@ export function MembershipForm({
     const loadData = async () => {
       try {
         const [usersData, teamsData] = await Promise.all([
-          queries.users.getAll(),
+          queries.users.getAllByCompany(),
           queries.teams.getAll()
         ])
 
