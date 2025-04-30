@@ -28,12 +28,6 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
       .join(', ') || '-'
   }
 
-  const getRuleNames = (session: Session) => {
-    return session.session_rules
-      ?.map(sr => sr.rule.name)
-      .join(', ') || '-'
-  }
-
   if (sessions.length === 0) {
     return (
       <div className="text-center py-4 text-gray-500">
@@ -51,7 +45,6 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
           <TableHead>Data Fine</TableHead>
           <TableHead>Stato</TableHead>
           <TableHead>Cluster</TableHead>
-          <TableHead>Regole</TableHead>
           <TableHead></TableHead>
           <TableHead></TableHead>
         </TableRow>
@@ -64,7 +57,6 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
             <TableCell>{formatDate(session.end_time)}</TableCell>
             <TableCell>{session.status}</TableCell>
             <TableCell>{getClusterNames(session)}</TableCell>
-            <TableCell>{getRuleNames(session)}</TableCell>
             <TableCell className="text-right pr-2">
               {session.status === 'In preparazione' && (
                 <Link href={`/admin/pre-session-analysis?session=${session.id}`}>

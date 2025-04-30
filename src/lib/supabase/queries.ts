@@ -3,8 +3,11 @@ import type { QuestionInsert, QuestionUpdate } from "../types/questions";
 import type { Level } from "../types/levels";
 import type { TeamCreateData, TeamUpdateData } from "../types/teams";
 import type { Database } from "./database.types";
-import type { RuleInsert, RuleUpdate } from "../types/rules";
 import type { PreSessionStats } from "../types/feedbacks";
+
+// Definisco interfacce temporanee per mantenere compatibilità
+type RuleInsert = Database['public']['Tables']['rules']['Insert'];
+type RuleUpdate = Database['public']['Tables']['rules']['Update'];
 
 type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
   sender: { id: string; name: string; surname: string };
@@ -2005,7 +2008,7 @@ export const queries = {
       start_time: string | null;
       end_time: string | null;
       clusters: string[];
-      rules: string[];
+      rules?: string[]; // Rendo rules opzionale
       status?: string;
     }) => {
       const supabase = createClientComponentClient<Database>();
@@ -2057,7 +2060,7 @@ export const queries = {
         }
 
         // 3. Creiamo le associazioni session_rules
-        if (sessionData.rules.length > 0) {
+        if (sessionData.rules && sessionData.rules.length > 0) {
           const { error: rulesError } = await supabase
             .from("session_rules")
             .insert(
@@ -2091,7 +2094,7 @@ export const queries = {
         start_time: string | null;
         end_time: string | null;
         clusters: string[];
-        rules: string[];
+        rules?: string[]; // Rendo rules opzionale
         status?: string;
       }
     ) => {
@@ -2144,7 +2147,7 @@ export const queries = {
       if (deleteRulesError) throw deleteRulesError;
 
       // Poi creiamo le nuove associazioni
-      if (sessionData.rules.length > 0) {
+      if (sessionData.rules && sessionData.rules.length > 0) {
         const { error: rulesError } = await supabase
           .from("session_rules")
           .insert(

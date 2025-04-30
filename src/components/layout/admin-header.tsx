@@ -26,7 +26,6 @@ const navigationLeft: NavigationItem[] = [
 
 const navigationRight: NavigationItem[] = [
   { name: 'Questions', href: '/admin/questions' },
-  { name: 'Rules', href: '/admin/rules' },
   { name: 'Sessions', href: '/admin/sessions' },
   { name: 'Analisi pre-sessione', href: '/admin/pre-session-analysis' },
   { name: 'Risultati sessioni', href: '/admin/session-results' },

@@ -38,7 +38,7 @@ export interface SessionFormData {
   start_time: string | null
   end_time: string | null
   clusters: string[]
-  rules: string[]
+  rules?: string[]
   status?: string
 }
 
