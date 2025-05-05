@@ -150,6 +150,7 @@ function EvaluateContent() {
   const [pendingRatingChange, setPendingRatingChange] = useState<Rating | null>(
     null
   );
+  const [allFeedbacksForPerson, setAllFeedbacksForPerson] = useState<FeedbackWithRelations[]>([]);
 
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
@@ -238,10 +239,12 @@ function EvaluateContent() {
   );
 
   useEffect(() => {
+    // Define supabase client instance at the effect scope
+    const supabase = createClientComponentClient<Database>();
+
     const loadData = async () => {
       try {
         setLoading(true);
-        const supabase = createClientComponentClient<Database>();
         const currentUser = await queries.users.getCurrentUser();
 
         // Carica i dati iniziali
@@ -366,13 +369,33 @@ function EvaluateContent() {
     };
 
     loadData();
-  }, [sessionId, personId, selectedSkill, updatePeopleList, updateSkillsList]);
+    // Cleanup function to unsubscribe from Supabase channel
+    return () => {
+      supabase.removeChannel(supabase.channel("feedbacks-changes"));
+    };
+  }, [sessionId, personId, selectedSkill, updatePeopleList, updateSkillsList, countRemainingFeedbacks, countRemainingByType]);
+
+  // Effect to update current feedbacks when selectedSkill or allFeedbacksForPerson changes
+  useEffect(() => {
+    if (personId && allFeedbacksForPerson.length > 0) {
+        updateCurrentFeedbacks(allFeedbacksForPerson, selectedSkill);
+        // Also update skills list based on potentially updated feedbacks
+        setSkills(updateSkillsList(allFeedbacksForPerson, personId));
+    } else if (!personId) {
+        // Reset when no person is selected
+        setCurrentFeedbacks([]);
+        setSkills([]);
+        setCurrentFeedbackIndex(0);
+        setRating(0);
+        setComment("");
+    }
+  }, [personId, selectedSkill, allFeedbacksForPerson, updateSkillsList]);
 
   const updateCurrentFeedbacks = (
-    allFeedbacks: FeedbackData[],
+    feedbacks: FeedbackData[],
     type: string
   ) => {
-    const feedbacksForType = allFeedbacks.filter(
+    const feedbacksForType = feedbacks.filter(
       (f) => f.question?.type.toLowerCase() === type.toLowerCase()
     );
     setCurrentFeedbacks(feedbacksForType);
@@ -383,6 +406,11 @@ function EvaluateContent() {
     if (currentFeedback) {
       setRating((currentFeedback.value as Rating) || 0);
       setComment(currentFeedback.comment || "");
+    } else {
+      // Handle case where there are no feedbacks for this type
+      setRating(0);
+      setComment("");
+      setCurrentFeedbackIndex(0); // Ensure index is reset
     }
   };
 
@@ -394,35 +422,20 @@ function EvaluateContent() {
     setIsSkillMenuOpen(false);
   };
 
-  const handleSkillSelect = async (skill: Skill) => {
-    setSelectedSkill(skill.type);
+  const handleSkillSelect = async (skill: Skill["type"]) => {
+    // Reset index and state when skill changes
+    setCurrentFeedbackIndex(0);
+    setRating(0);
+    setComment("");
+    setHasCommentChanged(false);
+    setCommentError(null);
+    setSelectedSkill(skill);
     setIsSkillMenuOpen(false);
     setIsPersonMenuOpen(false);
 
-    // Aggiorna i feedback per il nuovo tipo
-    if (personId) {
-      const supabase = createClientComponentClient<Database>();
-      const { data: feedbacks } = await supabase
-        .from("feedbacks")
-        .select(
-          `
-          id,
-          value,
-          receiver,
-          comment,
-          question:questions (
-            id,
-            type,
-            description
-          )
-        `
-        )
-        .eq("session_id", sessionId)
-        .eq("receiver", personId);
-
-      if (feedbacks) {
-        updateCurrentFeedbacks(feedbacks, skill.type);
-      }
+    // No need to fetch again, just update currentFeedbacks from allPersonFeedbacks
+    if (personId && allFeedbacksForPerson.length > 0) {
+        updateCurrentFeedbacks(allFeedbacksForPerson, skill);
     }
   };
 
@@ -716,25 +729,72 @@ function EvaluateContent() {
       const prevFeedback = currentFeedbacks[newIndex];
       setRating((prevFeedback.value as Rating) || 0);
       setComment(prevFeedback.comment || "");
+      setHasCommentChanged(false); // Reset changed status
+      setCommentError(null); // Reset error
+    } else {
+      // Try to go to the previous skill type
+      const currentSkillIndex = skills.findIndex(s => s.type === selectedSkill);
+      const previousSkill = skills
+        .slice(0, currentSkillIndex)
+        .reverse()
+        .find(s => {
+          // Check if this skill type actually has questions for this person
+          return allFeedbacksForPerson.some(f => f.question?.type.toLowerCase() === s.type.toLowerCase());
+        });
+
+
+      if (previousSkill) {
+        // Need to update state *after* selecting the skill
+        const previousSkillFeedbacks = allFeedbacksForPerson.filter(
+          (f) => f.question?.type.toLowerCase() === previousSkill.type.toLowerCase()
+        );
+        const lastIndex = previousSkillFeedbacks.length - 1;
+        handleSkillSelect(previousSkill.type).then(() => {
+           setCurrentFeedbackIndex(lastIndex);
+           const prevFeedback = previousSkillFeedbacks[lastIndex];
+           setRating((prevFeedback?.value as Rating) || 0);
+           setComment(prevFeedback?.comment || "");
+           setHasCommentChanged(false);
+           setCommentError(null);
+        });
+      }
+      // If no previous skill, do nothing (stay on the first item)
     }
   };
 
   const handleNext = () => {
     // Validazione commento
-    if (rating > 0 && comment.trim() === "") {
+    if (rating > 0 && !comment?.trim()) {
       setCommentError(
         "È necessario inserire un commento quando si lascia una valutazione"
       );
       return;
     }
+    setCommentError(null); // Clear error if validation passes
 
     saveCurrentFeedback().then(() => {
-      setCommentError(null);
+      setHasCommentChanged(false); // Reset changed status after saving
       if (currentFeedbackIndex < currentFeedbacks.length - 1) {
-        setCurrentFeedbackIndex(currentFeedbackIndex + 1);
-        setRating(0);
-        setComment("");
-        setHasCommentChanged(false);
+        const newIndex = currentFeedbackIndex + 1;
+        setCurrentFeedbackIndex(newIndex);
+        const nextFeedback = currentFeedbacks[newIndex];
+        setRating((nextFeedback.value as Rating) || 0);
+        setComment(nextFeedback.comment || "");
+      } else {
+         // Try to go to the next skill type
+         const currentSkillIndex = skills.findIndex(s => s.type === selectedSkill);
+         const nextSkill = skills
+            .slice(currentSkillIndex + 1)
+            .find(s => {
+               // Check if this skill type actually has questions for this person
+               return allFeedbacksForPerson.some(f => f.question?.type.toLowerCase() === s.type.toLowerCase());
+             });
+
+
+         if (nextSkill) {
+            handleSkillSelect(nextSkill.type); // This will reset index to 0 and load state
+         }
+         // If no next skill, the "VAI ALLA SESSIONE" button should be shown instead
       }
     });
   };
@@ -743,6 +803,11 @@ function EvaluateContent() {
     if (!currentFeedbacks[currentFeedbackIndex]) return;
 
     const supabase = createClientComponentClient<Database>();
+    const currentUser = await queries.users.getCurrentUser();
+
+    // Prima di tutto, imposto loading per evitare flicker di UI
+    // Blocco temporaneamente l'interfaccia durante l'aggiornamento    
+    const prevCurrentPerson = currentPerson;
 
     // Salva il rating effettivo e il commento
     await supabase
@@ -761,6 +826,59 @@ function EvaluateContent() {
       comment: comment || null,
     };
     setCurrentFeedbacks(updatedLocalFeedbacks);
+
+    // Update allFeedbacksForPerson as well
+    const updatedAllFeedbacks = allFeedbacksForPerson.map(fb =>
+        fb.id === updatedLocalFeedbacks[currentFeedbackIndex].id
+            ? { ...fb, ...updatedLocalFeedbacks[currentFeedbackIndex] }
+            : fb
+    );
+    setAllFeedbacksForPerson(updatedAllFeedbacks);
+
+    // Aggiorna immediatamente le statistiche dei rimanenti
+    if (personId) {
+      // Ricarica i dati aggiornati per mantenere i conteggi coerenti
+      const { data: updatedFeedbacks } = await supabase
+        .from("feedbacks")
+        .select(
+          `
+          id,
+          value,
+          receiver,
+          comment,
+          question:questions (
+            id,
+            type,
+            description
+          ),
+          users!feedbacks_receiver_fkey (
+            id,
+            name,
+            surname
+          )
+        `
+        )
+        .eq("session_id", sessionId)
+        .eq("sender", currentUser.id);
+
+      if (updatedFeedbacks) {
+        // Aggiorna la lista delle persone con conteggi corretti
+        const peopleList = updatePeopleList(updatedFeedbacks);
+        setPeople(peopleList);
+
+        // Aggiorna la persona corrente e i suoi conteggi
+        const currentPersonData = peopleList.find(p => p.id === personId);
+        // Conserva il conteggio originale fino a quando non abbiamo il nuovo
+        if (currentPersonData && prevCurrentPerson) {
+          // Assicuriamoci che non ci sia un flash di "0 rimanenti"
+          currentPersonData.remainingAnswers = Math.max(currentPersonData.remainingAnswers, 0);
+        }
+        setCurrentPerson(currentPersonData || null);
+
+        // Aggiorna la lista dei tipi di feedback e relativi conteggi
+        setSkills(updateSkillsList(updatedFeedbacks, personId));
+      }
+    }
   };
 
   // Modifica dei click handler per i dropdown
@@ -838,6 +956,27 @@ function EvaluateContent() {
 
   const currentSkill = skills.find((s) => s.type === selectedSkill);
   const currentFeedback = currentFeedbacks[currentFeedbackIndex];
+
+  // --- Button Logic Calculations ---
+  const isValidationFailed = rating > 0 && !comment?.trim();
+
+  const currentSkillIndex = skills.findIndex(s => s.type === selectedSkill);
+  const previousSkillExists = skills
+      .slice(0, currentSkillIndex)
+      .some(s => allFeedbacksForPerson.some(f => f.question?.type.toLowerCase() === s.type.toLowerCase()));
+  const nextSkillExists = skills
+      .slice(currentSkillIndex + 1)
+      .some(s => allFeedbacksForPerson.some(f => f.question?.type.toLowerCase() === s.type.toLowerCase()));
+
+  const isLastOfCurrentType = currentFeedbackIndex === (currentFeedbacks?.length ?? 0) - 1;
+  const isFirstOfCurrentType = currentFeedbackIndex === 0;
+
+  const showGoToSession = isLastOfCurrentType && !nextSkillExists && currentFeedback != null;
+  const showNext = !isLastOfCurrentType || nextSkillExists;
+  const showPrevious = (isFirstOfCurrentType ? previousSkillExists : currentFeedbacks?.length > 0) && currentFeedback != null;
+
+  const disableNextOrSession = hasCommentChanged || isValidationFailed || (currentFeedback?.value === null && rating === 0);
+  // --- End Button Logic Calculations ---
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -944,7 +1083,7 @@ function EvaluateContent() {
                   <div
                     key={skill.type}
                     className="p-4 hover:bg-gray-50 cursor-pointer first:rounded-t-[20px] last:rounded-b-[20px]"
-                    onClick={() => handleSkillSelect(skill)}
+                    onClick={() => handleSkillSelect(skill.type)}
                   >
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-medium">{skill.type}</span>
@@ -1084,64 +1223,56 @@ function EvaluateContent() {
 
               {/* Navigation Buttons */}
               <div className="flex gap-4">
-                {currentFeedbackIndex === currentFeedbacks.length - 1 ? (
-                  <button
-                    onClick={() => router.push(`/session/${sessionId}`)}
-                    disabled={
-                      hasCommentChanged ||
-                      (currentFeedback.value === null && rating === 0) ||
-                      (currentFeedback.value === null &&
-                        rating > 0 &&
-                        !comment.trim())
-                    }
-                    className={`flex-1 py-3 rounded-full text-lg font-medium transition-colors ${
-                      hasCommentChanged ||
-                      (currentFeedback.value === null && rating === 0) ||
-                      (currentFeedback.value === null &&
-                        rating > 0 &&
-                        !comment.trim())
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                    }`}
-                  >
-                    VAI ALLA SESSIONE
-                  </button>
-                ) : currentFeedbackIndex > 0 ? (
-                  <button
-                    onClick={handlePrevious}
-                    className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  >
-                    INDIETRO
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => router.push(`/session/${sessionId}`)}
-                    className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  >
-                    INDIETRO
-                  </button>
-                )}
-                {currentFeedbackIndex < currentFeedbacks.length - 1 && (
+                 {/* INDIETRO Button */}
+                 {showPrevious ? (
+                   <button
+                     onClick={handlePrevious}
+                     className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                   >
+                     INDIETRO
+                   </button>
+                 ) : (
+                    // Optional: Show a disabled or different button if it's the absolute first feedback
+                    <button
+                        onClick={() => router.push(`/session/${sessionId}`)} // Or disable if preferred
+                        className="flex-1 py-3 rounded-full text-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    >
+                        INDIETRO
+                    </button>
+                 )}
+
+
+                {/* AVANTI Button */}
+                {showNext && !showGoToSession && (
                   <button
                     onClick={handleNext}
-                    disabled={
-                      hasCommentChanged ||
-                      (currentFeedback.value === null && rating === 0) ||
-                      (currentFeedback.value === null &&
-                        rating > 0 &&
-                        !comment.trim())
-                    }
+                    disabled={disableNextOrSession}
                     className={`flex-1 py-3 rounded-full text-lg font-medium transition-colors ${
-                      hasCommentChanged ||
-                      (currentFeedback.value === null && rating === 0) ||
-                      (currentFeedback.value === null &&
-                        rating > 0 &&
-                        !comment.trim())
+                      disableNextOrSession
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                         : "bg-[#4285F4] text-white hover:bg-[#3367D6]"
                     }`}
                   >
                     AVANTI
+                  </button>
+                )}
+
+                {/* VAI ALLA SESSIONE Button */}
+                {showGoToSession && (
+                  <button
+                    onClick={() => {
+                      if (!disableNextOrSession) {
+                          saveCurrentFeedback().then(() => router.push(`/session/${sessionId}`));
+                      }
+                    }}
+                    disabled={disableNextOrSession}
+                    className={`flex-1 py-3 rounded-full text-lg font-medium transition-colors ${
+                      disableNextOrSession
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    }`}
+                  >
+                    VAI ALLA SESSIONE
                   </button>
                 )}
               </div>
