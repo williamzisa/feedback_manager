@@ -101,6 +101,12 @@ export default function LoginPage() {
             </div>
           </div>
         </form>
+        <p className="mt-4 text-sm text-center text-gray-600">
+          Non hai un account?{" "}
+          <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+            Registrati
+          </Link>
+        </p>
       </div>
     </div>
   );

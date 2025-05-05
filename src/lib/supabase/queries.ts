@@ -243,6 +243,11 @@ export const queries = {
     }) => {
       const supabase = createClientComponentClient<Database>();
       try {
+        // Verifica che i campi obbligatori siano presenti
+        if (!userData.company) {
+          throw new Error("Company è un campo obbligatorio per la creazione dell'utente");
+        }
+
         const { data, error } = await supabase
           .from("users")
           .insert([
@@ -257,14 +262,27 @@ export const queries = {
           .single();
 
         if (error) {
-          console.error("Errore nella creazione dell'utente:", error);
-          throw error;
+          console.error("Errore nella creazione dell'utente:", {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          throw new Error(`Errore nella creazione dell'utente: ${error.message}`);
+        }
+
+        if (!data) {
+          throw new Error("Nessun dato ricevuto dopo la creazione dell'utente");
         }
 
         return data;
       } catch (err) {
         console.error("Errore nella creazione dell'utente:", err);
-        throw err;
+        if (err instanceof Error) {
+          throw new Error(`Errore nella creazione dell'utente: ${err.message}`);
+        } else {
+          throw new Error("Errore sconosciuto nella creazione dell'utente");
+        }
       }
     },
 
