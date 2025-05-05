@@ -126,13 +126,12 @@ function EvaluateContent() {
   const searchParams = useSearchParams();
   const params = useParams<PageParams>();
   const sessionId = params.id;
-  const [isPersonMenuOpen, setIsPersonMenuOpen] = useState<boolean>(false);
   const personId = searchParams.get("person");
   const [selectedSkill, setSelectedSkill] =
     useState<Skill["type"]>("Execution");
   const [rating, setRating] = useState<Rating>(0);
   const [comment, setComment] = useState<string>("");
-  const [isSkillMenuOpen, setIsSkillMenuOpen] = useState<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [people, setPeople] = useState<Person[]>([]);
   const [currentPerson, setCurrentPerson] = useState<Person | null>(null);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -167,6 +166,7 @@ function EvaluateContent() {
   // Funzioni helper per i conteggi
   const countRemainingFeedbacks = useCallback(
     (feedbacks: FeedbackWithRelations[], personId: string) => {
+      // Conta solo i feedback dove il receiver è la persona selezionata e il valore è null
       return feedbacks.filter(
         (f) => f.receiver === personId && f.value === null
       ).length;
@@ -176,6 +176,7 @@ function EvaluateContent() {
 
   const countRemainingByType = useCallback(
     (feedbacks: FeedbackWithRelations[], type: string) => {
+      // Conta solo i feedback del tipo selezionato con valore null
       return feedbacks.filter(
         (f) =>
           f.question?.type.toLowerCase() === type.toLowerCase() &&
@@ -218,6 +219,7 @@ function EvaluateContent() {
 
   const updateSkillsList = useCallback(
     (feedbacks: FeedbackWithRelations[], personId: string): Skill[] => {
+      // Filtra prima per la persona selezionata come receiver
       const personFeedbacks = feedbacks.filter((f) => f.receiver === personId);
 
       return [
@@ -247,7 +249,7 @@ function EvaluateContent() {
         setLoading(true);
         const currentUser = await queries.users.getCurrentUser();
 
-        // Carica i dati iniziali
+        // Carica i dati iniziali - filtra solo per la sessione corrente e il current user come sender
         const { data: feedbacks } = await supabase
           .from("feedbacks")
           .select(
@@ -275,6 +277,7 @@ function EvaluateContent() {
           // Aggiorna la lista delle persone
           const peopleList = updatePeopleList(feedbacks);
           setPeople(peopleList);
+          setAllFeedbacksForPerson(feedbacks);
 
           // Se abbiamo un personId, aggiorniamo i conteggi per tipo
           if (personId) {
@@ -284,7 +287,7 @@ function EvaluateContent() {
             // Aggiorna la lista dei tipi
             setSkills(updateSkillsList(feedbacks, personId));
 
-            // Aggiorna i feedback correnti per tipo
+            // Aggiorna i feedback correnti per tipo - prima filtra per receiver
             const personFeedbacks = feedbacks.filter(
               (f) => f.receiver === personId
             );
@@ -295,7 +298,7 @@ function EvaluateContent() {
           }
         }
 
-        // Sottoscrizione real-time per i feedback
+        // Sottoscrizione real-time per i feedback - solo per la sessione corrente e il current user come sender
         supabase
           .channel("feedbacks-changes")
           .on(
@@ -335,6 +338,7 @@ function EvaluateContent() {
                 // Aggiorna la lista delle persone
                 const peopleList = updatePeopleList(updatedFeedbacks);
                 setPeople(peopleList);
+                setAllFeedbacksForPerson(updatedFeedbacks);
 
                 // Se abbiamo un personId, aggiorniamo i conteggi per tipo
                 if (personId) {
@@ -346,7 +350,7 @@ function EvaluateContent() {
                   // Aggiorna la lista dei tipi
                   setSkills(updateSkillsList(updatedFeedbacks, personId));
 
-                  // Aggiorna i feedback correnti per tipo
+                  // Aggiorna i feedback correnti per tipo - prima filtra per receiver
                   const personFeedbacks = updatedFeedbacks.filter(
                     (f) => f.receiver === personId
                   );
@@ -378,7 +382,9 @@ function EvaluateContent() {
   // Effect to update current feedbacks when selectedSkill or allFeedbacksForPerson changes
   useEffect(() => {
     if (personId && allFeedbacksForPerson.length > 0) {
-        updateCurrentFeedbacks(allFeedbacksForPerson, selectedSkill);
+        // Filtra prima per persona (receiver)
+        const personFeedbacks = allFeedbacksForPerson.filter(f => f.receiver === personId);
+        updateCurrentFeedbacks(personFeedbacks, selectedSkill);
         // Also update skills list based on potentially updated feedbacks
         setSkills(updateSkillsList(allFeedbacksForPerson, personId));
     } else if (!personId) {
@@ -395,9 +401,11 @@ function EvaluateContent() {
     feedbacks: FeedbackData[],
     type: string
   ) => {
+    // Filtriamo solo i feedback del tipo selezionato
     const feedbacksForType = feedbacks.filter(
       (f) => f.question?.type.toLowerCase() === type.toLowerCase()
     );
+    
     setCurrentFeedbacks(feedbacksForType);
     setCurrentFeedbackIndex(0);
 
@@ -414,14 +422,6 @@ function EvaluateContent() {
     }
   };
 
-  const handlePersonSelect = (person: Person) => {
-    router.push(
-      `/session/${sessionId}/evaluate?person=${encodeURIComponent(person.id)}`
-    );
-    setIsPersonMenuOpen(false);
-    setIsSkillMenuOpen(false);
-  };
-
   const handleSkillSelect = async (skill: Skill["type"]) => {
     // Reset index and state when skill changes
     setCurrentFeedbackIndex(0);
@@ -430,12 +430,12 @@ function EvaluateContent() {
     setHasCommentChanged(false);
     setCommentError(null);
     setSelectedSkill(skill);
-    setIsSkillMenuOpen(false);
-    setIsPersonMenuOpen(false);
 
     // No need to fetch again, just update currentFeedbacks from allPersonFeedbacks
     if (personId && allFeedbacksForPerson.length > 0) {
-        updateCurrentFeedbacks(allFeedbacksForPerson, skill);
+        // Filtra prima per persona (receiver)
+        const personFeedbacks = allFeedbacksForPerson.filter(f => f.receiver === personId);
+        updateCurrentFeedbacks(personFeedbacks, skill);
     }
   };
 
@@ -881,17 +881,6 @@ function EvaluateContent() {
     }
   };
 
-  // Modifica dei click handler per i dropdown
-  const handlePersonMenuClick = () => {
-    setIsPersonMenuOpen(!isPersonMenuOpen);
-    setIsSkillMenuOpen(false);
-  };
-
-  const handleSkillMenuClick = () => {
-    setIsSkillMenuOpen(!isSkillMenuOpen);
-    setIsPersonMenuOpen(false);
-  };
-
   useEffect(() => {
     const loadTags = async () => {
       if (!currentFeedbacks[currentFeedbackIndex]?.question?.id) return;
@@ -954,7 +943,6 @@ function EvaluateContent() {
     );
   }
 
-  const currentSkill = skills.find((s) => s.type === selectedSkill);
   const currentFeedback = currentFeedbacks[currentFeedbackIndex];
 
   // --- Button Logic Calculations ---
@@ -972,7 +960,7 @@ function EvaluateContent() {
   const isFirstOfCurrentType = currentFeedbackIndex === 0;
 
   const showGoToSession = isLastOfCurrentType && !nextSkillExists && currentFeedback != null;
-  const showNext = !isLastOfCurrentType || nextSkillExists;
+  const showNext = (!isLastOfCurrentType || nextSkillExists) && currentFeedback != null;
   const showPrevious = (isFirstOfCurrentType ? previousSkillExists : currentFeedbacks?.length > 0) && currentFeedback != null;
 
   const disableNextOrSession = hasCommentChanged || isValidationFailed || (currentFeedback?.value === null && rating === 0);
@@ -981,126 +969,40 @@ function EvaluateContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
-        title="Feedback"
+        title={currentPerson?.name || "Feedback"}
         showBackButton={true}
         backUrl={`/session/${sessionId}`}
       />
 
       <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32">
-        {/* Person Selection */}
-        <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-3 sm:mb-4 relative">
-          <div
-            className="flex justify-between items-center cursor-pointer"
-            onClick={handlePersonMenuClick}
-          >
-            <span className="text-lg font-medium">
-              {currentPerson?.name || "Seleziona persona"}
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-red-500 text-sm">
-                {currentPerson?.remainingAnswers} rimanenti
-              </span>
-              <svg
-                className={`w-5 h-5 transition-transform ${
-                  isPersonMenuOpen ? "rotate-180" : ""
+        {/* Skill Selection - Replaced dropdown with 3 tab-like buttons */}
+        <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-3 sm:mb-4">
+          <div className="flex justify-between items-center gap-2">
+            {skills.map((skill) => (
+              <button
+                key={skill.type}
+                onClick={() => handleSkillSelect(skill.type)}
+                className={`flex-1 py-2 px-2 flex flex-col items-center justify-center rounded-lg transition-colors ${
+                  selectedSkill === skill.type 
+                    ? "bg-gray-100 border-2 border-gray-300" 
+                    : "hover:bg-gray-50"
+                } ${
+                  skill.remainingFeedback === 0
+                    ? "text-green-800 bg-green-50" 
+                    : "text-red-800 bg-red-50"
                 }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
-          </div>
-
-          {isPersonMenuOpen && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-[20px] shadow-lg z-10">
-              {people
-                .sort((a, b) => b.remainingAnswers - a.remainingAnswers)
-                .map((person) => (
-                  <div
-                    key={person.id}
-                    className="p-4 hover:bg-gray-50 cursor-pointer first:rounded-t-[20px] last:rounded-b-[20px]"
-                    onClick={() => handlePersonSelect(person)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-medium">{person.name}</span>
-                      <span className="text-red-500 text-sm">
-                        {person.remainingAnswers} rimanenti
-                      </span>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-
-        {/* Skill Selection */}
-        <div className="bg-white rounded-[20px] p-3 sm:p-4 mb-3 sm:mb-4 relative">
-          <div
-            className="flex justify-between items-center cursor-pointer"
-            onClick={handleSkillMenuClick}
-          >
-            <span className="text-lg font-medium">{selectedSkill}</span>
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-sm ${
-                  currentSkill?.remainingFeedback === 0
+                <span className="text-base font-medium">{skill.type}</span>
+                <span className={`text-sm ${
+                  skill.remainingFeedback === 0
                     ? "text-green-500"
                     : "text-red-500"
-                }`}
-              >
-                {currentSkill?.remainingFeedback} rimanenti
-              </span>
-              <svg
-                className={`w-5 h-5 transition-transform ${
-                  isSkillMenuOpen ? "rotate-180" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
+                }`}>
+                  {skill.remainingFeedback} rimanenti
+                </span>
+              </button>
+            ))}
           </div>
-
-          {isSkillMenuOpen && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-[20px] shadow-lg z-10">
-              {skills
-                .sort((a, b) => b.remainingFeedback - a.remainingFeedback)
-                .map((skill) => (
-                  <div
-                    key={skill.type}
-                    className="p-4 hover:bg-gray-50 cursor-pointer first:rounded-t-[20px] last:rounded-b-[20px]"
-                    onClick={() => handleSkillSelect(skill.type)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-medium">{skill.type}</span>
-                      <span
-                        className={`text-sm ${
-                          skill.remainingFeedback === 0
-                            ? "text-green-500"
-                            : "text-red-500"
-                        }`}
-                      >
-                        {skill.remainingFeedback} rimanenti
-                      </span>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
         </div>
 
         {/* Feedback Section */}
