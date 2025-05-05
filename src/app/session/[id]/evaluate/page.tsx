@@ -1007,7 +1007,7 @@ function EvaluateContent() {
 
         {/* Feedback Section */}
         <div className="mb-6">
-          {currentFeedback && (
+          {currentFeedback ? (
             <>
               <h2 className="text-lg text-gray-800 mb-4">
                 {currentFeedback.question?.description}
@@ -1179,6 +1179,11 @@ function EvaluateContent() {
                 )}
               </div>
             </>
+          ) : (
+            // Messaggio quando non ci sono domande per questo tipo
+            <div className="flex items-center justify-center h-40">
+              <p className="text-lg text-gray-500 font-medium">Nessuna domanda presente</p>
+            </div>
           )}
         </div>
       </main>
