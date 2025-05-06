@@ -1071,7 +1071,7 @@ function EvaluateContent() {
                     onClick={handleCancelRating}
                     className="w-full sm:w-auto py-2 px-3 sm:px-4 rounded-full transition-colors whitespace-nowrap text-sm sm:text-base flex-shrink-0 border border-red-500 bg-white text-red-500 hover:bg-red-50"
                   >
-                    ANNULLA VALUTAZIONE
+                    ANNULLA
                   </button>
                 )}
               </div>
