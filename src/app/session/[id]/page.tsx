@@ -12,6 +12,7 @@ type Person = {
   id: string;
   name: string;
   remainingAnswers: number;
+  isSelf: boolean;
 };
 
 type SessionData = Database['public']['Tables']['sessions']['Row'];
@@ -20,6 +21,7 @@ type FeedbackData = {
   id: string;
   value: number | null;
   receiver: string | null;
+  sender: string | null;
   users: {
     id: string;
     name: string;
@@ -53,6 +55,7 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
         
         // 1. Otteniamo l'utente corrente
         const currentUser = await queries.users.getCurrentUser();
+        const currentUserId = currentUser.id;
         
         // 2. Otteniamo i dati della sessione
         const { data: sessionData, error: sessionError } = await supabase
@@ -71,6 +74,7 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
             id,
             value,
             receiver,
+            sender,
             users!feedbacks_receiver_fkey (
               id,
               name,
@@ -78,32 +82,41 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
             )
           `)
           .eq('session_id', id)
-          .eq('sender', currentUser.id);
+          .eq('sender', currentUserId);
 
         if (feedbackError) throw feedbackError;
-
+        
         // Calcolo statistiche feedback
         const total = feedbacks?.length || 0;
         const completed = feedbacks?.filter((f: FeedbackData) => f.value !== null).length || 0;
         setFeedbackStats({ total, completed });
 
         // Preparo la lista delle persone
-        const peopleMap = new Map<string, { name: string; remaining: number }>();
+        const peopleMap = new Map<string, { name: string; remaining: number; isSelf: boolean }>();
+        
         feedbacks?.forEach((feedback: FeedbackData) => {
           if (feedback.users) {
             const personId = feedback.users.id;
             const fullName = `${feedback.users.name} ${feedback.users.surname}`;
             const isCompleted = feedback.value !== null;
+            
+            // Identificazione dell'utente corrente in modo diretto
+            // L'utente stesso è quando l'ID del ricevente è uguale all'ID dell'utente corrente
+            const isSelf = feedback.receiver === currentUserId;
 
             if (!peopleMap.has(personId)) {
               peopleMap.set(personId, { 
                 name: fullName, 
-                remaining: isCompleted ? 0 : 1 
+                remaining: isCompleted ? 0 : 1,
+                isSelf: isSelf
               });
             } else {
               const current = peopleMap.get(personId)!;
               if (!isCompleted) {
                 current.remaining += 1;
+              }
+              if (isSelf) {
+                current.isSelf = true;
               }
             }
           }
@@ -112,8 +125,12 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
         const peopleList = Array.from(peopleMap.entries()).map(([id, data]) => ({
           id,
           name: data.name,
-          remainingAnswers: data.remaining
+          remainingAnswers: data.remaining,
+          isSelf: data.isSelf
         }));
+        
+        // Ordiniamo le persone in base al numero di risposte rimanenti (decrescente)
+        peopleList.sort((a, b) => b.remainingAnswers - a.remainingAnswers);
 
         setPeople(peopleList);
 
@@ -203,28 +220,35 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
 
         {/* People List */}
         <div className="space-y-4">
-          {people.map((person) => (
-            <div key={person.id} className="bg-white rounded-[20px] p-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h4 className="text-xl font-bold mb-1">{person.name}</h4>
-                  <p className="text-red-500">
-                    {person.remainingAnswers} risposte rimanenti
-                  </p>
+          {people.map((person) => {
+            // Determiniamo in modo esplicito le classi CSS da applicare
+            const cardClassName = person.isSelf
+              ? "rounded-[20px] p-6 bg-[#4285F4]/15"
+              : "bg-white rounded-[20px] p-6";
+              
+            return (
+              <div key={person.id} className={cardClassName}>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="text-xl font-bold mb-1">{person.name}</h4>
+                    <p className={person.remainingAnswers === 0 ? "text-green-500" : "text-red-500"}>
+                      {person.remainingAnswers} risposte rimanenti
+                    </p>
+                  </div>
+                  <button
+                    className="bg-[#4285F4] text-white px-6 py-2 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
+                    onClick={() =>
+                      router.push(
+                        `/session/${id}/evaluate?person=${encodeURIComponent(person.id)}`
+                      )
+                    }
+                  >
+                    Valuta
+                  </button>
                 </div>
-                <button
-                  className="bg-[#4285F4] text-white px-6 py-2 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
-                  onClick={() =>
-                    router.push(
-                      `/session/${id}/evaluate?person=${encodeURIComponent(person.id)}`
-                    )
-                  }
-                >
-                  Valuta
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 
