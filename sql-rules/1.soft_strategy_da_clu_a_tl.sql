@@ -8,7 +8,7 @@ BEGIN
     rule_number,
     company
   )
-  SELECT DISTINCT 
+  SELECT 
     c.leader AS sender, 
     t.leader AS receiver, 
     q.id AS question_id, 

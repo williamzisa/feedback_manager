@@ -10,17 +10,24 @@ import { Button } from "@/components/ui/button";
 import { Edit, Tag } from "lucide-react";
 import { Question } from "@/lib/types/questions";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface QuestionsTableProps {
   questions: Question[];
   onEdit: (id: string) => Promise<void>;
   onManageTags: (id: string) => Promise<void>;
+  selectedQuestions: string[];
+  onSelectQuestion: (id: string, isSelected: boolean) => void;
+  onSelectAll: (isSelected: boolean) => void;
 }
 
 export function QuestionsTable({
   questions,
   onEdit,
   onManageTags,
+  selectedQuestions,
+  onSelectQuestion,
+  onSelectAll,
 }: QuestionsTableProps) {
   const getTypeColor = (type: Question["type"]) => {
     switch (type) {
@@ -35,11 +42,20 @@ export function QuestionsTable({
     }
   };
 
+  const allSelected = questions.length > 0 && selectedQuestions.length === questions.length;
+  
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[50px]">
+              <Checkbox 
+                checked={allSelected}
+                onCheckedChange={(checked) => onSelectAll(!!checked)}
+                aria-label="Seleziona tutte le domande"
+              />
+            </TableHead>
             <TableHead className="hidden sm:table-cell">ID</TableHead>
             <TableHead>Question</TableHead>
             <TableHead className="hidden md:table-cell">TYPE</TableHead>
@@ -50,7 +66,14 @@ export function QuestionsTable({
         </TableHeader>
         <TableBody>
           {questions.map((question, index) => (
-            <TableRow key={question.id}>
+            <TableRow key={question.id} className={selectedQuestions.includes(question.id) ? "bg-muted/50" : ""}>
+              <TableCell>
+                <Checkbox
+                  checked={selectedQuestions.includes(question.id)}
+                  onCheckedChange={(checked) => onSelectQuestion(question.id, !!checked)}
+                  aria-label={`Seleziona domanda ${index + 1}`}
+                />
+              </TableCell>
               <TableCell className="hidden sm:table-cell">
                 {index + 1}
               </TableCell>
@@ -115,7 +138,7 @@ export function QuestionsTable({
           ))}
           {(!questions || questions.length === 0) && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-4 text-gray-500">
+              <TableCell colSpan={7} className="text-center py-4 text-gray-500">
                 Nessuna domanda trovata
               </TableCell>
             </TableRow>

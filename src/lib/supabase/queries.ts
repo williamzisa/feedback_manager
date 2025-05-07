@@ -4,6 +4,7 @@ import type { Level } from "../types/levels";
 import type { TeamCreateData, TeamUpdateData } from "../types/teams";
 import type { Database } from "./database.types";
 import type { PreSessionStats } from "../types/feedbacks";
+import { redirect } from "next/navigation";
 
 // Definisco interfacce temporanee per mantenere compatibilità
 type RuleInsert = Database['public']['Tables']['rules']['Insert'];
@@ -19,24 +20,28 @@ type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
   };
 };
 
+// Definizione del tipo utente per evitare errori di type checking
+type UserData = Database['public']['Tables']['users']['Row'];
+
 export const queries = {
   // Users
   users: {
-    getCurrentUser: async () => {
+    getCurrentUser: async (): Promise<UserData> => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          throw new Error("Sessione non valida - effettua nuovamente il login");
+          // Invece di lanciare un errore, reindirizza alla pagina di login
+          redirect("/login");
         }
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError) {
           console.error("Errore auth.getUser:", authError);
-          throw new Error("Errore di autenticazione - effettua nuovamente il login");
+          redirect("/login");
         }
         if (!user) {
-          throw new Error("Utente non autenticato - effettua il login");
+          redirect("/login");
         }
 
         const { data: checkData, error: checkError } = await supabase
@@ -58,7 +63,7 @@ export const queries = {
           throw new Error("Errore di integrità: trovati multipli utenti con lo stesso auth_id");
         }
 
-        const userData = checkData[0];
+        const userData = checkData[0] as UserData;
 
         if (!userData.company) {
           throw new Error("Company non configurata per questo utente");
@@ -67,25 +72,41 @@ export const queries = {
         return userData;
       } catch (err) {
         console.error("Errore getCurrentUser:", err);
+        if (err instanceof Error && err.message.includes("login")) {
+          redirect("/login");
+        }
         throw err;
       }
     },
 
-    getCurrentUserClient: async () => {
+    getCurrentUserClient: async (): Promise<UserData> => {
       const supabase = createClientComponentClient<Database>();
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          throw new Error("Sessione non valida - effettua nuovamente il login");
+          // Su client side, possiamo usare window.location per redirect
+          // Poiché redirect() di Next.js funziona solo su server components
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          // Ritorniamo una Promise che non si risolve mai, ma TypeScript richiede un tipo
+          // Questo codice non verrà mai eseguito perché il redirect avviene prima
+          throw new Error("Sessione non valida");
         }
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError) {
           console.error("Errore auth.getUser:", authError);
-          throw new Error("Errore di autenticazione - effettua nuovamente il login");
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return new Promise(() => {});
         }
         if (!user) {
-          throw new Error("Utente non autenticato - effettua il login");
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return new Promise(() => {});
         }
 
         const { data: checkData, error: checkError } = await supabase
@@ -116,6 +137,12 @@ export const queries = {
         return userData;
       } catch (err) {
         console.error("Errore getCurrentUser:", err);
+        if (err instanceof Error && err.message.includes("login")) {
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          return new Promise(() => {});
+        }
         throw err;
       }
     },

@@ -17,6 +17,8 @@ import { QuestionsTable } from "./questions-table";
 import { CreateQuestionDialog } from "./dialogs/create-question-dialog";
 import { EditQuestionDialog } from "./dialogs/edit-question-dialog";
 import { QuestionTagsDialog } from "./dialogs/question-tags-dialog";
+import { BulkCopyTagsDialog } from "./dialogs/bulk-copy-tags-dialog";
+import { Copy } from "lucide-react";
 
 export function QuestionsView() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -30,6 +32,8 @@ export function QuestionsView() {
     string | null
   >(null);
   const [isTagsDialogOpen, setIsTagsDialogOpen] = useState(false);
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [isBulkCopyDialogOpen, setIsBulkCopyDialogOpen] = useState(false);
 
   const fetchQuestions = async () => {
     try {
@@ -96,6 +100,26 @@ export function QuestionsView() {
   const handleManageTags = async (id: string) => {
     setSelectedQuestionIdForTags(id);
     setIsTagsDialogOpen(true);
+  };
+
+  const handleSelectQuestion = (id: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedQuestions(prev => [...prev, id]);
+    } else {
+      setSelectedQuestions(prev => prev.filter(questionId => questionId !== id));
+    }
+  };
+
+  const handleSelectAll = (isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedQuestions(filteredQuestions.map(q => q.id));
+    } else {
+      setSelectedQuestions([]);
+    }
+  };
+
+  const handleBulkCopyComplete = async () => {
+    await fetchQuestions();
   };
 
   const filteredQuestions = questions.filter((question) => {
@@ -206,6 +230,31 @@ export function QuestionsView() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Azioni di massa quando ci sono elementi selezionati */}
+                {selectedQuestions.length > 0 && (
+                  <div className="mt-4 flex items-center gap-2 pt-3 border-t">
+                    <span className="text-sm text-muted-foreground">
+                      {selectedQuestions.length} domande selezionate
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedQuestions([])}
+                    >
+                      Deseleziona tutto
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setIsBulkCopyDialogOpen(true)}
+                      className="ml-auto"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copia tag in massa
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="p-4">
                 <QuestionsTable
@@ -217,6 +266,9 @@ export function QuestionsView() {
                     }
                   }}
                   onManageTags={handleManageTags}
+                  selectedQuestions={selectedQuestions}
+                  onSelectQuestion={handleSelectQuestion}
+                  onSelectAll={handleSelectAll}
                 />
               </div>
             </div>
@@ -255,13 +307,22 @@ export function QuestionsView() {
         <QuestionTagsDialog
           questionId={selectedQuestionIdForTags}
           open={isTagsDialogOpen}
-          onOpenChange={(open: boolean) => {
+          onOpenChange={(open) => {
             setIsTagsDialogOpen(open);
             if (!open) {
               setSelectedQuestionIdForTags(null);
-              fetchQuestions(); // Ricarica le domande per aggiornare i conteggi dei tag
+              fetchQuestions();
             }
           }}
+        />
+      )}
+
+      {selectedQuestions.length > 0 && (
+        <BulkCopyTagsDialog
+          selectedQuestionIds={selectedQuestions}
+          open={isBulkCopyDialogOpen}
+          onOpenChange={setIsBulkCopyDialogOpen}
+          onComplete={handleBulkCopyComplete}
         />
       )}
     </div>
