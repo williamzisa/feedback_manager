@@ -16,7 +16,7 @@ export default function HomePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const currentUser = await queries.users.getCurrentUser();
+        const currentUser = await queries.users.getCurrentUserClient();
         
         // Carica sessioni
         const userSessions = await queries.sessions.getUserSessions(currentUser.id);

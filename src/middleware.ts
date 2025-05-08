@@ -16,14 +16,8 @@ export async function middleware(req: NextRequest) {
 
   // Se non c'è una sessione e la route NON è pubblica, redirect a /login
   if (!session && !publicRoutes.includes(pathname)) {
-    // Eccezione per la root (pagina principale), che potrebbe essere pubblica
-    // Aggiungi altre eccezioni se necessario
-    if (pathname === '/') {
-      // Lascia passare alla home page pubblica se non c'è sessione
-      // Se la home deve essere protetta, rimuovi questo if
-    } else {
-      return NextResponse.redirect(new URL('/login', req.url))
-    }
+    // Redirect per tutte le pagine protette, inclusa la homepage '/'
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
   // Se c'è una sessione e l'utente prova ad accedere a una route pubblica (es. /login), redirect alla home
