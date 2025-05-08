@@ -1,8 +1,6 @@
 
-DECLARE
-  inserted_count INTEGER;
 BEGIN
-  -- Step 2a: TL → CLU
+  -- TL → CLU
   INSERT INTO feedbacks (
     sender,
     receiver,
@@ -12,7 +10,7 @@ BEGIN
     rule_number,
     company
   )
-  SELECT DISTINCT
+  SELECT
     t.leader AS sender,
     c.leader AS receiver,
     q.id AS question_id,
@@ -31,6 +29,5 @@ BEGIN
     AND t.leader IS NOT NULL
     AND t.leader <> c.leader;
     
-  GET DIAGNOSTICS inserted_count = ROW_COUNT;
-  RETURN inserted_count;
+  RETURN;  
 END;

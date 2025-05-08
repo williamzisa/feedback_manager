@@ -8,10 +8,10 @@ BEGIN
     rule_number,
     company
   )
-  SELECT 
-    c.leader AS sender, 
-    t.leader AS receiver, 
-    q.id AS question_id, 
+  SELECT
+    c.leader AS sender,
+    t.leader AS receiver,
+    q.id AS question_id,
     sc.session_id,
     NOW(),
     1 AS rule_number,

@@ -22,13 +22,13 @@ BEGIN
                      AND q.id = p.linked_question_id
                      AND q.company = s.company
 
-    WHERE sc.session_id = session_uuid
+    WHERE sc.session_id = session_uuid -- Usa il parametro di input
       AND EXISTS (
         SELECT 1 FROM user_teams utm
         JOIN teams tm_inner ON utm.team_id = tm_inner.id
         JOIN team_clusters tcm ON tm_inner.id = tcm.team_id
         JOIN session_clusters scm ON tcm.cluster_id = scm.cluster_id
-        WHERE scm.session_id = session_uuid
+        WHERE scm.session_id = session_uuid -- Usa il parametro di input
         AND utm.user_id = mentor.id
       );
 
@@ -38,10 +38,10 @@ BEGIN
         mentor.id AS sender,              -- Mentor come mittente (equivalente al CL della regola 1)
         tm.id AS receiver,                -- Team Member (Mentee) come destinatario
         q.id AS question_id,              -- Domande STRATEGY e SOFT
-        sc.session_id AS session_id,      
+        sc.session_id AS session_id,
         NOW() AS created_at,
         5 AS rule_number,                 -- Manteniamo lo stesso numero di regola
-        s.company AS company              
+        s.company AS company
     FROM session_clusters sc
     JOIN sessions s ON sc.session_id = s.id
     JOIN team_clusters tc ON sc.cluster_id = tc.cluster_id
@@ -52,13 +52,13 @@ BEGIN
     JOIN questions q ON LOWER(q.type) IN ('soft', 'strategy') -- Filtro per domande SOFT e STRATEGY
                      AND q.company = s.company
 
-    WHERE sc.session_id = session_uuid
+    WHERE sc.session_id = session_uuid -- Usa il parametro di input
       AND EXISTS (
         SELECT 1 FROM user_teams utm
         JOIN teams tm_inner ON utm.team_id = tm_inner.id
         JOIN team_clusters tcm ON tm_inner.id = tcm.team_id
         JOIN session_clusters scm ON tcm.cluster_id = scm.cluster_id
-        WHERE scm.session_id = session_uuid
+        WHERE scm.session_id = session_uuid -- Usa il parametro di input
         AND utm.user_id = mentor.id
       );
 END;

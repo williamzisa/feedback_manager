@@ -1,7 +1,6 @@
-
 BEGIN
     INSERT INTO feedbacks (sender, receiver, question_id, session_id, created_at, rule_number, company)
-    SELECT DISTINCT
+    SELECT
         ut1.user_id AS sender,
         ut2.user_id AS receiver,
         q.id AS question_id,
