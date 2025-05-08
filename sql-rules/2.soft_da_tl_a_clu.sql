@@ -1,4 +1,3 @@
-
 BEGIN
   -- TL → CLU
   INSERT INTO feedbacks (
@@ -24,10 +23,10 @@ BEGIN
   JOIN session_clusters sc ON c.id = sc.cluster_id
   JOIN questions q ON q.company = c.company
   WHERE sc.session_id = p_session_id
-    AND q.type ILIKE 'soft'
+    AND q.type ILIKE 'soft'  -- Mantenuto come nell'originale
     AND c.leader IS NOT NULL
-    AND t.leader IS NOT NULL
-    AND t.leader <> c.leader;
+    AND t.leader IS NOT NULL;
+    -- Rimossa la condizione t.leader <> c.leader
     
   RETURN;  
 END;
