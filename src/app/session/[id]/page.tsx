@@ -41,6 +41,7 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<SessionData | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [feedbackStats, setFeedbackStats] = useState<{
     total: number;
     completed: number;
@@ -161,7 +162,7 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Sessione di valutazione" />
+        <Header title="Sessione 360" />
         <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32">
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -175,7 +176,7 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Sessione di valutazione" />
+        <Header title="Sessione 360" />
         <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32">
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
             <strong className="font-bold">Errore!</strong>
@@ -193,7 +194,7 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Sessione di valutazione" />
+      <Header title="Sessione 360" />
 
       <main className="container mx-auto max-w-2xl px-4 py-4 pb-32 sm:py-6 sm:pb-32">
         {/* Session Info */}
@@ -222,42 +223,65 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
           <div className="mt-2 text-right text-gray-600">{progressPercentage}%</div>
         </div>
 
+        {/* Search Input */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Cerca una persona..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#4285F4] focus:border-transparent"
+          />
+          <a 
+            href="https://riskhub.notion.site/Perch-trovo-loro-nel-mio-360-1f2da54d973c80509e0df1f85f088d6f?pvs=4"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-2 text-sm text-[#4285F4] hover:underline"
+          >
+            Perché trovo loro?
+          </a>
+        </div>
+
         {/* People List */}
         <div className="space-y-4">
-          {people.map((person) => {
-            // Determiniamo in modo esplicito le classi CSS da applicare
-            const cardClassName = person.isSelf
-              ? "rounded-[20px] p-6 bg-[#4285F4]/15"
-              : "bg-white rounded-[20px] p-6";
-              
-            return (
-              <div key={person.id} className={cardClassName}>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h4 className="text-xl font-bold mb-1">{person.name}</h4>
-                    <p className={person.remainingAnswers === 0 ? "text-green-500" : "text-red-500"}>
-                      {person.remainingAnswers} risposte rimanenti
-                    </p>
-                    {person.remainingAnswers > 0 && (
-                      <p className="text-gray-500 text-sm">
-                        ({calculateEstimatedMinutes(person.remainingAnswers)} minuti stimati)
+          {people
+            .filter(person => 
+              person.name.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map((person) => {
+              // Determiniamo in modo esplicito le classi CSS da applicare
+              const cardClassName = person.isSelf
+                ? "rounded-[20px] p-6 bg-[#4285F4]/15"
+                : "bg-white rounded-[20px] p-6";
+                
+              return (
+                <div key={person.id} className={cardClassName}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="text-xl font-bold mb-1">{person.name}</h4>
+                      <p className={person.remainingAnswers === 0 ? "text-green-500" : "text-red-500"}>
+                        {person.remainingAnswers} risposte rimanenti
                       </p>
-                    )}
+                      {person.remainingAnswers > 0 && (
+                        <p className="text-gray-500 text-sm">
+                          ({calculateEstimatedMinutes(person.remainingAnswers)} minuti stimati)
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      className="bg-[#4285F4] text-white px-6 py-2 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
+                      onClick={() =>
+                        router.push(
+                          `/session/${id}/evaluate?person=${encodeURIComponent(person.id)}`
+                        )
+                      }
+                    >
+                      Valuta
+                    </button>
                   </div>
-                  <button
-                    className="bg-[#4285F4] text-white px-6 py-2 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
-                    onClick={() =>
-                      router.push(
-                        `/session/${id}/evaluate?person=${encodeURIComponent(person.id)}`
-                      )
-                    }
-                  >
-                    Valuta
-                  </button>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </main>
 
