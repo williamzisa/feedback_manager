@@ -1,183 +1,1346 @@
-| table_name             | column_name                 | data_type                   | column_default          | is_nullable |
-| ---------------------- | --------------------------- | --------------------------- | ----------------------- | ----------- |
-| clusters               | id                          | uuid                        | gen_random_uuid()       | NO          |
-| clusters               | name                        | text                        | null                    | NO          |
-| clusters               | leader                      | uuid                        | null                    | YES         |
-| clusters               | company                     | uuid                        | null                    | YES         |
-| clusters               | created_at                  | timestamp with time zone    | now()                   | NO          |
-| clusters               | level                       | integer                     | null                    | YES         |
-| companies              | id                          | uuid                        | gen_random_uuid()       | NO          |
-| companies              | name                        | text                        | null                    | NO          |
-| companies              | created_at                  | timestamp with time zone    | now()                   | YES         |
-| feedbacks              | id                          | uuid                        | gen_random_uuid()       | NO          |
-| feedbacks              | sender                      | uuid                        | null                    | YES         |
-| feedbacks              | receiver                    | uuid                        | null                    | YES         |
-| feedbacks              | question_id                 | uuid                        | null                    | YES         |
-| feedbacks              | value                       | integer                     | null                    | YES         |
-| feedbacks              | session_id                  | uuid                        | null                    | NO          |
-| feedbacks              | rule_id                     | uuid                        | null                    | YES         |
-| feedbacks              | company                     | uuid                        | null                    | NO          |
-| feedbacks              | created_at                  | timestamp with time zone    | now()                   | NO          |
-| feedbacks              | comment                     | text                        | null                    | YES         |
-| feedbacks              | rule_number                 | integer                     | null                    | YES         |
-| initiatives            | id                          | uuid                        | gen_random_uuid()       | NO          |
-| initiatives            | created_at                  | timestamp with time zone    | now()                   | NO          |
-| initiatives            | user_id                     | uuid                        | null                    | YES         |
-| initiatives            | session_id                  | uuid                        | null                    | YES         |
-| initiatives            | question_id                 | uuid                        | null                    | YES         |
-| initiatives            | type                        | text                        | null                    | YES         |
-| initiatives            | description                 | text                        | null                    | YES         |
-| levels                 | id                          | uuid                        | gen_random_uuid()       | NO          |
-| levels                 | role                        | text                        | null                    | YES         |
-| levels                 | step                        | integer                     | null                    | NO          |
-| levels                 | execution_weight            | integer                     | null                    | NO          |
-| levels                 | soft_weight                 | integer                     | null                    | NO          |
-| levels                 | strategy_weight             | integer                     | null                    | NO          |
-| levels                 | standard                    | numeric                     | null                    | NO          |
-| levels                 | company                     | uuid                        | null                    | NO          |
-| levels                 | created_at                  | timestamp with time zone    | now()                   | NO          |
-| processes              | id                          | uuid                        | gen_random_uuid()       | NO          |
-| processes              | name                        | text                        | null                    | NO          |
-| processes              | linked_question_id          | uuid                        | null                    | NO          |
-| processes              | company                     | uuid                        | null                    | NO          |
-| processes              | created_at                  | timestamp with time zone    | now()                   | NO          |
-| question_tags          | id                          | uuid                        | gen_random_uuid()       | NO          |
-| question_tags          | question_id                 | uuid                        | null                    | NO          |
-| question_tags          | score                       | integer                     | null                    | NO          |
-| question_tags          | description                 | text                        | null                    | NO          |
-| question_tags          | company                     | uuid                        | null                    | NO          |
-| question_tags          | created_at                  | timestamp with time zone    | now()                   | NO          |
-| questions              | id                          | uuid                        | gen_random_uuid()       | NO          |
-| questions              | description                 | text                        | null                    | NO          |
-| questions              | type                        | text                        | null                    | NO          |
-| questions              | company                     | uuid                        | null                    | NO          |
-| questions              | created_at                  | timestamp with time zone    | now()                   | NO          |
-| rules                  | id                          | uuid                        | gen_random_uuid()       | NO          |
-| rules                  | number                      | integer                     | null                    | NO          |
-| rules                  | content_sql                 | text                        | null                    | NO          |
-| rules                  | company                     | uuid                        | null                    | NO          |
-| rules                  | created_at                  | timestamp with time zone    | now()                   | NO          |
-| rules                  | name                        | text                        | ''::text                | NO          |
-| rules                  | description                 | text                        | null                    | YES         |
-| rules                  | template                    | boolean                     | null                    | YES         |
-| session_clusters       | id                          | uuid                        | gen_random_uuid()       | NO          |
-| session_clusters       | session_id                  | uuid                        | null                    | NO          |
-| session_clusters       | cluster_id                  | uuid                        | null                    | NO          |
-| session_clusters       | created_at                  | timestamp with time zone    | now()                   | YES         |
-| session_rules          | id                          | uuid                        | gen_random_uuid()       | NO          |
-| session_rules          | session_id                  | uuid                        | null                    | NO          |
-| session_rules          | rule_id                     | uuid                        | null                    | NO          |
-| session_rules          | created_at                  | timestamp with time zone    | now()                   | YES         |
-| sessions               | id                          | uuid                        | null                    | NO          |
-| sessions               | id                          | uuid                        | gen_random_uuid()       | NO          |
-| sessions               | user_id                     | uuid                        | null                    | NO          |
-| sessions               | name                        | text                        | null                    | NO          |
-| sessions               | created_at                  | timestamp with time zone    | null                    | YES         |
-| sessions               | updated_at                  | timestamp with time zone    | null                    | YES         |
-| sessions               | factor_id                   | uuid                        | null                    | YES         |
-| sessions               | aal                         | USER-DEFINED                | null                    | YES         |
-| sessions               | not_after                   | timestamp with time zone    | null                    | YES         |
-| sessions               | status                      | text                        | null                    | NO          |
-| sessions               | refreshed_at                | timestamp without time zone | null                    | YES         |
-| sessions               | user_agent                  | text                        | null                    | YES         |
-| sessions               | company                     | uuid                        | null                    | YES         |
-| sessions               | start_time                  | timestamp with time zone    | null                    | YES         |
-| sessions               | ip                          | inet                        | null                    | YES         |
-| sessions               | tag                         | text                        | null                    | YES         |
-| sessions               | end_time                    | timestamp with time zone    | null                    | YES         |
-| sessions               | created_at                  | timestamp with time zone    | now()                   | YES         |
-| team_clusters          | id                          | uuid                        | gen_random_uuid()       | NO          |
-| team_clusters          | team_id                     | uuid                        | null                    | YES         |
-| team_clusters          | cluster_id                  | uuid                        | null                    | YES         |
-| team_clusters          | created_at                  | timestamp with time zone    | now()                   | YES         |
-| team_processes         | id                          | uuid                        | gen_random_uuid()       | NO          |
-| team_processes         | created_at                  | timestamp with time zone    | now()                   | NO          |
-| team_processes         | team_id                     | uuid                        | null                    | NO          |
-| team_processes         | process_id                  | uuid                        | null                    | NO          |
-| team_teams             | first_team_id               | uuid                        | null                    | NO          |
-| team_teams             | second_team_id              | uuid                        | null                    | NO          |
-| team_teams             | created_at                  | timestamp with time zone    | now()                   | NO          |
-| teams                  | id                          | uuid                        | gen_random_uuid()       | NO          |
-| teams                  | name                        | text                        | null                    | NO          |
-| teams                  | leader                      | uuid                        | null                    | NO          |
-| teams                  | company                     | uuid                        | null                    | NO          |
-| teams                  | created_at                  | timestamp with time zone    | now()                   | NO          |
-| teams                  | project                     | boolean                     | false                   | YES         |
-| user_processes         | id                          | uuid                        | gen_random_uuid()       | NO          |
-| user_processes         | user_id                     | uuid                        | null                    | YES         |
-| user_processes         | process_id                  | uuid                        | null                    | YES         |
-| user_processes         | created_at                  | timestamp with time zone    | now()                   | YES         |
-| user_sessions          | user_id                     | uuid                        | null                    | NO          |
-| user_sessions          | session_id                  | uuid                        | null                    | NO          |
-| user_sessions          | level_name                  | text                        | null                    | YES         |
-| user_sessions          | level_standard              | double precision            | null                    | YES         |
-| user_sessions          | weight_execution            | double precision            | null                    | YES         |
-| user_sessions          | weight_soft                 | double precision            | null                    | YES         |
-| user_sessions          | weight_strategy             | double precision            | null                    | YES         |
-| user_sessions          | val_overall                 | double precision            | null                    | YES         |
-| user_sessions          | val_execution               | double precision            | null                    | YES         |
-| user_sessions          | val_soft                    | double precision            | null                    | YES         |
-| user_sessions          | val_strategy                | double precision            | null                    | YES         |
-| user_sessions          | self_overall                | double precision            | null                    | YES         |
-| user_sessions          | self_execution              | double precision            | null                    | YES         |
-| user_sessions          | self_soft                   | double precision            | null                    | YES         |
-| user_sessions          | self_strategy               | double precision            | null                    | YES         |
-| user_sessions          | val_gap                     | double precision            | null                    | YES         |
-| user_sessions          | created_at                  | timestamp with time zone    | now()                   | YES         |
-| user_teams             | id                          | uuid                        | gen_random_uuid()       | NO          |
-| user_teams             | user_id                     | uuid                        | null                    | YES         |
-| user_teams             | team_id                     | uuid                        | null                    | YES         |
-| user_teams             | created_at                  | timestamp with time zone    | CURRENT_TIMESTAMP       | YES         |
-| users                  | id                          | uuid                        | gen_random_uuid()       | NO          |
-| users                  | instance_id                 | uuid                        | null                    | YES         |
-| users                  | id                          | uuid                        | null                    | NO          |
-| users                  | name                        | text                        | null                    | NO          |
-| users                  | aud                         | character varying           | null                    | YES         |
-| users                  | surname                     | text                        | null                    | NO          |
-| users                  | role                        | character varying           | null                    | YES         |
-| users                  | email                       | text                        | null                    | NO          |
-| users                  | email                       | character varying           | null                    | YES         |
-| users                  | level                       | uuid                        | null                    | YES         |
-| users                  | encrypted_password          | character varying           | null                    | YES         |
-| users                  | admin                       | boolean                     | false                   | NO          |
-| users                  | company                     | uuid                        | null                    | YES         |
-| users                  | email_confirmed_at          | timestamp with time zone    | null                    | YES         |
-| users                  | invited_at                  | timestamp with time zone    | null                    | YES         |
-| users                  | mentor                      | uuid                        | null                    | YES         |
-| users                  | confirmation_token          | character varying           | null                    | YES         |
-| users                  | created_at                  | timestamp with time zone    | now()                   | YES         |
-| users                  | auth_id                     | uuid                        | null                    | YES         |
-| users                  | confirmation_sent_at        | timestamp with time zone    | null                    | YES         |
-| users                  | status                      | text                        | 'active'::text          | NO          |
-| users                  | recovery_token              | character varying           | null                    | YES         |
-| users                  | recovery_sent_at            | timestamp with time zone    | null                    | YES         |
-| users                  | last_login                  | timestamp with time zone    | null                    | YES         |
-| users                  | email_change_token_new      | character varying           | null                    | YES         |
-| users                  | email_change                | character varying           | null                    | YES         |
-| users                  | email_change_sent_at        | timestamp with time zone    | null                    | YES         |
-| users                  | last_sign_in_at             | timestamp with time zone    | null                    | YES         |
-| users                  | raw_app_meta_data           | jsonb                       | null                    | YES         |
-| users                  | raw_user_meta_data          | jsonb                       | null                    | YES         |
-| users                  | is_super_admin              | boolean                     | null                    | YES         |
-| users                  | created_at                  | timestamp with time zone    | null                    | YES         |
-| users                  | updated_at                  | timestamp with time zone    | null                    | YES         |
-| users                  | phone                       | text                        | NULL::character varying | YES         |
-| users                  | phone_confirmed_at          | timestamp with time zone    | null                    | YES         |
-| users                  | phone_change                | text                        | ''::character varying   | YES         |
-| users                  | phone_change_token          | character varying           | ''::character varying   | YES         |
-| users                  | phone_change_sent_at        | timestamp with time zone    | null                    | YES         |
-| users                  | confirmed_at                | timestamp with time zone    | null                    | YES         |
-| users                  | email_change_token_current  | character varying           | ''::character varying   | YES         |
-| users                  | email_change_confirm_status | smallint                    | 0                       | YES         |
-| users                  | banned_until                | timestamp with time zone    | null                    | YES         |
-| users                  | reauthentication_token      | character varying           | ''::character varying   | YES         |
-| users                  | reauthentication_sent_at    | timestamp with time zone    | null                    | YES         |
-| users                  | is_sso_user                 | boolean                     | false                   | NO          |
-| users                  | deleted_at                  | timestamp with time zone    | null                    | YES         |
-| users                  | is_anonymous                | boolean                     | false                   | NO          |
-| view_analisi_feedbacks | id                          | uuid                        | null                    | YES         |
-| view_analisi_feedbacks | sender_name_surname         | text                        | null                    | YES         |
-| view_analisi_feedbacks | receiver_name_surname       | text                        | null                    | YES         |
-| view_analisi_feedbacks | question_type               | text                        | null                    | YES         |
-| view_analisi_feedbacks | value                       | integer                     | null                    | YES         |
-| view_analisi_feedbacks | session_id                  | uuid                        | null                    | YES         |
+[
+  {
+    "table_name": "clusters",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "name",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "leader",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "level",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "companies",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "companies",
+    "column_name": "name",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "companies",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "sender",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "receiver",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "question_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "value",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "rule_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "comment",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks",
+    "column_name": "rule_number",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "rule_number",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "value",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "comment",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "sender_name_surname",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "receiver_name_surname",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "question_type",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "question_description",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "feedbacks_view",
+    "column_name": "process_name",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "initiatives",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "initiatives",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "initiatives",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "initiatives",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "initiatives",
+    "column_name": "question_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "initiatives",
+    "column_name": "type",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "initiatives",
+    "column_name": "description",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "role",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "step",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "execution_weight",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "soft_weight",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "strategy_weight",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "standard",
+    "data_type": "numeric",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "levels",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "processes",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "processes",
+    "column_name": "name",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "processes",
+    "column_name": "linked_question_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "processes",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "processes",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "question_tags",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "question_tags",
+    "column_name": "question_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "question_tags",
+    "column_name": "score",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "question_tags",
+    "column_name": "description",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "question_tags",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "question_tags",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "questions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "questions",
+    "column_name": "description",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "questions",
+    "column_name": "type",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "questions",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "questions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "rules",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "rules",
+    "column_name": "number",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "rules",
+    "column_name": "content_sql",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "rules",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "rules",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "rules",
+    "column_name": "name",
+    "data_type": "text",
+    "column_default": "''::text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "rules",
+    "column_name": "description",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "rules",
+    "column_name": "template",
+    "data_type": "boolean",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "session_clusters",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "session_clusters",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "session_clusters",
+    "column_name": "cluster_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "session_clusters",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "session_rules",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "session_rules",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "session_rules",
+    "column_name": "rule_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "session_rules",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "name",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "factor_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "aal",
+    "data_type": "USER-DEFINED",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "not_after",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "refreshed_at",
+    "data_type": "timestamp without time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "status",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "user_agent",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "ip",
+    "data_type": "inet",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "start_time",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "tag",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "end_time",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "team_clusters",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "team_clusters",
+    "column_name": "team_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "team_clusters",
+    "column_name": "cluster_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "team_clusters",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "team_processes",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "team_processes",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "team_processes",
+    "column_name": "team_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "team_processes",
+    "column_name": "process_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "team_teams",
+    "column_name": "first_team_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "team_teams",
+    "column_name": "second_team_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "team_teams",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "teams",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "teams",
+    "column_name": "name",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "teams",
+    "column_name": "leader",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "teams",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "teams",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "teams",
+    "column_name": "project",
+    "data_type": "boolean",
+    "column_default": "false",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_processes",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "user_processes",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_processes",
+    "column_name": "process_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_processes",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "level_name",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "level_standard",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "weight_execution",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "weight_soft",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "weight_strategy",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "val_overall",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "val_execution",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "val_soft",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "val_strategy",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "self_overall",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "self_execution",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "self_soft",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "self_strategy",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "val_gap",
+    "data_type": "double precision",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_sessions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_teams",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "user_teams",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_teams",
+    "column_name": "team_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "user_teams",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "CURRENT_TIMESTAMP",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "instance_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "users",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "users",
+    "column_name": "name",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "users",
+    "column_name": "surname",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "users",
+    "column_name": "aud",
+    "data_type": "character varying",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "role",
+    "data_type": "character varying",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email",
+    "data_type": "character varying",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "level",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "encrypted_password",
+    "data_type": "character varying",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "admin",
+    "data_type": "boolean",
+    "column_default": "false",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_confirmed_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "mentor",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "invited_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "confirmation_token",
+    "data_type": "character varying",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "auth_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "confirmation_sent_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "status",
+    "data_type": "text",
+    "column_default": "'active'::text",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "users",
+    "column_name": "recovery_token",
+    "data_type": "character varying",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "recovery_sent_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "last_login",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_change_token_new",
+    "data_type": "character varying",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_change",
+    "data_type": "character varying",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_change_sent_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "last_sign_in_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "raw_app_meta_data",
+    "data_type": "jsonb",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "raw_user_meta_data",
+    "data_type": "jsonb",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "is_super_admin",
+    "data_type": "boolean",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "phone",
+    "data_type": "text",
+    "column_default": "NULL::character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "phone_confirmed_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "phone_change",
+    "data_type": "text",
+    "column_default": "''::character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "phone_change_token",
+    "data_type": "character varying",
+    "column_default": "''::character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "phone_change_sent_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "confirmed_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_change_token_current",
+    "data_type": "character varying",
+    "column_default": "''::character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email_change_confirm_status",
+    "data_type": "smallint",
+    "column_default": "0",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "banned_until",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "reauthentication_token",
+    "data_type": "character varying",
+    "column_default": "''::character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "reauthentication_sent_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "is_sso_user",
+    "data_type": "boolean",
+    "column_default": "false",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "users",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "is_anonymous",
+    "data_type": "boolean",
+    "column_default": "false",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "view_analisi_feedbacks",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "view_analisi_feedbacks",
+    "column_name": "sender_name_surname",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "view_analisi_feedbacks",
+    "column_name": "receiver_name_surname",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "view_analisi_feedbacks",
+    "column_name": "question_type",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "view_analisi_feedbacks",
+    "column_name": "value",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "view_analisi_feedbacks",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  }
+]

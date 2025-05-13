@@ -13,6 +13,7 @@ import {
 import { SessionsTable } from './sessions-table'
 import { CreateSessionDialog } from './dialogs/create-session-dialog'
 import { EditSessionDialog } from './dialogs/edit-session-dialog'
+import { CompleteSessionDialog } from './dialogs/complete-session-dialog'
 import type { Session, RefetchFunction } from '@/lib/types/sessions'
 import { PlusCircle } from 'lucide-react'
 import { StatCard } from '@/components/stats/stat-card'
@@ -25,6 +26,7 @@ export function SessionsView() {
   const [endDate, setEndDate] = useState<string>('')
   const [selectedCluster, setSelectedCluster] = useState<string>('all')
   const [editingSession, setEditingSession] = useState<Session | null>(null)
+  const [completingSession, setCompletingSession] = useState<Session | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   // Otteniamo la company dell'utente corrente
@@ -150,6 +152,7 @@ export function SessionsView() {
             <SessionsTable 
               sessions={filteredSessions}
               onEdit={setEditingSession}
+              onComplete={setCompletingSession}
             />
           </div>
         </div>
@@ -167,6 +170,15 @@ export function SessionsView() {
           onSuccess={refetchSessions}
           open={!!editingSession}
           onOpenChange={(open) => !open && setEditingSession(null)}
+        />
+      )}
+
+      {completingSession && (
+        <CompleteSessionDialog
+          session={completingSession}
+          onSuccess={refetchSessions}
+          open={!!completingSession}
+          onOpenChange={(open) => !open && setCompletingSession(null)}
         />
       )}
     </div>

@@ -8,15 +8,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Edit2, ArrowRight } from 'lucide-react'
+import { Edit2, ArrowRight, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
 interface SessionsTableProps {
   sessions: Session[]
   onEdit: (session: Session) => void
+  onComplete?: (session: Session) => void
 }
 
-export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
+export function SessionsTable({ sessions, onEdit, onComplete }: SessionsTableProps) {
   const formatDate = (date: string | null) => {
     if (!date) return '-'
     return new Date(date).toLocaleDateString('it-IT')
@@ -65,6 +66,17 @@ export function SessionsTable({ sessions, onEdit }: SessionsTableProps) {
                     <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </Link>
+              )}
+              {session.status === 'In corso' && onComplete && (
+                <Button 
+                  variant="outline"
+                  size="sm" 
+                  className="h-8 px-2 text-sm"
+                  onClick={() => onComplete(session)}
+                >
+                  Concludi sessione
+                  <CheckCircle className="h-4 w-4 ml-1" />
+                </Button>
               )}
             </TableCell>
             <TableCell className="w-[50px]">

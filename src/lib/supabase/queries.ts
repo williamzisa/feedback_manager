@@ -2379,6 +2379,24 @@ export const queries = {
         throw err;
       }
     },
+
+    updateStatus: async (sessionId: string, status: string) => {
+      const supabase = createClientComponentClient<Database>();
+      
+      // Aggiorniamo SOLO lo stato della sessione
+      const { data: session, error } = await supabase
+        .from("sessions")
+        .update({ status })
+        .eq("id", sessionId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!session)
+        throw new Error("Errore durante l'aggiornamento dello stato della sessione");
+
+      return session;
+    },
   },
 
   // Feedbacks
