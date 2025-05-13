@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import { queries } from '@/lib/supabase/queries'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface UserSessionResult {
   id: string
@@ -23,6 +30,7 @@ export const SessionResultsTable = () => {
   const router = useRouter()
   const [results, setResults] = useState<UserSessionResult[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSession, setSelectedSession] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -33,7 +41,9 @@ export const SessionResultsTable = () => {
         
         // Recuperiamo i dati reali dal database usando la nuova query
         const sessionResults = await queries.sessions.getSessionResults()
-        setResults(sessionResults)
+        // Ordiniamo i risultati per gap decrescente
+        const sortedResults = sessionResults.sort((a, b) => b.gap - a.gap)
+        setResults(sortedResults)
       } catch (err) {
         console.error('Errore nel recupero dei risultati delle sessioni:', err)
         setError(err instanceof Error ? err.message : 'Errore sconosciuto')
@@ -45,14 +55,23 @@ export const SessionResultsTable = () => {
     fetchSessionResults()
   }, [])
   
-  // Filtra i risultati in base alla ricerca
+  // Ottieni le sessioni uniche per il selettore
+  const uniqueSessions = Array.from(new Set(results.map(r => r.session_name)))
+  
+  // Filtra i risultati in base alla ricerca e alla sessione selezionata
   const filteredResults = results.filter(result =>
-    result.user_name.toLowerCase().includes(searchQuery.toLowerCase())
+    result.user_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    (selectedSession === 'all' || result.session_name === selectedSession)
   )
 
   // Funzione per formattare il gap in percentuale
   const formatGap = (gap: number) => {
-    return `${(gap * 100).toFixed(1)}%`
+    return `${gap.toFixed(1)}%`
+  }
+
+  // Funzione per formattare i numeri decimali
+  const formatNumber = (num: number) => {
+    return num.toFixed(2)
   }
 
   const handleDetailClick = (sessionName: string, userName: string) => {
@@ -73,6 +92,22 @@ export const SessionResultsTable = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          <Select
+            value={selectedSession}
+            onValueChange={setSelectedSession}
+          >
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Seleziona Sessione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutte le sessioni</SelectItem>
+              {uniqueSessions.map((session) => (
+                <SelectItem key={session} value={session}>
+                  {session}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <Button variant="outline" className="w-full sm:w-auto whitespace-nowrap">
           Export .csv
@@ -108,19 +143,19 @@ export const SessionResultsTable = () => {
                         <span className="font-medium">Ruolo:</span> {result.level_name}
                       </div>
                       <div className="mb-2">
-                        <span className="font-medium">Overall:</span> {result.overall}
+                        <span className="font-medium">Overall:</span> {formatNumber(result.overall)}
                       </div>
                       <div className="mb-2">
                         <span className="font-medium">Gap:</span> {formatGap(result.gap)}
                       </div>
                       <div className="mb-2">
-                        <span className="font-medium">Execution:</span> {result.execution}
+                        <span className="font-medium">Execution:</span> {formatNumber(result.execution)}
                       </div>
                       <div className="mb-2">
-                        <span className="font-medium">Strategy:</span> {result.strategy}
+                        <span className="font-medium">Strategy:</span> {formatNumber(result.strategy)}
                       </div>
                       <div className="mb-2">
-                        <span className="font-medium">Soft:</span> {result.soft}
+                        <span className="font-medium">Soft:</span> {formatNumber(result.soft)}
                       </div>
                     </div>
                   </div>
@@ -162,11 +197,11 @@ export const SessionResultsTable = () => {
                       <TableCell>{result.session_name}</TableCell>
                       <TableCell>{result.user_name}</TableCell>
                       <TableCell>{result.level_name}</TableCell>
-                      <TableCell>{result.overall}</TableCell>
+                      <TableCell>{formatNumber(result.overall)}</TableCell>
                       <TableCell>{formatGap(result.gap)}</TableCell>
-                      <TableCell>{result.execution}</TableCell>
-                      <TableCell>{result.strategy}</TableCell>
-                      <TableCell>{result.soft}</TableCell>
+                      <TableCell>{formatNumber(result.execution)}</TableCell>
+                      <TableCell>{formatNumber(result.strategy)}</TableCell>
+                      <TableCell>{formatNumber(result.soft)}</TableCell>
                       <TableCell>
                         <Button 
                           variant="default"

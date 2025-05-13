@@ -2329,28 +2329,21 @@ export const queries = {
         const { data, error } = await supabase
           .from("user_sessions")
           .select(`
-            session_id,
-            user_id,
-            level_name,
-            val_overall,
-            val_gap,
-            val_execution,
-            val_strategy,
-            val_soft,
-            users:users!user_sessions_user_id_fkey (
+            *,
+            users!inner (
               id,
               name,
               surname,
               company
             ),
-            sessions:sessions!user_sessions_session_id_fkey (
+            sessions!inner (
               id,
               name,
               company
             )
           `)
-          .eq("sessions.company", currentUser.company)
           .eq("users.company", currentUser.company)
+          .eq("sessions.company", currentUser.company)
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -2362,17 +2355,23 @@ export const queries = {
           return [];
         }
 
+        // Funzione helper per formattare i numeri a 2 decimali
+        const formatNumber = (num: number | null): number => {
+          if (num === null) return 0;
+          return Number(num.toFixed(2));
+        };
+
         // Trasformiamo i dati nel formato richiesto dall'interfaccia
         return data.map(result => ({
           id: `${result.session_id}_${result.user_id}`,
-          session_name: result.sessions?.name || "",
+          session_name: result.sessions.name,
           level_name: result.level_name || "",
-          user_name: `${result.users?.name || ""} ${result.users?.surname || ""}`,
-          overall: result.val_overall || 0,
-          gap: result.val_gap || 0,
-          execution: result.val_execution || 0,
-          strategy: result.val_strategy || 0,
-          soft: result.val_soft || 0
+          user_name: `${result.users.name} ${result.users.surname}`,
+          overall: formatNumber(result.val_overall),
+          gap: formatNumber(result.val_gap), // Il gap è già in percentuale, non moltiplicare
+          execution: formatNumber(result.val_execution),
+          strategy: formatNumber(result.val_strategy),
+          soft: formatNumber(result.val_soft)
         }));
       } catch (err) {
         console.error("Errore nel recupero dei risultati delle sessioni:", err);
