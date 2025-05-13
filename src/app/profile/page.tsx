@@ -13,8 +13,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Profile {
   id: string;
@@ -29,6 +37,9 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const supabase = createClientComponentClient();
   const router = useRouter();
 
@@ -85,7 +96,8 @@ export default function ProfilePage() {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      toast.error("Le password non coincidono");
+      setErrorMessage("Le password non coincidono");
+      setErrorDialogOpen(true);
       return;
     }
 
@@ -99,10 +111,12 @@ export default function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      toast.success("Password aggiornata con successo");
-    } catch (error) {
+      setSuccessDialogOpen(true);
+    } catch (error: unknown) {
       console.error("Error updating password:", error);
-      toast.error("Errore nell'aggiornamento della password");
+      const errorMsg = error instanceof Error ? error.message : "Errore nell'aggiornamento della password";
+      setErrorMessage(errorMsg);
+      setErrorDialogOpen(true);
     }
   };
 
@@ -123,7 +137,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex justify-center">
       <div className="container max-w-2xl px-4 py-8">
         <div className="mb-8 flex items-center gap-4">
           <Button
@@ -230,6 +244,46 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Dialog di successo */}
+        <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                Operazione Completata
+              </DialogTitle>
+              <DialogDescription>
+                La tua password è stata aggiornata con successo.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setSuccessDialogOpen(false)}>
+                Chiudi
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog di errore */}
+        <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+                Errore
+              </DialogTitle>
+              <DialogDescription>
+                {errorMessage}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setErrorDialogOpen(false)} variant="destructive">
+                Chiudi
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

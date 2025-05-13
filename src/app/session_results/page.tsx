@@ -255,16 +255,28 @@ function SessionResultsContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center text-red-500">{error}</div>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="text-center text-xl mb-6">Non ci sono ancora risultati</div>
+        <Button 
+          className="bg-emerald-500 hover:bg-emerald-600 text-white py-4 px-6 rounded-full text-lg"
+          onClick={() => window.location.href = "/"}
+        >
+          Torna alla home
+        </Button>
       </div>
     );
   }
 
   if (!currentSession) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">Nessuna sessione trovata</div>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="text-center text-xl mb-6">Non ci sono ancora risultati</div>
+        <Button 
+          className="bg-emerald-500 hover:bg-emerald-600 text-white py-4 px-6 rounded-full text-lg"
+          onClick={() => window.location.href = "/"}
+        >
+          Torna alla home
+        </Button>
       </div>
     );
   }

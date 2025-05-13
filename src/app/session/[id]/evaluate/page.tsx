@@ -1181,8 +1181,11 @@ function EvaluateContent() {
             </>
           ) : (
             // Messaggio quando non ci sono domande per questo tipo
-            <div className="flex items-center justify-center h-40">
-              <p className="text-lg text-gray-500 font-medium">Nessuna domanda presente</p>
+            <div className="flex items-center justify-center h-40 text-center">
+              <p className="text-lg text-gray-500 font-medium">
+                Nessuna domanda presente,<br/>
+                cambia tipologia o torna indietro
+              </p>
             </div>
           )}
         </div>
