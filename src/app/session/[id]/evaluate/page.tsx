@@ -1027,7 +1027,7 @@ function EvaluateContent() {
                           className={`text-2xl sm:text-4xl transition-transform hover:scale-110`}
                         >
                           <svg
-                            className={`w-10 h-10 sm:w-14 sm:h-14 ${
+                            className={`w-10 h-10 sm:w-12 sm:h-12 ${
                               rating >= star
                                 ? "text-[#F4B400]"
                                 : "text-gray-300"
@@ -1054,13 +1054,13 @@ function EvaluateContent() {
                     <button
                       onClick={handleNoFeedback}
                       disabled={currentFeedback.value === 0}
-                      className={`bg-[#F4B400] text-white py-2 px-3 sm:px-4 rounded-full transition-colors whitespace-nowrap text-sm sm:text-base flex-shrink-0 ${
+                      className={`bg-[#F4B400] text-white py-1.5 px-3 rounded-full transition-colors text-xs sm:text-sm flex-shrink-0 ${
                         currentFeedback.value === 0
                           ? "bg-[#E5A800] shadow-inner opacity-70 cursor-not-allowed"
                           : "hover:bg-[#E5A800]"
                       }`}
                     >
-                      NON HO ELEMENTI PER UN FEEDBACK UTILE
+                      NON HO ELEMENTI PER UN FEEDBACK
                     </button>
                   )}
                 </div>
