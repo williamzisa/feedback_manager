@@ -200,7 +200,7 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
         {/* Session Info */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-2">
-            Sessione iniziata il {formatDate(session?.start_time)}
+            Data inizio {formatDate(session?.start_time)}
           </h2>
           <p className="text-xl text-gray-700">
             Data termine: {formatDate(session?.end_time)}
