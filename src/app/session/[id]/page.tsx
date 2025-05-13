@@ -154,6 +154,10 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
     });
   };
 
+  const calculateEstimatedMinutes = (remainingAnswers: number): number => {
+    return remainingAnswers / 2;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -234,6 +238,11 @@ export default function SessionDetailPage({ params }: SessionDetailPageProps) {
                     <p className={person.remainingAnswers === 0 ? "text-green-500" : "text-red-500"}>
                       {person.remainingAnswers} risposte rimanenti
                     </p>
+                    {person.remainingAnswers > 0 && (
+                      <p className="text-gray-500 text-sm">
+                        ({calculateEstimatedMinutes(person.remainingAnswers)} minuti stimati)
+                      </p>
+                    )}
                   </div>
                   <button
                     className="bg-[#4285F4] text-white px-6 py-2 rounded-full text-lg font-medium hover:bg-[#3367D6] transition-colors"
