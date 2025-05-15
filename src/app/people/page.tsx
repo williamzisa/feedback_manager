@@ -166,7 +166,7 @@ export default function PeoplePage() {
                         Last GAP:{" "}
                         {hasLastSession && lastSession.val_gap !== null
                           ? `${lastSession.val_gap >= 0 ? "+" : ""}${(
-                              lastSession.val_gap * 100
+                              lastSession.val_gap
                             ).toFixed(0)}%`
                           : "N/A"}
                       </p>

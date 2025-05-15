@@ -12,7 +12,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { FeedbackScoreCard } from "@/components/stats/feedback-score-card";
 import { InitiativesSection } from "@/components/initiatives/initiatives-section";
 import { InitiativeDialog } from "@/components/initiatives/initiative-dialog";
@@ -385,7 +385,7 @@ function FeedbackContent() {
             className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
             aria-label="Torna ai risultati"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-gray-600" />
           </button>
         </div>
 

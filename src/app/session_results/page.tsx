@@ -16,7 +16,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Database } from "@/lib/supabase/database.types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Star, UserCircle2, Target, Users, MessageSquare } from "lucide-react";
+import { Star, UserCircle2, Target, Users, MessageSquare, ChevronLeft } from "lucide-react";
 
 type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   sessions: Database["public"]["Tables"]["sessions"]["Row"];
@@ -284,6 +284,20 @@ function SessionResultsContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title={userName ? userName : "I miei Risultati"} />
+
+      <div className="absolute top-20 left-4 md:left-8">
+        <button
+          onClick={() => {
+            // Se è presente un userName (stiamo visualizzando un altro utente), vai a /people
+            // Altrimenti vai alla home
+            window.location.href = userName ? "/people" : "/";
+          }}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-md hover:bg-gray-50 transition-colors"
+          aria-label="Indietro"
+        >
+          <ChevronLeft className="h-5 w-5 text-gray-600" />
+        </button>
+      </div>
 
       <main className="container mx-auto max-w-2xl px-4 py-6">
         {/* Session Selector */}
