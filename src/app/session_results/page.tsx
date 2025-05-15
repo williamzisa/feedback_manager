@@ -422,70 +422,70 @@ function SessionResultsContent() {
 
         {/* Skills Cards */}
         <div className="space-y-4">
-          {/* Soft Skills */}
-          <div
-            className="bg-[#FFF8F0] rounded-[20px] p-6 cursor-pointer hover:bg-[#FFF0E0] transition-colors"
-            onClick={() => handleViewDetails("Soft Skills")}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Soft Skills</h2>
-              <span className="bg-[#F5A623] text-white text-xl font-bold px-4 py-1 rounded-full">
-                {currentSession.val_soft?.toFixed(1)}
-              </span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[#F5A623]">
-                Peso: {currentSession.weight_soft}%
-              </p>
-              <p className="text-[#F5A623]">
-                {getQuestionsCountByType(feedbacks, "SOFT")} feedback ricevuti
-              </p>
-            </div>
-          </div>
-
-          {/* Strategy Skills */}
-          <div
-            className="bg-white rounded-[20px] p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => handleViewDetails("Strategy Skills")}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Strategy Skills</h2>
-              <span className="bg-[#00BFA5] text-white text-xl font-bold px-4 py-1 rounded-full">
-                {currentSession.val_strategy?.toFixed(1)}
-              </span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[#00BFA5]">
-                Peso: {currentSession.weight_strategy}%
-              </p>
-              <p className="text-[#00BFA5]">
-                {getQuestionsCountByType(feedbacks, "STRATEGY")} feedback
-                ricevuti
-              </p>
-            </div>
-          </div>
-
-          {/* Execution Skills */}
-          <div
-            className="bg-white rounded-[20px] p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => handleViewDetails("Execution Skills")}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Execution Skills</h2>
-              <span className="bg-[#4285F4] text-white text-xl font-bold px-4 py-1 rounded-full">
-                {currentSession.val_execution?.toFixed(1)}
-              </span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[#4285F4]">
-                Peso: {currentSession.weight_execution}%
-              </p>
-              <p className="text-[#4285F4]">
-                {getQuestionsCountByType(feedbacks, "EXECUTION")} feedback
-                ricevuti
-              </p>
-            </div>
-          </div>
+          {(() => {
+            // Crea un array delle skills con il loro peso
+            const skillsData = [
+              {
+                type: "Strategy Skills",
+                weight: currentSession.weight_strategy || 0,
+                value: currentSession.val_strategy?.toFixed(1),
+                bgColor: "bg-white",
+                hoverColor: "",
+                textColor: "text-[#00BFA5]",
+                badgeColor: "bg-[#00BFA5]",
+                questionType: "STRATEGY",
+                feedbackCount: getQuestionsCountByType(feedbacks, "STRATEGY")
+              },
+              {
+                type: "Soft Skills",
+                weight: currentSession.weight_soft || 0,
+                value: currentSession.val_soft?.toFixed(1),
+                bgColor: "bg-[#FFF8F0]",
+                hoverColor: "",
+                textColor: "text-[#F5A623]",
+                badgeColor: "bg-[#F5A623]",
+                questionType: "SOFT",
+                feedbackCount: getQuestionsCountByType(feedbacks, "SOFT")
+              },
+              {
+                type: "Execution Skills",
+                weight: currentSession.weight_execution || 0,
+                value: currentSession.val_execution?.toFixed(1),
+                bgColor: "bg-white",
+                hoverColor: "",
+                textColor: "text-[#4285F4]",
+                badgeColor: "bg-[#4285F4]",
+                questionType: "EXECUTION",
+                feedbackCount: getQuestionsCountByType(feedbacks, "EXECUTION")
+              }
+            ];
+            
+            // Ordina l'array in base al peso (decrescente)
+            const sortedSkills = skillsData.sort((a, b) => b.weight - a.weight);
+            
+            // Renderizza le cards in base all'ordine 
+            return sortedSkills.map((skill) => (
+              <div
+                key={skill.type}
+                className={`${skill.bgColor} rounded-[20px] p-6 ${skill.hoverColor} transition-colors`}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">{skill.type}</h2>
+                  <span className={`${skill.badgeColor} text-white text-xl font-bold px-4 py-1 rounded-full`}>
+                    {skill.value}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <p className={skill.textColor}>
+                    Peso: {skill.weight}%
+                  </p>
+                  <p className={skill.textColor}>
+                    {skill.feedbackCount} feedback ricevuti
+                  </p>
+                </div>
+              </div>
+            ));
+          })()}
         </div>
 
         {/* Action Buttons */}

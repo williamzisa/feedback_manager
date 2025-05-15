@@ -147,7 +147,7 @@ function FeedbackContent() {
                   selectedSkillType as keyof typeof skillTypeMapping
                 ]
             )
-            .sort((a, b) => b[1].overall - a[1].overall)
+            .sort((a, b) => a[1].overall - b[1].overall)
         : [],
     [feedbackData, selectedSkillType, skillTypeMapping]
   );
