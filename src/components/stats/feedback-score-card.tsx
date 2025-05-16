@@ -21,6 +21,10 @@ export function FeedbackScoreCard({
   questionId,
   onViewComments,
 }: FeedbackScoreCardProps) {
+  // Determina se i valori distano più di 0.9 dal valore overall
+  const isMentorDifferent = Math.abs(mentor - overall) > 0.9;
+  const isSelfDifferent = Math.abs(self - overall) > 0.9;
+
   return (
     <div className="space-y-4 mt-8">
       <div className="grid grid-cols-3 gap-4">
@@ -30,10 +34,14 @@ export function FeedbackScoreCard({
           </span>
         </div>
         <div className="text-center">
-          <span className="text-lg">Mentor: {mentor.toFixed(1)}/5</span>
+          <span className={`text-lg ${isMentorDifferent ? "text-red-600" : ""}`}>
+            Mentor: {mentor.toFixed(1)}/5
+          </span>
         </div>
         <div className="text-center">
-          <span className="text-lg">Self: {self.toFixed(1)}/5</span>
+          <span className={`text-lg ${isSelfDifferent ? "text-red-600" : ""}`}>
+            Self: {self.toFixed(1)}/5
+          </span>
         </div>
       </div>
       {commentCount > 0 ? (
