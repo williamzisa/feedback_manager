@@ -762,11 +762,11 @@ export async function deleteQuestionTag(id: string) {
   }
 }
 
-export async function getInitiativesByQuestionId(questionId: string) {
+export async function getInitiativesByQuestionId(questionId: string, userId?: string) {
   try {
     const supabase = await getServerSupabase()
     
-    const { data, error } = await supabase
+    const query = supabase
       .from("initiatives")
       .select(`
         id,
@@ -786,6 +786,13 @@ export async function getInitiativesByQuestionId(questionId: string) {
       `)
       .eq("question_id", questionId)
       .order("created_at", { ascending: false })
+    
+    // Se è specificato l'userId, filtra per esso
+    if (userId) {
+      query.eq("user_id", userId)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error("Errore nel recupero delle iniziative:", error)
@@ -804,6 +811,7 @@ export async function createInitiative(data: {
   question_id: string
   session_id: string
   type: "SOFT" | "STRATEGY" | "EXECUTION"
+  user_id?: string
 }) {
   try {
     const currentUser = await getCurrentUser()
@@ -825,6 +833,9 @@ export async function createInitiative(data: {
       throw new Error("Il tipo dell'iniziativa deve corrispondere al tipo della domanda")
     }
 
+    // Utilizza l'userId specificato o quello corrente
+    const userId = data.user_id || currentUser.id
+
     const { error: insertError } = await supabase
       .from("initiatives")
       .insert({
@@ -833,7 +844,7 @@ export async function createInitiative(data: {
         question_id: data.question_id,
         session_id: data.session_id,
         type: data.type,
-        user_id: currentUser.id
+        user_id: userId
       })
 
     if (insertError) {
@@ -851,13 +862,17 @@ export async function createInitiative(data: {
 
 export async function updateInitiative(
   id: string,
-  data: { description: string }
+  data: { description: string },
+  userId?: string
 ) {
   try {
     const currentUser = await getCurrentUser()
     const supabase = await getServerSupabase()
 
-    // Verifica che l'iniziativa appartenga all'utente corrente
+    // Utilizza l'userId specificato o quello corrente
+    const userIdToCheck = userId || currentUser.id
+
+    // Verifica che l'iniziativa appartenga all'utente specificato o corrente
     const { data: initiative, error: checkError } = await supabase
       .from("initiatives")
       .select("user_id")
@@ -868,7 +883,7 @@ export async function updateInitiative(
       throw new Error("Iniziativa non trovata")
     }
 
-    if (initiative.user_id !== currentUser.id) {
+    if (initiative.user_id !== userIdToCheck) {
       throw new Error("Non hai i permessi per modificare questa iniziativa")
     }
 
@@ -878,7 +893,7 @@ export async function updateInitiative(
         description: data.description.trim()
       })
       .eq("id", id)
-      .eq("user_id", currentUser.id)
+      .eq("user_id", userIdToCheck)
 
     if (updateError) {
       throw updateError
@@ -893,12 +908,15 @@ export async function updateInitiative(
   }
 }
 
-export async function deleteInitiative(id: string) {
+export async function deleteInitiative(id: string, userId?: string) {
   try {
     const currentUser = await getCurrentUser()
     const supabase = await getServerSupabase()
 
-    // Verifica che l'iniziativa appartenga all'utente corrente
+    // Utilizza l'userId specificato o quello corrente
+    const userIdToCheck = userId || currentUser.id
+
+    // Verifica che l'iniziativa appartenga all'utente specificato o corrente
     const { data: initiative, error: checkError } = await supabase
       .from("initiatives")
       .select("user_id")
@@ -909,7 +927,7 @@ export async function deleteInitiative(id: string) {
       throw new Error("Iniziativa non trovata")
     }
 
-    if (initiative.user_id !== currentUser.id) {
+    if (initiative.user_id !== userIdToCheck) {
       throw new Error("Non hai i permessi per eliminare questa iniziativa")
     }
 
@@ -917,7 +935,7 @@ export async function deleteInitiative(id: string) {
       .from("initiatives")
       .delete()
       .eq("id", id)
-      .eq("user_id", currentUser.id)
+      .eq("user_id", userIdToCheck)
 
     if (deleteError) {
       throw deleteError

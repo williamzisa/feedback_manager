@@ -5,6 +5,7 @@ interface FeedbackScoreCardProps {
   self: number;
   mentor: number;
   commentCount: number;
+  feedbackCount?: number;
   sessionId?: string;
   userId?: string;
   questionId?: string;
@@ -16,6 +17,7 @@ export function FeedbackScoreCard({
   self,
   mentor,
   commentCount,
+  feedbackCount,
   sessionId,
   userId,
   questionId,
@@ -28,10 +30,15 @@ export function FeedbackScoreCard({
   return (
     <div className="space-y-4 mt-8">
       <div className="grid grid-cols-3 gap-4">
-        <div className="text-center">
+        <div className="text-center flex flex-col">
           <span className="text-lg font-semibold">
             Overall: {overall.toFixed(1)}/5
           </span>
+          {feedbackCount !== undefined && (
+            <span className="text-xs text-gray-500">
+              da {feedbackCount} feedback
+            </span>
+          )}
         </div>
         <div className="text-center">
           <span className={`text-lg ${isMentorDifferent ? "text-red-600" : ""}`}>

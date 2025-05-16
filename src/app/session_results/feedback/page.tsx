@@ -199,14 +199,14 @@ function FeedbackContent() {
     async function fetchInitiatives() {
       if (!currentQuestionId) return;
       try {
-        const data = await getInitiativesByQuestionId(currentQuestionId);
+        const data = await getInitiativesByQuestionId(currentQuestionId, userId || undefined);
         setInitiatives(data as Initiative[]);
       } catch (error) {
         console.error("Errore nel caricamento delle iniziative:", error);
       }
     }
     fetchInitiatives();
-  }, [currentQuestionId]);
+  }, [currentQuestionId, userId]);
 
   const pageTitle = userName || "I miei Risultati";
 
@@ -290,7 +290,7 @@ function FeedbackContent() {
   const handleDeleteInitiative = async (id: string) => {
     if (!confirm("Sei sicuro di voler eliminare questa iniziativa?")) return;
     try {
-      const result = await deleteInitiative(id);
+      const result = await deleteInitiative(id, userId || undefined);
       if (result.success) {
         setInitiatives((prev) => prev.filter((i) => i.id !== id));
       } else {
@@ -312,21 +312,28 @@ function FeedbackContent() {
           question_id: currentQuestionId,
           session_id: sessionId,
           type: currentQuestionData.question.type as InitiativeType,
+          user_id: userId || undefined
         });
 
         if (result.success) {
           const updatedInitiatives = await getInitiativesByQuestionId(
-            currentQuestionId
+            currentQuestionId,
+            userId || undefined
           );
           setInitiatives(updatedInitiatives as Initiative[]);
         } else {
           alert(result.error || "Errore durante la creazione dell'iniziativa");
         }
       } else if (selectedInitiative) {
-        const result = await updateInitiative(selectedInitiative.id, data);
+        const result = await updateInitiative(
+          selectedInitiative.id, 
+          data,
+          userId || undefined
+        );
         if (result.success) {
           const updatedInitiatives = await getInitiativesByQuestionId(
-            currentQuestionId
+            currentQuestionId,
+            userId || undefined
           );
           setInitiatives(updatedInitiatives as Initiative[]);
         } else {
@@ -488,6 +495,7 @@ function FeedbackContent() {
                     overall={currentQuestionData.overall}
                     self={currentSelfFeedback?.value || 0}
                     mentor={userSession?.mentor_value || 0}
+                    feedbackCount={currentQuestionData.feedbacks.filter(f => f.value !== null && f.value > 0).length}
                     commentCount={
                       currentQuestionData.feedbacks.filter(
                         (f) => f.comment !== null
