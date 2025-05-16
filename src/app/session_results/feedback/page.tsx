@@ -459,7 +459,7 @@ function FeedbackContent() {
                     <div key={index} className="flex flex-col items-center">
                       <div
                         className={`w-12 h-12 ${
-                          rating <= currentQuestionData.overall
+                          rating <= Math.round(currentQuestionData.overall)
                             ? "text-yellow-400"
                             : "text-gray-200"
                         }`}
