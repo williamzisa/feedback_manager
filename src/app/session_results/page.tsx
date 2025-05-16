@@ -241,8 +241,11 @@ function SessionResultsContent() {
 
   const getQuestionsCountByType = (feedbacks: Feedback[], type: string) => {
     if (!feedbacks) return 0;
-    return feedbacks.filter((feedback) => feedback.question?.type === type)
-      .length;
+    return feedbacks.filter(
+      (feedback) => 
+        feedback.question?.type === type && 
+        feedback.sender !== feedback.receiver
+    ).length;
   };
 
   if (isLoading) {
