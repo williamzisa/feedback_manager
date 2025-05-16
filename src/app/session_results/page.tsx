@@ -315,7 +315,13 @@ function SessionResultsContent() {
                     }
                   )}
                 </span>
-                <span className="text-yellow-600">
+                <span className={`${
+                  (currentSession.val_gap || 0) >= 10
+                    ? "text-emerald-500"
+                    : (currentSession.val_gap || 0) <= -10
+                    ? "text-red-500"
+                    : "text-yellow-500"
+                }`}>
                   GAP: {currentSession.val_gap?.toFixed(1)}%
                 </span>
               </div>
@@ -405,9 +411,11 @@ function SessionResultsContent() {
             </div>
             <div
               className={`text-2xl font-bold ${
-                (currentSession.val_gap || 0) >= 0
-                  ? "text-green-600"
-                  : "text-yellow-600"
+                (currentSession.val_gap || 0) >= 10
+                  ? "text-emerald-500"
+                  : (currentSession.val_gap || 0) <= -10
+                  ? "text-red-500"
+                  : "text-yellow-500"
               }`}
             >
               {currentSession.val_gap?.toFixed(1)}%

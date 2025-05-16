@@ -155,11 +155,11 @@ export default function PeoplePage() {
                       <p
                         className={`font-medium mb-2 ${
                           hasLastSession && lastSession.val_gap !== null
-                            ? Math.abs(lastSession.val_gap) <= 0.1
-                              ? "text-yellow-500"
-                              : lastSession.val_gap > 0
+                            ? lastSession.val_gap >= 10
                               ? "text-emerald-500"
-                              : "text-red-500"
+                              : lastSession.val_gap <= -10
+                              ? "text-red-500"
+                              : "text-yellow-500"
                             : "text-gray-400"
                         }`}
                       >
