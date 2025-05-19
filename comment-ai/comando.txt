@@ -1,0 +1,4 @@
+
+npx ts-node -P tsconfig.node.json src/scripts/test-comment-summary.ts be54d469-0506-4b2c-9cc6-fd3df4db2503 099316d2-d9fa-4a7f-aa04-18510115d16e 7c584599-e566-4560-971f-7313077ac16e
+
+(sessionId, questionId, receiverId)
