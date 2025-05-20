@@ -645,6 +645,13 @@
   },
   {
     "table_name": "sessions",
+    "column_name": "start_time",
+    "data_type": "timestamp with time zone",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "sessions",
     "column_name": "ip",
     "data_type": "inet",
     "column_default": null,
@@ -652,7 +659,7 @@
   },
   {
     "table_name": "sessions",
-    "column_name": "start_time",
+    "column_name": "end_time",
     "data_type": "timestamp with time zone",
     "column_default": null,
     "is_nullable": "YES"
@@ -666,16 +673,205 @@
   },
   {
     "table_name": "sessions",
-    "column_name": "end_time",
+    "column_name": "created_at",
     "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "sender",
+    "data_type": "uuid",
     "column_default": null,
     "is_nullable": "YES"
   },
   {
-    "table_name": "sessions",
+    "table_name": "snapshot_feedbacks",
+    "column_name": "receiver",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "question_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "value",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "company",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
     "column_name": "created_at",
     "data_type": "timestamp with time zone",
     "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "comment",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "rule_number",
+    "data_type": "integer",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "comment_tags",
+    "data_type": "jsonb",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "sender_name_surname",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "receiver_name_surname",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_feedbacks",
+    "column_name": "questions_description",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "column_default": "gen_random_uuid()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "column_default": "now()",
+    "is_nullable": "NO"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "session_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "question_description",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "receiver_id",
+    "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "comment_tags",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "embedding_comment_tags",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "summary_comments",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "suggested_initiatives",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "overall_value",
+    "data_type": "bigint",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "mentor_value",
+    "data_type": "bigint",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "self_value",
+    "data_type": "bigint",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "embedding_question",
+    "data_type": "text",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "snapshot_session_questions",
+    "column_name": "question_id",
+    "data_type": "uuid",
+    "column_default": null,
     "is_nullable": "YES"
   },
   {
@@ -988,15 +1184,15 @@
   },
   {
     "table_name": "users",
-    "column_name": "id",
-    "data_type": "uuid",
+    "column_name": "name",
+    "data_type": "text",
     "column_default": null,
     "is_nullable": "NO"
   },
   {
     "table_name": "users",
-    "column_name": "name",
-    "data_type": "text",
+    "column_name": "id",
+    "data_type": "uuid",
     "column_default": null,
     "is_nullable": "NO"
   },
@@ -1016,13 +1212,6 @@
   },
   {
     "table_name": "users",
-    "column_name": "role",
-    "data_type": "character varying",
-    "column_default": null,
-    "is_nullable": "YES"
-  },
-  {
-    "table_name": "users",
     "column_name": "email",
     "data_type": "text",
     "column_default": null,
@@ -1030,7 +1219,7 @@
   },
   {
     "table_name": "users",
-    "column_name": "email",
+    "column_name": "role",
     "data_type": "character varying",
     "column_default": null,
     "is_nullable": "YES"
@@ -1039,6 +1228,13 @@
     "table_name": "users",
     "column_name": "level",
     "data_type": "uuid",
+    "column_default": null,
+    "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "email",
+    "data_type": "character varying",
     "column_default": null,
     "is_nullable": "YES"
   },
@@ -1114,17 +1310,17 @@
   },
   {
     "table_name": "users",
-    "column_name": "status",
-    "data_type": "text",
-    "column_default": "'active'::text",
-    "is_nullable": "NO"
-  },
-  {
-    "table_name": "users",
     "column_name": "recovery_token",
     "data_type": "character varying",
     "column_default": null,
     "is_nullable": "YES"
+  },
+  {
+    "table_name": "users",
+    "column_name": "status",
+    "data_type": "text",
+    "column_default": "'active'::text",
+    "is_nullable": "NO"
   },
   {
     "table_name": "users",

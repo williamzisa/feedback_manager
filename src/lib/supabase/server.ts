@@ -910,42 +910,74 @@ export async function updateInitiative(
 
 export async function deleteInitiative(id: string, userId?: string) {
   try {
-    const currentUser = await getCurrentUser()
     const supabase = await getServerSupabase()
+    
+    // Verifica se l'iniziativa esiste e appartiene all'utente
+    if (userId) {
+      const { data: initiative, error: checkError } = await supabase
+        .from("initiatives")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .single()
 
-    // Utilizza l'userId specificato o quello corrente
-    const userIdToCheck = userId || currentUser.id
-
-    // Verifica che l'iniziativa appartenga all'utente specificato o corrente
-    const { data: initiative, error: checkError } = await supabase
-      .from("initiatives")
-      .select("user_id")
-      .eq("id", id)
-      .single()
-
-    if (checkError || !initiative) {
-      throw new Error("Iniziativa non trovata")
+      if (checkError || !initiative) {
+        return { success: false, error: "Iniziativa non trovata o non autorizzata" }
+      }
     }
 
-    if (initiative.user_id !== userIdToCheck) {
-      throw new Error("Non hai i permessi per eliminare questa iniziativa")
-    }
-
+    // Elimina l'iniziativa
     const { error: deleteError } = await supabase
       .from("initiatives")
       .delete()
       .eq("id", id)
-      .eq("user_id", userIdToCheck)
 
     if (deleteError) {
       throw deleteError
     }
 
-    // Invalida la cache della pagina dei risultati
-    revalidatePath(`/session_results/feedback`)
+    revalidatePath("/session_results/feedback")
     return { success: true }
   } catch (err) {
     console.error("Errore nell'eliminazione dell'iniziativa:", err)
-    return { success: false, error: err instanceof Error ? err.message : "Errore sconosciuto" }
+    return { success: false, error: "Errore nell'eliminazione dell'iniziativa" }
+  }
+}
+
+export async function getSessionQuestionAnalysis(sessionId: string, questionId: string, userId: string) {
+  try {
+    const supabase = await getServerSupabase()
+    
+    // Ora possiamo usare il tipo definito nel database.types.ts
+    const { data, error } = await supabase
+      .from("snapshot_session_questions")
+      .select(`
+        id,
+        session_id,
+        question_id,
+        receiver_id,
+        overall_value,
+        mentor_value,
+        self_value,
+        summary_comments,
+        suggested_initiatives
+      `)
+      .eq("session_id", sessionId)
+      .eq("question_id", questionId)
+      .eq("receiver_id", userId)
+      .single();
+      
+    if (error) {
+      // Se non è stato trovato, restituisce null
+      if (error.code === "PGRST116") {
+        return null
+      }
+      throw error
+    }
+
+    return data
+  } catch (err) {
+    console.error("Errore nel recupero dell'analisi:", err)
+    return null
   }
 }

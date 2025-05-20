@@ -20,7 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "../../components/ui/textarea";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const initiativeSchema = z.object({
   description: z
@@ -40,6 +40,7 @@ interface InitiativeDialogProps {
   sessionId: string;
   questionType: InitiativeType;
   mode: "create" | "edit";
+  suggestedInitiatives?: string;
 }
 
 export function InitiativeDialog({
@@ -48,6 +49,7 @@ export function InitiativeDialog({
   onSubmit,
   initiative,
   mode,
+  suggestedInitiatives,
 }: InitiativeDialogProps) {
   const form = useForm<InitiativeFormData>({
     resolver: zodResolver(initiativeSchema),
@@ -55,6 +57,30 @@ export function InitiativeDialog({
       description: "",
     },
   });
+  
+  const [parsedInitiatives, setParsedInitiatives] = useState<string[]>([]);
+
+  // Parse le iniziative suggerite quando disponibili
+  useEffect(() => {
+    if (suggestedInitiatives && suggestedInitiatives !== "Non ci sono abbastanza dati per suggerire iniziative.") {
+      // Tenta di estrarre le iniziative dal testo
+      const initiatives = suggestedInitiatives
+        .split(/[\n\r]/)
+        .map(line => line.trim())
+        .filter(line => line.startsWith("- ") || /^\d+\./.test(line))
+        .map(line => line.replace(/^(-|\d+\.)\s*/, "").trim())
+        .filter(line => line.length > 0);
+      
+      if (initiatives.length > 0) {
+        setParsedInitiatives(initiatives);
+      } else {
+        // Se non riesce a identificare un formato strutturato, usa l'intero testo
+        setParsedInitiatives([suggestedInitiatives]);
+      }
+    } else {
+      setParsedInitiatives([]);
+    }
+  }, [suggestedInitiatives]);
 
   // Reset form when dialog opens/closes or mode changes
   useEffect(() => {
@@ -77,6 +103,10 @@ export function InitiativeDialog({
     }
   };
 
+  const handleSelectInitiative = (initiative: string) => {
+    form.setValue("description", initiative);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -90,6 +120,24 @@ export function InitiativeDialog({
               : "Modifica i dettagli dell'iniziativa"}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Mostra le iniziative suggerite solo in modalità creazione */}
+        {mode === "create" && parsedInitiatives.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-sm font-medium mb-2">Suggerimenti di iniziative:</h3>
+            <div className="space-y-2">
+              {parsedInitiatives.map((initiative, index) => (
+                <div
+                  key={index}
+                  className="p-3 border rounded-md cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleSelectInitiative(initiative)}
+                >
+                  {initiative}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Form {...form}>
           <form

@@ -808,6 +808,167 @@ export type Database = {
           },
         ]
       }
+      snapshot_feedbacks: {
+        Row: {
+          id: string
+          sender: string | null
+          receiver: string | null
+          question_id: string | null
+          value: number | null
+          session_id: string
+          company: string
+          created_at: string
+          comment: string | null
+          rule_number: number | null
+          comment_tags: Json | null
+          sender_name_surname: string | null
+          receiver_name_surname: string | null
+          questions_description: string | null
+        }
+        Insert: {
+          id?: string
+          sender?: string | null
+          receiver?: string | null
+          question_id?: string | null
+          value?: number | null
+          session_id: string
+          company: string
+          created_at?: string
+          comment?: string | null
+          rule_number?: number | null
+          comment_tags?: Json | null
+          sender_name_surname?: string | null
+          receiver_name_surname?: string | null
+          questions_description?: string | null
+        }
+        Update: {
+          id?: string
+          sender?: string | null
+          receiver?: string | null
+          question_id?: string | null
+          value?: number | null
+          session_id?: string
+          company?: string
+          created_at?: string
+          comment?: string | null
+          rule_number?: number | null
+          comment_tags?: Json | null
+          sender_name_surname?: string | null
+          receiver_name_surname?: string | null
+          questions_description?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snapshot_feedbacks_company_fkey"
+            columns: ["company"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_feedbacks_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_feedbacks_receiver_fkey"
+            columns: ["receiver"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_feedbacks_sender_fkey"
+            columns: ["sender"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_feedbacks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      snapshot_session_questions: {
+        Row: {
+          id: string
+          created_at: string
+          session_id: string | null
+          question_id: string | null
+          receiver_id: string | null
+          question_description: string | null
+          comment_tags: string | null
+          embedding_comment_tags: string | null
+          summary_comments: string | null
+          suggested_initiatives: string | null
+          overall_value: number | null
+          mentor_value: number | null
+          self_value: number | null
+          embedding_question: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          session_id?: string | null
+          question_id?: string | null
+          receiver_id?: string | null
+          question_description?: string | null
+          comment_tags?: string | null
+          embedding_comment_tags?: string | null
+          summary_comments?: string | null
+          suggested_initiatives?: string | null
+          overall_value?: number | null
+          mentor_value?: number | null
+          self_value?: number | null
+          embedding_question?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          session_id?: string | null
+          question_id?: string | null
+          receiver_id?: string | null
+          question_description?: string | null
+          comment_tags?: string | null
+          embedding_comment_tags?: string | null
+          summary_comments?: string | null
+          suggested_initiatives?: string | null
+          overall_value?: number | null
+          mentor_value?: number | null
+          self_value?: number | null
+          embedding_question?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snapshot_session_questions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_session_questions_question_id_fkey"
+            columns: ["question_id"] 
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_session_questions_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       users: {
         Row: {
           admin: boolean

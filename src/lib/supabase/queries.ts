@@ -2894,27 +2894,35 @@ export async function getSessionComments(sessionId: string, userId: string) {
   const supabase = createClientComponentClient<Database>();
   try {
     const { data: feedbacks, error } = await supabase
-      .from("feedbacks")
+      .from("snapshot_feedbacks")
       .select(
         `
         *,
-        sender:users!feedbacks_sender_fkey(name, surname),
-        receiver:users!feedbacks_receiver_fkey(name, surname),
-        question:questions(description)
+        sender_name_surname,
+        receiver_name_surname,
+        questions_description
       `
       )
       .eq("session_id", sessionId)
       .eq("receiver", userId)
-      .not("comment", "is", null);
+      .not("comment", "is", null)
+      .not("comment", "eq", "");
 
     if (error) throw error;
 
-    return feedbacks.map((feedback) => ({
-      ...feedback,
-      sender: feedback.sender || { name: "", surname: "" },
-      receiver: feedback.receiver || { name: "", surname: "" },
-      question: feedback.question || { description: "" },
-    })) as Feedback[];
+    return feedbacks.map((feedback) => {
+      // Dividiamo sender_name_surname in name e surname
+      const [senderName = "", senderSurname = ""] = (feedback.sender_name_surname || "").split(" ");
+      // Dividiamo receiver_name_surname in name e surname
+      const [receiverName = "", receiverSurname = ""] = (feedback.receiver_name_surname || "").split(" ");
+
+      return {
+        ...feedback,
+        sender: { name: senderName, surname: senderSurname },
+        receiver: { name: receiverName, surname: receiverSurname },
+        question: { description: feedback.questions_description || "" },
+      }
+    }) as Feedback[];
   } catch (err) {
     console.error("Errore nel recupero dei commenti:", err);
     throw err;

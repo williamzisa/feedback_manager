@@ -21,6 +21,7 @@ import {
   deleteInitiative,
   getInitiativesByQuestionId,
   updateInitiative,
+  getSessionQuestionAnalysis,
 } from "@/lib/supabase/server";
 import { Initiative, InitiativeType } from "@/lib/types/initiatives";
 import { CommentsDialog } from "@/components/feedback/comments-dialog";
@@ -77,6 +78,19 @@ type FeedbackData = {
   >;
 };
 
+// Definizione del tipo per l'analisi
+interface QuestionAnalysis {
+  id: string;
+  session_id: string;
+  question_id: string;
+  receiver_id: string;
+  overall_value: number;
+  mentor_value: number;
+  self_value: number;
+  summary_comments: string;
+  suggested_initiatives: string;
+}
+
 function FeedbackContent() {
   const searchParams = useSearchParams();
   const urlUserId = searchParams.get("userId");
@@ -130,10 +144,10 @@ function FeedbackContent() {
   const [initiatives, setInitiatives] = useState<Initiative[]>([]);
   const [isInitiativeDialogOpen, setIsInitiativeDialogOpen] = useState(false);
   const [isCommentsDialogOpen, setIsCommentsDialogOpen] = useState(false);
-  const [selectedInitiative, setSelectedInitiative] = useState<
-    Initiative | undefined
-  >();
+  const [selectedInitiative, setSelectedInitiative] = useState<Initiative | undefined>();
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
+  const [suggestedInitiatives, setSuggestedInitiatives] = useState<string>("");
+  const [currentAnalysis, setCurrentAnalysis] = useState<QuestionAnalysis | null>(null);
 
   // Ottieni tutte le domande con feedback filtrate per tipo
   const filteredQuestions = useMemo(
@@ -208,6 +222,23 @@ function FeedbackContent() {
     fetchInitiatives();
   }, [currentQuestionId, userId]);
 
+  // Fetch analysis data when question changes
+  useEffect(() => {
+    async function fetchQuestionAnalysis() {
+      if (!currentQuestionId || !sessionId || !userId) return;
+      
+      try {
+        const analysis = await getSessionQuestionAnalysis(sessionId, currentQuestionId, userId);
+        setCurrentAnalysis(analysis as QuestionAnalysis | null);
+      } catch (error) {
+        console.error("Errore nel caricamento dell'analisi:", error);
+        setCurrentAnalysis(null);
+      }
+    }
+    
+    fetchQuestionAnalysis();
+  }, [currentQuestionId, sessionId, userId]);
+
   const pageTitle = userName || "I miei Risultati";
 
   // Funzioni di navigazione
@@ -274,8 +305,8 @@ function FeedbackContent() {
     }`;
   };
 
-  const handleNewInitiative = () => {
-    if (!currentQuestionId) return;
+  const handleNewInitiative = (suggestedInitiativesText?: string) => {
+    setSuggestedInitiatives(suggestedInitiativesText || "");
     setSelectedInitiative(undefined);
     setDialogMode("create");
     setIsInitiativeDialogOpen(true);
@@ -381,7 +412,7 @@ function FeedbackContent() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative w-full flex flex-col min-h-screen bg-[#F5F5F7]">
       <Header title={pageTitle} />
 
       <main className="container mx-auto max-w-2xl px-4 py-6 pb-32">
@@ -513,27 +544,39 @@ function FeedbackContent() {
                   buttonClassName="h-10 text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 />
 
-                <InitiativeDialog
-                  isOpen={isInitiativeDialogOpen}
-                  onClose={() => setIsInitiativeDialogOpen(false)}
-                  onSubmit={handleInitiativeSubmit}
-                  initiative={selectedInitiative}
-                  questionId={currentQuestionId || ""}
-                  sessionId={sessionId!}
-                  questionType={
-                    currentQuestionData.question.type as InitiativeType
-                  }
-                  mode={dialogMode}
-                />
-
                 <CommentsDialog
                   isOpen={isCommentsDialogOpen}
                   onClose={() => setIsCommentsDialogOpen(false)}
                   sessionId={sessionId || ""}
                   userId={userId || ""}
                   questionId={currentQuestionId || ""}
-                  questionDescription={currentQuestionData.question.description}
+                  questionDescription={
+                    currentQuestionId && feedbackData?.feedbacksByQuestion[currentQuestionId]
+                      ? feedbackData.feedbacksByQuestion[currentQuestionId].question.description
+                      : ""
+                  }
                   onCreateInitiative={handleNewInitiative}
+                  existingAnalysis={currentAnalysis ? {
+                    summaryComments: currentAnalysis.summary_comments,
+                    suggestedInitiatives: currentAnalysis.suggested_initiatives
+                  } : undefined}
+                />
+
+                <InitiativeDialog
+                  isOpen={isInitiativeDialogOpen}
+                  onClose={() => setIsInitiativeDialogOpen(false)}
+                  onSubmit={handleInitiativeSubmit}
+                  initiative={selectedInitiative}
+                  mode={dialogMode}
+                  questionId={currentQuestionId || ""}
+                  sessionId={sessionId || ""}
+                  questionType={
+                    currentQuestionId && feedbackData?.feedbacksByQuestion[currentQuestionId]
+                      ? (feedbackData.feedbacksByQuestion[currentQuestionId].question
+                          .type as InitiativeType)
+                      : "STRATEGY"
+                  }
+                  suggestedInitiatives={suggestedInitiatives}
                 />
               </>
             ) : (
