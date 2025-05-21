@@ -8,7 +8,7 @@ export async function getFeedbackComments(
   sessionId: string, 
   questionId: string, 
   receiverId: string
-): Promise<string[]> {
+): Promise<{ comment: string; value: number }[]> {
   const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!, 
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -18,7 +18,8 @@ export async function getFeedbackComments(
     .from('feedbacks')
     .select(`
       id,
-      comment
+      comment,
+      value
     `)
     .eq('session_id', sessionId)
     .eq('question_id', questionId)
@@ -30,18 +31,20 @@ export async function getFeedbackComments(
     throw new Error(`Error fetching feedback comments: ${error.message}`);
   }
   
-  // Filtriamo qualsiasi commento null (anche se la query dovrebbe già escluderli)
-  // e convertiamo in array di stringhe
-  return data
-    .map(feedback => feedback.comment)
-    .filter((comment): comment is string => comment !== null);
+  // Filtriamo qualsiasi commento null e convertiamo in array di oggetti
+  return (data || [])
+    .filter(feedback => feedback.comment !== null)
+    .map(feedback => ({
+      comment: feedback.comment as string,
+      value: feedback.value || 0
+    }));
 } 
 
 export async function getSnapshotFeedbackComments(
   sessionId: string,
   questionId: string,
   receiverId: string
-): Promise<string[]> {
+): Promise<{ comment: string; value: number }[]> {
   const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -51,7 +54,8 @@ export async function getSnapshotFeedbackComments(
     .from('snapshot_feedbacks')
     .select(`
       id,
-      comment
+      comment,
+      value
     `)
     .eq('session_id', sessionId)
     .eq('question_id', questionId)
@@ -64,8 +68,11 @@ export async function getSnapshotFeedbackComments(
   }
   
   return (data || [])
-    .map(feedback => feedback.comment)
-    .filter((comment): comment is string => comment !== null);
+    .filter(feedback => feedback.comment !== null)
+    .map(feedback => ({
+      comment: feedback.comment as string,
+      value: feedback.value || 0
+    }));
 }
 
 export async function getQuestionDescription(questionId: string): Promise<string> {

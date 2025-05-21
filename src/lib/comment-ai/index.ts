@@ -16,10 +16,10 @@ export async function summarizeComments(
 ): Promise<string> {
   try {
     // 1. Recupera i commenti dal database
-    const comments = await getFeedbackComments(sessionId, questionId, receiverId);
+    const feedbackData = await getFeedbackComments(sessionId, questionId, receiverId);
     
     // 2. Se non ci sono commenti, restituisci un messaggio informativo
-    if (comments.length === 0) {
+    if (feedbackData.length === 0) {
       return "Non ci sono commenti da riassumere per questa combinazione di sessione, domanda e utente.";
     }
     
@@ -27,7 +27,8 @@ export async function summarizeComments(
     const questionDescription = await getQuestionDescription(questionId);
     
     // 4. Genera il riassunto con OpenRouter
-    const summary = await generateSummary(comments, questionDescription);
+    const commentsOnly = feedbackData.map(item => item.comment);
+    const summary = await generateSummary(commentsOnly, questionDescription);
     
     return summary;
   } catch (error) {
@@ -50,8 +51,8 @@ export async function generateFeedbackAnalysis(
   userId: string
 ): Promise<FeedbackAnalysisResult> {
   try {
-    // 1. Recupera i commenti da snapshot_feedbacks
-    const comments = await getSnapshotFeedbackComments(sessionId, questionId, userId);
+    // 1. Recupera i commenti con valori da snapshot_feedbacks
+    const feedbackData = await getSnapshotFeedbackComments(sessionId, questionId, userId);
     
     // 2. Ottieni la descrizione della domanda
     const questionDescription = await getQuestionDescription(questionId);
@@ -61,16 +62,17 @@ export async function generateFeedbackAnalysis(
     const mentorValue = await calculateMentorValue(sessionId, questionId, userId);
     const selfValue = await calculateSelfValue(sessionId, questionId, userId);
     
-    // 4. Genera il riassunto dei commenti
+    // 4. Genera il riassunto dei commenti (usando solo il testo dei commenti)
     let summaryComments = "Non ci sono commenti da riassumere.";
-    if (comments.length > 0) {
-      summaryComments = await generateSummary(comments, questionDescription);
+    if (feedbackData.length > 0) {
+      const commentsOnly = feedbackData.map(item => item.comment);
+      summaryComments = await generateSummary(commentsOnly, questionDescription);
     }
     
-    // 5. Genera le iniziative suggerite
+    // 5. Genera le iniziative suggerite (usando sia commenti che valori)
     let suggestedInitiatives = "Non ci sono abbastanza dati per suggerire iniziative.";
     if (summaryComments !== "Non ci sono commenti da riassumere.") {
-      suggestedInitiatives = await generateInitiatives(summaryComments, questionDescription);
+      suggestedInitiatives = await generateInitiatives(summaryComments, questionDescription, feedbackData);
     }
     
     // 6. Salva tutti i risultati in snapshot_session_questions

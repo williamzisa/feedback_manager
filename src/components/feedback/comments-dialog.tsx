@@ -137,7 +137,7 @@ export function CommentsDialog({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg h-[90vh] flex flex-col">
-        <DialogHeader className="px-1">
+        <DialogHeader className="flex-shrink-0 px-1">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl text-[#4285F4]">
               Feedback Ricevuti
@@ -145,7 +145,7 @@ export function CommentsDialog({
           </div>
         </DialogHeader>
 
-        <div className="mb-6">
+        <div className="flex-shrink-0 mb-2">
           <h3 className="text-xl font-bold text-center">
             {questionDescription || "Nessuna domanda disponibile"}
           </h3>
@@ -154,30 +154,30 @@ export function CommentsDialog({
         <Tabs 
           value={activeTab} 
           onValueChange={(v) => setActiveTab(v as "comments" | "summary")}
-          className="flex-1 flex flex-col"
+          className="flex-1 flex flex-col min-h-0"
         >
-          <TabsList className="grid grid-cols-2 mb-4">
+          <TabsList className="grid grid-cols-2 mb-2 flex-shrink-0">
             <TabsTrigger value="comments">Commenti</TabsTrigger>
             <TabsTrigger value="summary">Riassunto</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="comments" className="flex-1 flex flex-col">
+          <TabsContent value="comments" className="flex-1 flex flex-col min-h-0">
             {isLoading ? (
               <div className="flex-1 flex justify-center items-center">
                 <span>Caricamento...</span>
               </div>
             ) : (
               <>
-                <div className="flex justify-center mt-2 mb-4">
+                <div className="flex justify-center mb-2 flex-shrink-0">
                   <span className="bg-[#4285F4] text-white px-3 py-0.5 rounded-full text-sm font-medium">
                     {currentIndex + 1} di {comments.length}
                   </span>
                 </div>
 
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col min-h-0">
                   {comments.length > 0 ? (
-                    <div className="flex-1 flex flex-col">
-                      <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm">
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm overflow-y-auto min-h-0">
                         <h4 className="font-bold text-lg mb-4">
                           {currentComment.sender?.name}{" "}
                           {currentComment.sender?.surname}
@@ -186,7 +186,7 @@ export function CommentsDialog({
                       </div>
 
                       {/* Controlli di navigazione */}
-                      <div className="mt-6 flex items-center justify-between px-4">
+                      <div className="mt-4 flex items-center justify-between px-4 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="lg"
@@ -227,16 +227,16 @@ export function CommentsDialog({
             )}
           </TabsContent>
 
-          <TabsContent value="summary" className="flex-1 flex flex-col">
+          <TabsContent value="summary" className="flex-1 flex flex-col min-h-0">
             {analysis.isLoading ? (
               <div className="flex-1 flex justify-center items-center">
                 <span>Generazione analisi in corso...</span>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col min-h-0">
                 {analysis.summaryComments ? (
                   <>
-                    <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm">
+                    <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm overflow-y-auto min-h-0">
                       <h4 className="font-bold text-lg mb-4">
                         Riassunto dei commenti
                       </h4>
@@ -252,7 +252,7 @@ export function CommentsDialog({
                       )}
                     </div>
 
-                    <div className="mt-6 flex justify-center">
+                    <div className="mt-4 flex justify-center flex-shrink-0">
                       <Button
                         onClick={handleCreateInitiative}
                         className="h-14 px-6 bg-green-500 hover:bg-green-600 text-white rounded-full font-medium text-base"

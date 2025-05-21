@@ -59,7 +59,11 @@ export async function generateSummary(comments: string[], questionDescription: s
   }
 }
 
-export async function generateInitiatives(summaryComments: string, questionDescription: string): Promise<string> {
+export async function generateInitiatives(
+  summaryComments: string, 
+  questionDescription: string,
+  feedbackData?: { comment: string; value: number }[]
+): Promise<string> {
   if (!OPENROUTER_API_KEY) {
     throw new Error('OpenRouter API key is not configured');
   }
@@ -68,9 +72,19 @@ export async function generateInitiatives(summaryComments: string, questionDescr
     return "Non ci sono abbastanza dati per suggerire iniziative.";
   }
   
+  // Formatta i dati di feedback con i valori se disponibili
+  let feedbackDataText = "";
+  if (feedbackData && feedbackData.length > 0) {
+    feedbackDataText = "Con i seguenti dettagli dei feedback:\n\n";
+    feedbackData.forEach((item, index) => {
+      feedbackDataText += `Feedback ${index + 1} (Valutazione: ${item.value}/5): ${item.comment}\n\n`;
+    });
+  }
+  
   const userPrompt = USER_PROMPT_INITIATIVES_TEMPLATE
     .replace('{summary_comments}', summaryComments)
-    .replace('{question_description}', questionDescription);
+    .replace('{question_description}', questionDescription)
+    .replace('{feedback_data}', feedbackDataText);
   
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
