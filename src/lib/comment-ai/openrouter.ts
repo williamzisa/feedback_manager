@@ -52,11 +52,44 @@ export async function generateSummary(comments: string[], questionDescription: s
       throw new Error(`OpenRouter API error: ${data.error?.message || 'Unknown error'}`);
     }
     
-    return data.choices[0].message.content;
+    // Limita il riassunto a massimo 2 frasi
+    return limitSummaryToTwoSentences(data.choices[0].message.content);
   } catch (error) {
     console.error('Error calling OpenRouter API:', error);
     throw error;
   }
+}
+
+// Funzione per limitare il riassunto a massimo 2 frasi
+function limitSummaryToTwoSentences(summary: string): string {
+  const cleanedSummary = summary.trim();
+  
+  // Divide il testo in frasi (considerando vari tipi di terminatori di frase)
+  const sentences = cleanedSummary
+    .split(/[.!?]+(?:\s+|$)/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  
+  if (sentences.length <= 2) {
+    return cleanedSummary;
+  }
+  
+  // Prendi solo le prime due frasi e ricostruisci con la punteggiatura originale
+  let result = "";
+  let count = 0;
+  
+  for (let i = 0; i < cleanedSummary.length; i++) {
+    result += cleanedSummary[i];
+    if (/[.!?]/.test(cleanedSummary[i]) && 
+        (i === cleanedSummary.length - 1 || /\s/.test(cleanedSummary[i+1]))) {
+      count++;
+      if (count >= 2) {
+        break;
+      }
+    }
+  }
+  
+  return result.trim();
 }
 
 export async function generateInitiatives(
@@ -114,9 +147,55 @@ export async function generateInitiatives(
       throw new Error(`OpenRouter API error: ${data.error?.message || 'Unknown error'}`);
     }
     
-    return data.choices[0].message.content;
+    // Ottieni il contenuto della risposta e applicagli il post-processing
+    const responseContent = data.choices[0].message.content;
+    return formatInitiativesOutput(responseContent);
   } catch (error) {
     console.error('Error calling OpenRouter API for initiatives:', error);
     throw error;
+  }
+}
+
+// Funzione di utility per formattare correttamente l'output delle iniziative
+function formatInitiativesOutput(output: string): string {
+  // Rimuovi header o introduzioni non necessarie
+  const cleanedOutput = output.trim();
+  
+  // Cerca per iniziative formattate con elenchi puntati
+  const initiatives = cleanedOutput
+    .split(/[\n\r]/)
+    .map(line => line.trim())
+    .filter(line => line.startsWith("- ") || /^\d+\./.test(line));
+  
+  // Se abbiamo trovato almeno un'iniziativa formattata come punto elenco
+  if (initiatives.length >= 2) {
+    // Prendiamo solo le prime due iniziative e aggiungiamo un doppio newline tra di esse
+    return initiatives[0] + '\n\n' + initiatives[1];
+  } else {
+    // Se non abbiamo trovato iniziative formattate come punti elenco, proviamo a separare il testo
+    const paragraphs = cleanedOutput.split(/[\n\r]{2,}/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+    
+    if (paragraphs.length >= 2) {
+      // Formattale come elenchi puntati con doppio newline
+      return `- ${paragraphs[0]}\n\n- ${paragraphs[1]}`;
+    }
+    
+    // Ultima risorsa: dividi il testo in frasi e prendi le prime due
+    const sentences = cleanedOutput
+      .split(/\.(?:\s+|$)/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+    
+    if (sentences.length >= 2) {
+      return `- ${sentences[0]}.\n\n- ${sentences[1]}.`;
+    } else if (sentences.length === 1) {
+      // Se c'è solo una frase, la usiamo come prima iniziativa e creiamo una generica per la seconda
+      return `- ${sentences[0]}.\n\n- Dedicare tempo a riflettere e mettere in pratica i feedback ricevuti.`;
+    } else {
+      // Fallback con due iniziative generiche
+      return `- Allenarmi a sperimentare nuove soluzioni in base ai feedback ricevuti.\n\n- Dedicare tempo a riflettere e mettere in pratica i suggerimenti dei colleghi.`;
+    }
   }
 } 

@@ -154,130 +154,138 @@ export function CommentsDialog({
         <Tabs 
           value={activeTab} 
           onValueChange={(v) => setActiveTab(v as "comments" | "summary")}
-          className="flex-1 flex flex-col min-h-0"
+          className="flex-1 flex flex-col"
         >
           <TabsList className="grid grid-cols-2 mb-2 flex-shrink-0">
             <TabsTrigger value="comments">Commenti</TabsTrigger>
             <TabsTrigger value="summary">Riassunto</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="comments" className="flex-1 flex flex-col min-h-0">
-            {isLoading ? (
-              <div className="flex-1 flex justify-center items-center">
-                <span>Caricamento...</span>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-center mb-2 flex-shrink-0">
-                  <span className="bg-[#4285F4] text-white px-3 py-0.5 rounded-full text-sm font-medium">
-                    {currentIndex + 1} di {comments.length}
-                  </span>
+          <div className="flex-1 min-h-0 relative">
+            <TabsContent 
+              value="comments" 
+              className="absolute inset-0 flex flex-col data-[state=inactive]:hidden data-[state=active]:flex"
+            >
+              {isLoading ? (
+                <div className="flex-1 flex justify-center items-center">
+                  <span>Caricamento...</span>
                 </div>
+              ) : (
+                <>
+                  <div className="flex justify-center mb-2 flex-shrink-0">
+                    <span className="bg-[#4285F4] text-white px-3 py-0.5 rounded-full text-sm font-medium">
+                      {currentIndex + 1} di {comments.length}
+                    </span>
+                  </div>
 
+                  <div className="flex-1 min-h-0 flex flex-col">
+                    {comments.length > 0 ? (
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm overflow-y-auto min-h-0">
+                          <h4 className="font-bold text-lg mb-4">
+                            {currentComment.sender?.name}{" "}
+                            {currentComment.sender?.surname}
+                          </h4>
+                          <p className="text-gray-700">{currentComment.comment}</p>
+                        </div>
+
+                        {/* Controlli di navigazione */}
+                        <div className="mt-4 flex items-center justify-between px-4 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="lg"
+                            className="h-16 w-16 rounded-full disabled:opacity-50"
+                            onClick={goToPreviousComment}
+                            disabled={currentIndex === 0}
+                          >
+                            <ChevronLeft className="h-8 w-8" />
+                          </Button>
+
+                          <Button
+                            onClick={() => setActiveTab("summary")}
+                            className="h-14 px-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium text-base"
+                          >
+                            Vai al Riassunto
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="lg"
+                            className="h-16 w-16 rounded-full disabled:opacity-50"
+                            onClick={goToNextComment}
+                            disabled={currentIndex === comments.length - 1}
+                          >
+                            <ChevronRight className="h-8 w-8" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center">
+                        <p className="text-center text-gray-500">
+                          Nessun commento disponibile per questa domanda
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent 
+              value="summary" 
+              className="absolute inset-0 flex flex-col data-[state=inactive]:hidden data-[state=active]:flex"
+            >
+              {analysis.isLoading ? (
+                <div className="flex-1 flex justify-center items-center">
+                  <span>Generazione analisi in corso...</span>
+                </div>
+              ) : (
                 <div className="flex-1 flex flex-col min-h-0">
-                  {comments.length > 0 ? (
-                    <div className="flex-1 flex flex-col min-h-0">
+                  {analysis.summaryComments ? (
+                    <>
                       <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm overflow-y-auto min-h-0">
                         <h4 className="font-bold text-lg mb-4">
-                          {currentComment.sender?.name}{" "}
-                          {currentComment.sender?.surname}
+                          Riassunto dei commenti
                         </h4>
-                        <p className="text-gray-700">{currentComment.comment}</p>
+                        <p className="text-gray-700 mb-6">{analysis.summaryComments}</p>
+                        
+                        {analysis.suggestedInitiatives && analysis.suggestedInitiatives !== "Non ci sono abbastanza dati per suggerire iniziative." && (
+                          <>
+                            <h4 className="font-bold text-lg mb-4 mt-8">
+                              Iniziative suggerite
+                            </h4>
+                            <p className="text-gray-700">{analysis.suggestedInitiatives}</p>
+                          </>
+                        )}
                       </div>
 
-                      {/* Controlli di navigazione */}
-                      <div className="mt-4 flex items-center justify-between px-4 flex-shrink-0">
+                      <div className="mt-4 flex justify-center flex-shrink-0">
                         <Button
-                          variant="ghost"
-                          size="lg"
-                          className="h-16 w-16 rounded-full disabled:opacity-50"
-                          onClick={goToPreviousComment}
-                          disabled={currentIndex === 0}
+                          onClick={handleCreateInitiative}
+                          className="h-14 px-6 bg-green-500 hover:bg-green-600 text-white rounded-full font-medium text-base"
                         >
-                          <ChevronLeft className="h-8 w-8" />
-                        </Button>
-
-                        <Button
-                          onClick={() => setActiveTab("summary")}
-                          className="h-14 px-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium text-base"
-                        >
-                          Vai al Riassunto
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          size="lg"
-                          className="h-16 w-16 rounded-full disabled:opacity-50"
-                          onClick={goToNextComment}
-                          disabled={currentIndex === comments.length - 1}
-                        >
-                          <ChevronRight className="h-8 w-8" />
+                          Crea Iniziativa
                         </Button>
                       </div>
-                    </div>
+                    </>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center">
-                      <p className="text-center text-gray-500">
-                        Nessun commento disponibile per questa domanda
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                      <p className="text-center text-gray-500 mb-6">
+                        Non è ancora stata generata un&apos;analisi per questa domanda
                       </p>
+                      <Button 
+                        onClick={handleGenerateAnalysis}
+                        className="flex items-center gap-2"
+                      >
+                        <BarChart2 className="h-4 w-4" />
+                        Genera Analisi
+                      </Button>
                     </div>
                   )}
                 </div>
-              </>
-            )}
-          </TabsContent>
-
-          <TabsContent value="summary" className="flex-1 flex flex-col min-h-0">
-            {analysis.isLoading ? (
-              <div className="flex-1 flex justify-center items-center">
-                <span>Generazione analisi in corso...</span>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col min-h-0">
-                {analysis.summaryComments ? (
-                  <>
-                    <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm overflow-y-auto min-h-0">
-                      <h4 className="font-bold text-lg mb-4">
-                        Riassunto dei commenti
-                      </h4>
-                      <p className="text-gray-700 mb-6">{analysis.summaryComments}</p>
-                      
-                      {analysis.suggestedInitiatives && analysis.suggestedInitiatives !== "Non ci sono abbastanza dati per suggerire iniziative." && (
-                        <>
-                          <h4 className="font-bold text-lg mb-4 mt-8">
-                            Iniziative suggerite
-                          </h4>
-                          <p className="text-gray-700">{analysis.suggestedInitiatives}</p>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex justify-center flex-shrink-0">
-                      <Button
-                        onClick={handleCreateInitiative}
-                        className="h-14 px-6 bg-green-500 hover:bg-green-600 text-white rounded-full font-medium text-base"
-                      >
-                        Crea Iniziativa
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center">
-                    <p className="text-center text-gray-500 mb-6">
-                      Non è ancora stata generata un&apos;analisi per questa domanda
-                    </p>
-                    <Button 
-                      onClick={handleGenerateAnalysis}
-                      className="flex items-center gap-2"
-                    >
-                      <BarChart2 className="h-4 w-4" />
-                      Genera Analisi
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </TabsContent>
+              )}
+            </TabsContent>
+          </div>
         </Tabs>
       </DialogContent>
     </Dialog>

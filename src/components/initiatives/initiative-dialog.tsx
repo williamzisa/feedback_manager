@@ -74,8 +74,22 @@ export function InitiativeDialog({
       if (initiatives.length > 0) {
         setParsedInitiatives(initiatives);
       } else {
-        // Se non riesce a identificare un formato strutturato, usa l'intero testo
-        setParsedInitiatives([suggestedInitiatives]);
+        // Se non trova un formato strutturato, prova a cercare solo due frasi separate da newline
+        const cleanText = suggestedInitiatives.trim();
+        const textLines = cleanText.split(/[\n\r]+/).map(line => line.trim()).filter(line => line.length > 0);
+        
+        if (textLines.length >= 1) {
+          setParsedInitiatives(textLines);
+        } else {
+          // Ultima risorsa: dividi il testo in 2 parti se contiene almeno un punto
+          const sentences = cleanText.split(/\.(?:\s+|$)/).map(s => s.trim()).filter(s => s.length > 0);
+          if (sentences.length >= 1) {
+            setParsedInitiatives(sentences.map(s => s + '.'));
+          } else {
+            // Se tutto fallisce, usa l'intero testo come un'unica iniziativa
+            setParsedInitiatives([cleanText]);
+          }
+        }
       }
     } else {
       setParsedInitiatives([]);
