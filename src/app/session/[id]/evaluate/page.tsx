@@ -763,14 +763,8 @@ function EvaluateContent() {
   };
 
   const handleNext = () => {
-    // Validazione commento
-    if (rating > 0 && !comment?.trim()) {
-      setCommentError(
-        "È necessario inserire un commento quando si lascia una valutazione"
-      );
-      return;
-    }
-    setCommentError(null); // Clear error if validation passes
+    // Rimuoviamo la validazione obbligatoria del commento
+    setCommentError(null); // Clear any previous error
 
     saveCurrentFeedback().then(() => {
       setHasCommentChanged(false); // Reset changed status after saving
@@ -946,8 +940,7 @@ function EvaluateContent() {
   const currentFeedback = currentFeedbacks[currentFeedbackIndex];
 
   // --- Button Logic Calculations ---
-  const isValidationFailed = rating > 0 && !comment?.trim();
-
+  // Rimuoviamo la validazione del commento obbligatorio
   const currentSkillIndex = skills.findIndex(s => s.type === selectedSkill);
   const previousSkillExists = skills
       .slice(0, currentSkillIndex)
@@ -963,7 +956,8 @@ function EvaluateContent() {
   const showNext = (!isLastOfCurrentType || nextSkillExists) && currentFeedback != null;
   const showPrevious = (isFirstOfCurrentType ? previousSkillExists : currentFeedbacks?.length > 0) && currentFeedback != null;
 
-  const disableNextOrSession = hasCommentChanged || isValidationFailed || (currentFeedback?.value === null && rating === 0);
+  // Ora disabilitiamo solo se ci sono modifiche non salvate o se non c'è alcuna valutazione
+  const disableNextOrSession = hasCommentChanged || (currentFeedback?.value === null && rating === 0);
   // --- End Button Logic Calculations ---
 
   return (
@@ -1094,7 +1088,7 @@ function EvaluateContent() {
                         ref={textareaRef}
                         value={comment}
                         onChange={handleCommentChange}
-                        placeholder="Aggiungi un commento qui.."
+                        placeholder="Aggiungi un commento (facoltativo)..."
                         className={`w-full min-h-[80px] resize-none focus:outline-none text-gray-700 p-2 pb-12 bg-white overflow-hidden ${
                           commentError ? "border-red-500" : "border-gray-200"
                         }`}

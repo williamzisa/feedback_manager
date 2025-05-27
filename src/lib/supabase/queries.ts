@@ -10,16 +10,6 @@ import { redirect } from "next/navigation";
 type RuleInsert = Database['public']['Tables']['rules']['Insert'];
 type RuleUpdate = Database['public']['Tables']['rules']['Update'];
 
-type Feedback = Database["public"]["Tables"]["feedbacks"]["Row"] & {
-  sender: { id: string; name: string; surname: string };
-  receiver: { id: string; name: string; surname: string };
-  question: {
-    id: string;
-    description: string;
-    type: string;
-  };
-};
-
 // Definizione del tipo utente per evitare errori di type checking
 type UserData = Database['public']['Tables']['users']['Row'];
 
@@ -2917,12 +2907,24 @@ export async function getSessionComments(sessionId: string, userId: string) {
       const [receiverName = "", receiverSurname = ""] = (feedback.receiver_name_surname || "").split(" ");
 
       return {
-        ...feedback,
-        sender: { name: senderName, surname: senderSurname },
-        receiver: { name: receiverName, surname: receiverSurname },
-        question: { description: feedback.questions_description || "" },
-      }
-    }) as Feedback[];
+        id: feedback.id,
+        question_id: feedback.question_id,
+        value: feedback.value,
+        session_id: feedback.session_id,
+        rule_id: null,
+        rule_number: feedback.rule_number,
+        comment: feedback.comment,
+        company: feedback.company,
+        created_at: feedback.created_at,
+        sender: { id: feedback.sender || "", name: senderName, surname: senderSurname },
+        receiver: { id: feedback.receiver || "", name: receiverName, surname: receiverSurname },
+        question: { 
+          id: feedback.question_id || "",
+          description: feedback.questions_description || "",
+          type: ""
+        },
+      };
+    });
   } catch (err) {
     console.error("Errore nel recupero dei commenti:", err);
     throw err;
