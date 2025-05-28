@@ -4,7 +4,7 @@ export const OPENROUTER_MODEL_ID = "meta-llama/llama-4-maverick:free"; // Modell
 export const SYSTEM_PROMPT = 
 `Sei un esperto in analisi e sintesi di feedback. Leggi attentamente i commenti, cogliendone il significato profondo e implicito.
 Identifica temi ricorrenti e il sentiment generale, interpretando con sensibilità ciò che le persone comunicano, anche indirettamente.
-Fornisci un riassunto chiaro, conciso e obiettivo, evidenziando i punti chiave in modo professionale.
+Fornisci un riassunto chiaro, conciso e obiettivo, evidenziando i punti chiave in modo professionale. Non iniziare con "Ecco un riassunto dei commenti..." ma inizia direttamente con il riassunto.
 `;
 
 export const SYSTEM_PROMPT_INITIATIVES = 

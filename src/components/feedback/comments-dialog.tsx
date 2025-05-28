@@ -137,7 +137,8 @@ export function CommentsDialog({
 
   const handleCreateInitiative = () => {
     onClose(); // Chiudi il dialog dei commenti
-    onCreateInitiative(analysis.suggestedInitiatives); // Passa le iniziative suggerite
+    const initiativesToPass = analysis.suggestedInitiatives || existingAnalysis?.suggestedInitiatives;
+    onCreateInitiative(initiativesToPass); // Passa le iniziative suggerite
   };
 
   return (
@@ -247,20 +248,26 @@ export function CommentsDialog({
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col min-h-0">
-                  {analysis.summaryComments ? (
+                  {analysis.summaryComments || (existingAnalysis?.summaryComments && existingAnalysis.summaryComments.trim() !== "") ? (
                     <>
                       <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm overflow-y-auto min-h-0">
                         <h4 className="font-bold text-lg mb-4">
                           Riassunto dei commenti
                         </h4>
-                        <p className="text-gray-700 mb-6">{analysis.summaryComments}</p>
+                        <p className="text-gray-700 mb-6">
+                          {analysis.summaryComments || existingAnalysis?.summaryComments}
+                        </p>
                         
-                        {analysis.suggestedInitiatives && analysis.suggestedInitiatives !== "Non ci sono abbastanza dati per suggerire iniziative." && (
+                        {(analysis.suggestedInitiatives || existingAnalysis?.suggestedInitiatives) && 
+                         ((analysis.suggestedInitiatives && analysis.suggestedInitiatives !== "Non ci sono abbastanza dati per suggerire iniziative.") || 
+                          (existingAnalysis?.suggestedInitiatives && existingAnalysis.suggestedInitiatives !== "Non ci sono abbastanza dati per suggerire iniziative.")) && (
                           <>
                             <h4 className="font-bold text-lg mb-4 mt-8">
                               Iniziative suggerite
                             </h4>
-                            <p className="text-gray-700">{analysis.suggestedInitiatives}</p>
+                            <p className="text-gray-700">
+                              {analysis.suggestedInitiatives || existingAnalysis?.suggestedInitiatives}
+                            </p>
                           </>
                         )}
                       </div>
