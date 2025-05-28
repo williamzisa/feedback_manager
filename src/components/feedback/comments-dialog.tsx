@@ -94,6 +94,12 @@ export function CommentsDialog({
         });
         setActiveTab("summary");
       } else {
+        // Reset dell'analisi quando non ci sono dati esistenti o quando cambia la domanda
+        setAnalysis({
+          summaryComments: "",
+          suggestedInitiatives: "",
+          isLoading: false,
+        });
         setActiveTab("comments");
       }
     }

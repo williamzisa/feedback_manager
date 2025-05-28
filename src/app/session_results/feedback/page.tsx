@@ -59,7 +59,6 @@ type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   val_soft: number | null;
   val_strategy: number | null;
   val_execution: number | null;
-  mentor_value?: number | null;
 };
 
 type FeedbacksByQuestion = {
@@ -67,6 +66,7 @@ type FeedbacksByQuestion = {
   feedbacks: Feedback[];
   overall: number;
   count: number;
+  mentorValue: number;
 };
 
 type FeedbackData = {
@@ -208,22 +208,15 @@ function FeedbackContent() {
     loadFeedback();
   }, [sessionId, userId]);
 
-  // Fetch initiatives when question changes
+  // Reset states immediately when question changes, then fetch analysis data
   useEffect(() => {
-    async function fetchInitiatives() {
-      if (!currentQuestionId) return;
-      try {
-        const data = await getInitiativesByQuestionId(currentQuestionId, userId || undefined);
-        setInitiatives(data as Initiative[]);
-      } catch (error) {
-        console.error("Errore nel caricamento delle iniziative:", error);
-      }
-    }
-    fetchInitiatives();
-  }, [currentQuestionId, userId]);
-
-  // Fetch analysis data when question changes
-  useEffect(() => {
+    // Reset degli stati immediatamente quando cambia la domanda
+    setCurrentAnalysis(null);
+    setInitiatives([]);
+    // Chiudi i dialog aperti quando cambia la domanda
+    setIsCommentsDialogOpen(false);
+    setIsInitiativeDialogOpen(false);
+    
     async function fetchQuestionAnalysis() {
       if (!currentQuestionId || !sessionId || !userId) return;
       
@@ -236,7 +229,21 @@ function FeedbackContent() {
       }
     }
     
-    fetchQuestionAnalysis();
+    async function fetchInitiatives() {
+      if (!currentQuestionId) return;
+      try {
+        const data = await getInitiativesByQuestionId(currentQuestionId, userId || undefined);
+        setInitiatives(data as Initiative[]);
+      } catch (error) {
+        console.error("Errore nel caricamento delle iniziative:", error);
+        setInitiatives([]);
+      }
+    }
+    
+    if (currentQuestionId) {
+      fetchQuestionAnalysis();
+      fetchInitiatives();
+    }
   }, [currentQuestionId, sessionId, userId]);
 
   const pageTitle = userName || "I miei Risultati";
@@ -248,6 +255,9 @@ function FeedbackContent() {
       ([id]) => id === currentQuestionId
     );
     if (currentIndex < filteredQuestions.length - 1) {
+      // Chiudi eventuali dialog aperti quando cambi domanda
+      setIsCommentsDialogOpen(false);
+      setIsInitiativeDialogOpen(false);
       setCurrentQuestionId(filteredQuestions[currentIndex + 1][0]);
     }
   };
@@ -258,6 +268,9 @@ function FeedbackContent() {
       ([id]) => id === currentQuestionId
     );
     if (currentIndex > 0) {
+      // Chiudi eventuali dialog aperti quando cambi domanda
+      setIsCommentsDialogOpen(false);
+      setIsInitiativeDialogOpen(false);
       setCurrentQuestionId(filteredQuestions[currentIndex - 1][0]);
     }
   };
@@ -525,7 +538,7 @@ function FeedbackContent() {
                   <FeedbackScoreCard
                     overall={currentQuestionData.overall}
                     self={currentSelfFeedback?.value || 0}
-                    mentor={userSession?.mentor_value || 0}
+                    mentor={currentQuestionData.mentorValue || 0}
                     feedbackCount={currentQuestionData.feedbacks.filter(f => f.value !== null && f.value > 0).length}
                     commentCount={
                       currentQuestionData.feedbacks.filter(
@@ -556,7 +569,7 @@ function FeedbackContent() {
                       : ""
                   }
                   onCreateInitiative={handleNewInitiative}
-                  existingAnalysis={currentAnalysis ? {
+                  existingAnalysis={currentAnalysis && currentAnalysis.question_id === currentQuestionId ? {
                     summaryComments: currentAnalysis.summary_comments,
                     suggestedInitiatives: currentAnalysis.suggested_initiatives
                   } : undefined}

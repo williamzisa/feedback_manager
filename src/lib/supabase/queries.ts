@@ -2737,27 +2737,6 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
       throw userSessionError;
     }
 
-    // Se l'utente ha un mentor, recupera il suo feedback
-    let mentorValue = null;
-    if (userSession.user?.mentor) {
-      const { data: mentorFeedbacks, error: mentorError } = await supabase
-        .from("feedbacks")
-        .select("value")
-        .eq("session_id", sessionId)
-        .eq("sender", userSession.user.mentor)
-        .eq("receiver", userId);
-
-      if (mentorError) {
-        console.error("Errore nel recupero dei feedback del mentor:", mentorError);
-      } else {
-        // Calcola la media dei feedback del mentor
-        const validMentorFeedbacks = mentorFeedbacks.filter(f => f.value && f.value > 0);
-        if (validMentorFeedbacks.length > 0) {
-          mentorValue = validMentorFeedbacks.reduce((acc, curr) => acc + (curr.value || 0), 0) / validMentorFeedbacks.length;
-        }
-      }
-    }
-
     // Poi recupera i feedback con tutti i campi necessari
     const { data: feedbacks, error: feedbacksError } = await supabase
       .from("feedbacks")
@@ -2823,7 +2802,8 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
           feedbacks: [],
           overall: 0,
           count: 0,
-          commentCount: 0
+          commentCount: 0,
+          mentorValue: 0
         };
       }
       
@@ -2845,6 +2825,11 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
         acc[questionId].overall = validValues.length > 0 
           ? validValues.reduce((a, b) => a + b, 0) / validValues.length 
           : 0;
+
+        // Calcola il valore del mentor per questa domanda specifica
+        if (userSession.user?.mentor && feedback.sender?.id === userSession.user.mentor) {
+          acc[questionId].mentorValue = feedback.value;
+        }
       }
       
       return acc;
@@ -2854,6 +2839,7 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
       overall: number;
       count: number;
       commentCount: number;
+      mentorValue: number;
     }>);
 
     // Organizziamo i self-feedback per question_id
@@ -2868,8 +2854,7 @@ export async function getSessionFeedback(sessionId: string, userId: string) {
       userSession: {
         ...userSession,
         session_name: userSession.session?.name || "",
-        session_end_time: userSession.session?.end_time || null,
-        mentor_value: mentorValue
+        session_end_time: userSession.session?.end_time || null
       },
       feedbacksByQuestion,
       selfFeedbacksByQuestion
