@@ -16,7 +16,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Database } from "@/lib/supabase/database.types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Star, UserCircle2, Target, Users, MessageSquare, ChevronLeft } from "lucide-react";
+import { Star, UserCircle2, Target, Users, ChevronLeft } from "lucide-react";
 
 type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   sessions: Database["public"]["Tables"]["sessions"]["Row"];
@@ -225,20 +225,6 @@ function SessionResultsContent() {
     window.location.href = `/session_results/feedback?${queryParams.toString()}`;
   };
 
-  const handleViewComments = () => {
-    const queryParams = new URLSearchParams();
-    if (userId && userName) {
-      queryParams.set("userId", userId);
-      queryParams.set("userName", userName);
-    }
-    if (selectedSession) {
-      queryParams.set("sessionId", selectedSession);
-    }
-    window.location.href = `/session_results/comment${
-      queryParams.toString() ? `?${queryParams.toString()}` : ""
-    }`;
-  };
-
   const getQuestionsCountByType = (feedbacks: Feedback[], type: string) => {
     if (!feedbacks) return 0;
     return feedbacks.filter(
@@ -394,7 +380,7 @@ function SessionResultsContent() {
                 </div>
                 <div className="flex items-baseline flex-1">
                   <span className="text-3xl font-bold">
-                    {currentSession.val_overall?.toFixed(1)}
+                    {currentSession.mentor_overall?.toFixed(1)}
                   </span>
                   <span className="ml-2 text-sm text-gray-500">
                     Il mio Mentor
@@ -440,6 +426,8 @@ function SessionResultsContent() {
                 type: "Strategy Skills",
                 weight: currentSession.weight_strategy || 0,
                 value: currentSession.val_strategy?.toFixed(1),
+                selfValue: currentSession.self_strategy?.toFixed(1),
+                mentorValue: currentSession.mentor_strategy?.toFixed(1),
                 bgColor: "bg-white",
                 hoverColor: "",
                 textColor: "text-[#00BFA5]",
@@ -451,6 +439,8 @@ function SessionResultsContent() {
                 type: "Soft Skills",
                 weight: currentSession.weight_soft || 0,
                 value: currentSession.val_soft?.toFixed(1),
+                selfValue: currentSession.self_soft?.toFixed(1),
+                mentorValue: currentSession.mentor_soft?.toFixed(1),
                 bgColor: "bg-[#FFF8F0]",
                 hoverColor: "",
                 textColor: "text-[#F5A623]",
@@ -462,6 +452,8 @@ function SessionResultsContent() {
                 type: "Execution Skills",
                 weight: currentSession.weight_execution || 0,
                 value: currentSession.val_execution?.toFixed(1),
+                selfValue: currentSession.self_execution?.toFixed(1),
+                mentorValue: currentSession.mentor_execution?.toFixed(1),
                 bgColor: "bg-white",
                 hoverColor: "",
                 textColor: "text-[#4285F4]",
@@ -486,13 +478,23 @@ function SessionResultsContent() {
                     {skill.value}
                   </span>
                 </div>
-                <div className="space-y-1">
-                  <p className={skill.textColor}>
-                    Peso: {skill.weight}%
-                  </p>
-                  <p className={skill.textColor}>
-                    {skill.feedbackCount} feedback ricevuti
-                  </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className={skill.textColor}>
+                      Peso: {skill.weight}%
+                    </p>
+                    <p className={skill.textColor}>
+                      {skill.feedbackCount} feedback ricevuti
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className={skill.textColor}>
+                      Self: {skill.selfValue}
+                    </p>
+                    <p className={skill.textColor}>
+                      Mentor: {skill.mentorValue}
+                    </p>
+                  </div>
                 </div>
               </div>
             ));
@@ -500,19 +502,12 @@ function SessionResultsContent() {
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 mb-20">
           <Button
             className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white py-6 rounded-full text-lg"
             onClick={handleViewDetails}
           >
             Vedi Dettaglio
-          </Button>
-          <Button
-            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-6 rounded-full text-lg flex items-center justify-center gap-2"
-            onClick={handleViewComments}
-          >
-            <MessageSquare className="w-5 h-5" />
-            Vedi Commenti
           </Button>
         </div>
       </main>

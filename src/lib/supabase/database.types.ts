@@ -7,6 +7,31 @@
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       clusters: {
@@ -75,6 +100,8 @@ export type Database = {
           company: string
           created_at: string
           id: string
+          is_mentor: boolean | null
+          is_self: boolean | null
           question_id: string | null
           receiver: string | null
           rule_id: string | null
@@ -88,6 +115,8 @@ export type Database = {
           company: string
           created_at?: string
           id?: string
+          is_mentor?: boolean | null
+          is_self?: boolean | null
           question_id?: string | null
           receiver?: string | null
           rule_id?: string | null
@@ -101,6 +130,8 @@ export type Database = {
           company?: string
           created_at?: string
           id?: string
+          is_mentor?: boolean | null
+          is_self?: boolean | null
           question_id?: string | null
           receiver?: string | null
           rule_id?: string | null
@@ -246,6 +277,99 @@ export type Database = {
             columns: ["company"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pcg_session_2025: {
+        Row: {
+          comment: string | null
+          company: string
+          created_at: string
+          id: string
+          is_mentor: boolean | null
+          is_self: boolean | null
+          question_description: string | null
+          question_id: string | null
+          receiver: string | null
+          receiver_name: string | null
+          rule_number: number | null
+          sender: string | null
+          sender_name: string | null
+          session_id: string
+          type: string | null
+          value: number | null
+        }
+        Insert: {
+          comment?: string | null
+          company: string
+          created_at?: string
+          id?: string
+          is_mentor?: boolean | null
+          is_self?: boolean | null
+          question_description?: string | null
+          question_id?: string | null
+          receiver?: string | null
+          receiver_name?: string | null
+          rule_number?: number | null
+          sender?: string | null
+          sender_name?: string | null
+          session_id: string
+          type?: string | null
+          value?: number | null
+        }
+        Update: {
+          comment?: string | null
+          company?: string
+          created_at?: string
+          id?: string
+          is_mentor?: boolean | null
+          is_self?: boolean | null
+          question_description?: string | null
+          question_id?: string | null
+          receiver?: string | null
+          receiver_name?: string | null
+          rule_number?: number | null
+          sender?: string | null
+          sender_name?: string | null
+          session_id?: string
+          type?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcg_session_2025_company_fkey"
+            columns: ["company"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pcg_session_2025_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pcg_session_2025_receiver_fkey"
+            columns: ["receiver"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pcg_session_2025_sender_fkey"
+            columns: ["sender"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pcg_session_2025_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -514,6 +638,144 @@ export type Database = {
           },
         ]
       }
+      snapshot_feedbacks: {
+        Row: {
+          comment: string | null
+          comment_tags: Json | null
+          company: string
+          created_at: string
+          id: string
+          question_id: string | null
+          questions_description: string | null
+          receiver: string | null
+          receiver_name_surname: string | null
+          rule_number: number | null
+          sender: string | null
+          sender_name_surname: string | null
+          session_id: string
+          value: number | null
+        }
+        Insert: {
+          comment?: string | null
+          comment_tags?: Json | null
+          company: string
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          questions_description?: string | null
+          receiver?: string | null
+          receiver_name_surname?: string | null
+          rule_number?: number | null
+          sender?: string | null
+          sender_name_surname?: string | null
+          session_id: string
+          value?: number | null
+        }
+        Update: {
+          comment?: string | null
+          comment_tags?: Json | null
+          company?: string
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          questions_description?: string | null
+          receiver?: string | null
+          receiver_name_surname?: string | null
+          rule_number?: number | null
+          sender?: string | null
+          sender_name_surname?: string | null
+          session_id?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snapshot_feedbacks_company_fkey"
+            columns: ["company"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_feedbacks_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_feedbacks_receiver_fkey"
+            columns: ["receiver"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_feedbacks_sender_fkey"
+            columns: ["sender"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshot_feedbacks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      snapshot_session_questions: {
+        Row: {
+          comment_tags: string | null
+          created_at: string
+          embedding_comment_tags: string | null
+          embedding_question: string | null
+          id: string
+          mentor_value: number | null
+          overall_value: number | null
+          question_description: string | null
+          question_id: string | null
+          receiver_id: string | null
+          self_value: number | null
+          session_id: string | null
+          suggested_initiatives: string | null
+          summary_comments: string | null
+        }
+        Insert: {
+          comment_tags?: string | null
+          created_at?: string
+          embedding_comment_tags?: string | null
+          embedding_question?: string | null
+          id?: string
+          mentor_value?: number | null
+          overall_value?: number | null
+          question_description?: string | null
+          question_id?: string | null
+          receiver_id?: string | null
+          self_value?: number | null
+          session_id?: string | null
+          suggested_initiatives?: string | null
+          summary_comments?: string | null
+        }
+        Update: {
+          comment_tags?: string | null
+          created_at?: string
+          embedding_comment_tags?: string | null
+          embedding_question?: string | null
+          id?: string
+          mentor_value?: number | null
+          overall_value?: number | null
+          question_description?: string | null
+          question_id?: string | null
+          receiver_id?: string | null
+          self_value?: number | null
+          session_id?: string | null
+          suggested_initiatives?: string | null
+          summary_comments?: string | null
+        }
+        Relationships: []
+      }
       team_clusters: {
         Row: {
           cluster_id: string | null
@@ -702,6 +964,10 @@ export type Database = {
           created_at: string | null
           level_name: string | null
           level_standard: number | null
+          mentor_execution: number | null
+          mentor_overall: number | null
+          mentor_soft: number | null
+          mentor_strategy: number | null
           self_execution: number | null
           self_overall: number | null
           self_soft: number | null
@@ -721,6 +987,10 @@ export type Database = {
           created_at?: string | null
           level_name?: string | null
           level_standard?: number | null
+          mentor_execution?: number | null
+          mentor_overall?: number | null
+          mentor_soft?: number | null
+          mentor_strategy?: number | null
           self_execution?: number | null
           self_overall?: number | null
           self_soft?: number | null
@@ -740,6 +1010,10 @@ export type Database = {
           created_at?: string | null
           level_name?: string | null
           level_standard?: number | null
+          mentor_execution?: number | null
+          mentor_overall?: number | null
+          mentor_soft?: number | null
+          mentor_strategy?: number | null
           self_execution?: number | null
           self_overall?: number | null
           self_soft?: number | null
@@ -806,167 +1080,6 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      snapshot_feedbacks: {
-        Row: {
-          id: string
-          sender: string | null
-          receiver: string | null
-          question_id: string | null
-          value: number | null
-          session_id: string
-          company: string
-          created_at: string
-          comment: string | null
-          rule_number: number | null
-          comment_tags: Json | null
-          sender_name_surname: string | null
-          receiver_name_surname: string | null
-          questions_description: string | null
-        }
-        Insert: {
-          id?: string
-          sender?: string | null
-          receiver?: string | null
-          question_id?: string | null
-          value?: number | null
-          session_id: string
-          company: string
-          created_at?: string
-          comment?: string | null
-          rule_number?: number | null
-          comment_tags?: Json | null
-          sender_name_surname?: string | null
-          receiver_name_surname?: string | null
-          questions_description?: string | null
-        }
-        Update: {
-          id?: string
-          sender?: string | null
-          receiver?: string | null
-          question_id?: string | null
-          value?: number | null
-          session_id?: string
-          company?: string
-          created_at?: string
-          comment?: string | null
-          rule_number?: number | null
-          comment_tags?: Json | null
-          sender_name_surname?: string | null
-          receiver_name_surname?: string | null
-          questions_description?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "snapshot_feedbacks_company_fkey"
-            columns: ["company"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "snapshot_feedbacks_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "questions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "snapshot_feedbacks_receiver_fkey"
-            columns: ["receiver"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "snapshot_feedbacks_sender_fkey"
-            columns: ["sender"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "snapshot_feedbacks_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "sessions"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      
-      snapshot_session_questions: {
-        Row: {
-          id: string
-          created_at: string
-          session_id: string | null
-          question_id: string | null
-          receiver_id: string | null
-          question_description: string | null
-          comment_tags: string | null
-          embedding_comment_tags: string | null
-          summary_comments: string | null
-          suggested_initiatives: string | null
-          overall_value: number | null
-          mentor_value: number | null
-          self_value: number | null
-          embedding_question: string | null
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          session_id?: string | null
-          question_id?: string | null
-          receiver_id?: string | null
-          question_description?: string | null
-          comment_tags?: string | null
-          embedding_comment_tags?: string | null
-          summary_comments?: string | null
-          suggested_initiatives?: string | null
-          overall_value?: number | null
-          mentor_value?: number | null
-          self_value?: number | null
-          embedding_question?: string | null
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          session_id?: string | null
-          question_id?: string | null
-          receiver_id?: string | null
-          question_description?: string | null
-          comment_tags?: string | null
-          embedding_comment_tags?: string | null
-          summary_comments?: string | null
-          suggested_initiatives?: string | null
-          overall_value?: number | null
-          mentor_value?: number | null
-          self_value?: number | null
-          embedding_question?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "snapshot_session_questions_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "snapshot_session_questions_question_id_fkey"
-            columns: ["question_id"] 
-            isOneToOne: false
-            referencedRelation: "questions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "snapshot_session_questions_receiver_id_fkey"
-            columns: ["receiver_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
         ]
       }
       users: {
@@ -1038,6 +1151,30 @@ export type Database = {
       }
     }
     Views: {
+      feedbacks_view: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string | null
+          process_name: string | null
+          question_description: string | null
+          question_type: string | null
+          receiver_name_surname: string | null
+          rule_number: number | null
+          sender_name_surname: string | null
+          session_id: string | null
+          value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedbacks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       view_analisi_feedbacks: {
         Row: {
           id: string | null
@@ -1059,19 +1196,27 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_mentor_feedbacks: {
+        Args: { session_id_input: string }
+        Returns: undefined
+      }
+      calculate_mentor_overall: {
+        Args: { session_id_input: string }
+        Returns: undefined
+      }
+      calculate_session_values: {
+        Args: { session_uuid: string }
+        Returns: undefined
+      }
       generate_rule1_feedbacks: {
         Args: { session_id: string }
         Returns: undefined
       }
       generate_rule2_feedbacks: {
-        Args: { session_id: string }
+        Args: { p_session_id: string }
         Returns: undefined
       }
       generate_rule3a_feedbacks: {
-        Args: { session_id: string }
-        Returns: undefined
-      }
-      generate_rule3b_feedbacks: {
         Args: { session_id: string }
         Returns: undefined
       }
@@ -1085,6 +1230,10 @@ export type Database = {
       }
       generate_rule6_feedbacks: {
         Args: { session_uuid: string }
+        Returns: undefined
+      }
+      generate_rule7_feedbacks: {
+        Args: { p_session_id: string }
         Returns: undefined
       }
       remove_duplicate_feedbacks: {
@@ -1207,6 +1356,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
