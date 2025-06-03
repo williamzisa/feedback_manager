@@ -474,6 +474,9 @@ function FeedbackContent() {
             <SelectTrigger className="w-full bg-white">
               <div className="flex justify-between items-center w-full">
                 <span>{selectedSkillType}</span>
+                <span className="text-red-500 text-xs font-medium">
+                  Cambia tipologia di skills da qui
+                </span>
                 <span className="text-gray-500">
                   {getQuestionsCountByType(selectedSkillType)} domande ·{" "}
                   {formatNumber(getSessionValueByType(selectedSkillType) || 0)}

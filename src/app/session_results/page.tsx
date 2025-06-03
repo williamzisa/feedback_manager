@@ -206,6 +206,13 @@ function SessionResultsContent() {
       skill = "Strategy Skills";
     }
 
+    // Mapping dei nomi delle skills ai tipi backend
+    const skillTypeMapping: Record<string, string> = {
+      "Strategy Skills": "STRATEGY",
+      "Soft Skills": "SOFT", 
+      "Execution Skills": "EXECUTION"
+    };
+
     const queryParams = new URLSearchParams();
     if (userId) {
       queryParams.set("userId", userId);
@@ -218,7 +225,9 @@ function SessionResultsContent() {
       queryParams.set("sessionId", selectedSession);
     }
     if (typeof skill === "string") {
-      queryParams.set("skill", skill);
+      // Passa il tipo backend invece del nome completo
+      const backendSkillType = skillTypeMapping[skill] || "STRATEGY";
+      queryParams.set("skill", backendSkillType);
     }
 
     console.log("Navigating to feedback with params:", queryParams.toString());
@@ -429,7 +438,7 @@ function SessionResultsContent() {
                 selfValue: currentSession.self_strategy?.toFixed(1),
                 mentorValue: currentSession.mentor_strategy?.toFixed(1),
                 bgColor: "bg-white",
-                hoverColor: "",
+                hoverColor: "hover:bg-gray-50",
                 textColor: "text-[#00BFA5]",
                 badgeColor: "bg-[#00BFA5]",
                 questionType: "STRATEGY",
@@ -442,7 +451,7 @@ function SessionResultsContent() {
                 selfValue: currentSession.self_soft?.toFixed(1),
                 mentorValue: currentSession.mentor_soft?.toFixed(1),
                 bgColor: "bg-[#FFF8F0]",
-                hoverColor: "",
+                hoverColor: "hover:bg-[#FFF0E6]",
                 textColor: "text-[#F5A623]",
                 badgeColor: "bg-[#F5A623]",
                 questionType: "SOFT",
@@ -455,7 +464,7 @@ function SessionResultsContent() {
                 selfValue: currentSession.self_execution?.toFixed(1),
                 mentorValue: currentSession.mentor_execution?.toFixed(1),
                 bgColor: "bg-white",
-                hoverColor: "",
+                hoverColor: "hover:bg-gray-50",
                 textColor: "text-[#4285F4]",
                 badgeColor: "bg-[#4285F4]",
                 questionType: "EXECUTION",
@@ -470,7 +479,8 @@ function SessionResultsContent() {
             return sortedSkills.map((skill) => (
               <div
                 key={skill.type}
-                className={`${skill.bgColor} rounded-[20px] p-6 ${skill.hoverColor} transition-colors`}
+                className={`${skill.bgColor} rounded-[20px] p-6 ${skill.hoverColor} transition-colors cursor-pointer`}
+                onClick={() => handleViewDetails(skill.type)}
               >
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold">{skill.type}</h2>
