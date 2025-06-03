@@ -62,7 +62,7 @@ export function InitiativeDialog({
 
   // Parse le iniziative suggerite quando disponibili
   useEffect(() => {
-    if (suggestedInitiatives && suggestedInitiatives !== "Non ci sono abbastanza dati per suggerire iniziative.") {
+    if (suggestedInitiatives && typeof suggestedInitiatives === 'string' && suggestedInitiatives !== "Non ci sono abbastanza dati per suggerire iniziative.") {
       // Tenta di estrarre le iniziative dal testo
       const initiatives = suggestedInitiatives
         .split(/[\n\r]/)
