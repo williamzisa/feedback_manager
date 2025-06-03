@@ -190,8 +190,7 @@ export function CommentsDialog({
                       <div className="flex-1 flex flex-col min-h-0">
                         <div className="flex-1 bg-white rounded-[20px] p-6 border border-gray-100 shadow-sm overflow-y-auto min-h-0">
                           <h4 className="font-bold text-lg mb-4">
-                            {currentComment.sender?.name}{" "}
-                            {currentComment.sender?.surname}
+                            {currentComment.sender_name_surname}
                           </h4>
                           <p className="text-gray-700">{currentComment.comment}</p>
                         </div>

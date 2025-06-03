@@ -2908,6 +2908,9 @@ export async function getSessionComments(sessionId: string, userId: string) {
           description: feedback.questions_description || "",
           type: ""
         },
+        sender_name_surname: feedback.sender_name_surname,
+        receiver_name_surname: feedback.receiver_name_surname,
+        questions_description: feedback.questions_description,
       };
     });
   } catch (err) {
