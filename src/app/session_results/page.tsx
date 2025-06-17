@@ -16,7 +16,13 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Database } from "@/lib/supabase/database.types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Star, UserCircle2, Target, Users, ChevronLeft } from "lucide-react";
+import { Star, UserCircle2, Target, Users, ChevronLeft, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   sessions: Database["public"]["Tables"]["sessions"]["Row"];
@@ -404,8 +410,23 @@ function SessionResultsContent() {
 
           {/* GAP Section */}
           <div className="text-center space-y-2">
-            <div className="text-sm text-gray-500 font-medium">
-              Risultati della Sessione
+            <div className="flex items-center justify-center space-x-2">
+              <div className="text-sm text-gray-500 font-medium">
+                Risultati della Sessione
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-center">
+                      Il risultato è la differenza percentuale tra Overall e Standard. 
+                      Non viene considerato il risultato dell&apos;autovalutazione.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div
               className={`text-2xl font-bold ${
@@ -416,12 +437,22 @@ function SessionResultsContent() {
                   : "text-yellow-500"
               }`}
             >
-              {currentSession.val_gap?.toFixed(1)}%
+              {Math.round(currentSession.val_gap || 0)}%
             </div>
-            <div className="text-sm text-gray-500">
-              {(currentSession.val_gap || 0) >= 0
-                ? "In linea con lo standard"
-                : "Da migliorare"}
+            <div className="flex items-center justify-center space-x-4">
+              <div className="text-sm text-gray-500">
+                {(currentSession.val_gap || 0) >= 10
+                  ? "Da considerare una promozione"
+                  : (currentSession.val_gap || 0) <= -10
+                  ? "Risultato sotto lo standard del ruolo"
+                  : "In linea con lo standard del ruolo"}
+              </div>
+              <Button
+                onClick={() => window.open("https://www.mylinkhub.app/one-to-one/new", "_blank")}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+              >
+                Crea 1-to-1
+              </Button>
             </div>
           </div>
         </div>
