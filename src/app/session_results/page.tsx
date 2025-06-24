@@ -351,14 +351,18 @@ function SessionResultsContent() {
                     }
                   )}
                 </span>
-                <span className={`${
+                <span className={`text-sm ${
                   (currentSession.val_gap || 0) >= 10
                     ? "text-emerald-500"
                     : (currentSession.val_gap || 0) <= -10
                     ? "text-red-500"
-                    : "text-yellow-500"
+                    : "text-emerald-500"
                 }`}>
-                  GAP: {currentSession.val_gap?.toFixed(1)}%
+                  {(currentSession.val_gap || 0) >= 10
+                    ? "Da considerare una promozione"
+                    : (currentSession.val_gap || 0) <= -10
+                    ? "Risultato sotto lo standard del ruolo"
+                    : "In linea con lo standard del ruolo"}
                 </span>
               </div>
             </SelectTrigger>
@@ -453,26 +457,21 @@ function SessionResultsContent() {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-center">
-                      Il risultato è la differenza percentuale tra Overall e Standard. 
+                      Il risultato suggerito deriva dalla differenza percentuale tra Overall e Standard. 
                       Non viene considerato il risultato dell&apos;autovalutazione.
                     </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <div
-              className={`text-2xl font-bold ${
+            <div className="flex items-center justify-center space-x-4">
+              <div className={`text-lg font-medium ${
                 (currentSession.val_gap || 0) >= 10
                   ? "text-emerald-500"
                   : (currentSession.val_gap || 0) <= -10
                   ? "text-red-500"
-                  : "text-yellow-500"
-              }`}
-            >
-              {Math.round(currentSession.val_gap || 0)}%
-            </div>
-            <div className="flex items-center justify-center space-x-4">
-              <div className="text-sm text-gray-500">
+                  : "text-emerald-500"
+              }`}>
                 {(currentSession.val_gap || 0) >= 10
                   ? "Da considerare una promozione"
                   : (currentSession.val_gap || 0) <= -10

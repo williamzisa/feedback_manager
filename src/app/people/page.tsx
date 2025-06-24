@@ -159,15 +159,17 @@ export default function PeoplePage() {
                               ? "text-emerald-500"
                               : lastSession.val_gap <= -10
                               ? "text-red-500"
-                              : "text-yellow-500"
+                              : "text-emerald-500"
                             : "text-gray-400"
                         }`}
                       >
-                        Last GAP:{" "}
+                        Esito:{" "}
                         {hasLastSession && lastSession.val_gap !== null
-                          ? `${lastSession.val_gap >= 0 ? "+" : ""}${(
-                              lastSession.val_gap
-                            ).toFixed(0)}%`
+                          ? lastSession.val_gap >= 10
+                            ? "Sopra"
+                            : lastSession.val_gap <= -10
+                            ? "Sotto"
+                            : "In linea"
                           : "N/A"}
                       </p>
                       <button
