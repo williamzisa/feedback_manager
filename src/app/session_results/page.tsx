@@ -50,6 +50,7 @@ function SessionResultsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [oneToOneLanding, setOneToOneLanding] = useState<string | null>(null);
   const supabase = createClientComponentClient<Database>();
 
   // Recupera l'userId dall'URL o dalla sessione
@@ -60,6 +61,26 @@ function SessionResultsContent() {
       if (urlUserId && isMounted) {
         console.log("Using URL userId:", urlUserId);
         setUserId(urlUserId);
+        
+        // Recupera anche l'URL del one-to-one landing per l'utente dall'URL
+        try {
+          const { data: userCompanyData, error: companyError } = await supabase
+            .from("users")
+            .select(`
+              companies:company (
+                one_to_one_landing
+              )
+            `)
+            .eq("id", urlUserId)
+            .single();
+            
+          if (!companyError && userCompanyData?.companies?.one_to_one_landing) {
+            setOneToOneLanding(userCompanyData.companies.one_to_one_landing);
+          }
+        } catch (err) {
+          console.error("Error fetching company data for URL user:", err);
+        }
+        
         return;
       }
 
@@ -89,7 +110,13 @@ function SessionResultsContent() {
 
         const { data: userData, error: userError } = await supabase
           .from("users")
-          .select("id")
+          .select(`
+            id,
+            company,
+            companies:company (
+              one_to_one_landing
+            )
+          `)
           .eq("auth_id", user.id)
           .single();
 
@@ -111,6 +138,11 @@ function SessionResultsContent() {
 
         console.log("User data found:", userData);
         setUserId(userData.id);
+        
+        // Imposta l'URL del one-to-one landing dalla company
+        if (userData.companies?.one_to_one_landing) {
+          setOneToOneLanding(userData.companies.one_to_one_landing);
+        }
       } catch (err) {
         if (!isMounted) return;
         console.error("Error in getUserId:", err);
@@ -448,7 +480,10 @@ function SessionResultsContent() {
                   : "In linea con lo standard del ruolo"}
               </div>
               <Button
-                onClick={() => window.open("https://www.mylinkhub.app/one-to-one/new", "_blank")}
+                onClick={() => {
+                  const url = oneToOneLanding || "https://www.mylinkhub.app/one-to-one/new";
+                  window.open(url, "_blank");
+                }}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
               >
                 Crea 1-to-1

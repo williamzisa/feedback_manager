@@ -81,16 +81,19 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          one_to_one_landing: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           name: string
+          one_to_one_landing?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string
+          one_to_one_landing?: string | null
         }
         Relationships: []
       }
