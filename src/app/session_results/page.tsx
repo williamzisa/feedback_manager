@@ -23,6 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { PDFDownloadButton } from "@/components/pdf/pdf-download-button";
 
 type UserSession = Database["public"]["Tables"]["user_sessions"]["Row"] & {
   sessions: Database["public"]["Tables"]["sessions"]["Row"];
@@ -577,13 +578,23 @@ function SessionResultsContent() {
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-6 mb-20">
+        <div className="mt-6 mb-20 space-y-4">
           <Button
             className="w-full bg-[#4285F4] hover:bg-[#3367D6] text-white py-6 rounded-full text-lg"
             onClick={handleViewDetails}
           >
             Vedi Dettaglio
           </Button>
+          
+          {/* PDF Download Button */}
+          {userId && selectedSession && (
+            <PDFDownloadButton
+              sessionId={selectedSession}
+              userId={userId}
+              userName={userName || undefined}
+              disabled={!currentSession}
+            />
+          )}
         </div>
       </main>
 
