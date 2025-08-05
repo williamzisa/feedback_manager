@@ -2361,7 +2361,10 @@ export const queries = {
           gap: formatNumber(result.val_gap), // Il gap è già in percentuale, non moltiplicare
           execution: formatNumber(result.val_execution),
           strategy: formatNumber(result.val_strategy),
-          soft: formatNumber(result.val_soft)
+          soft: formatNumber(result.val_soft),
+          // Additional fields for PDF generation
+          session_id: result.session_id,
+          user_id: result.user_id
         }));
       } catch (err) {
         console.error("Errore nel recupero dei risultati delle sessioni:", err);

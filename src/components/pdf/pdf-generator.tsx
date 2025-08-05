@@ -39,30 +39,33 @@ export class PDFGenerator {
       const root = createRoot(container);
       await new Promise<void>((resolve) => {
         root.render(<PDFTemplate data={data} isPreview={false} />);
-        // Wait for rendering to complete
-        setTimeout(resolve, 1000);
+        // Wait for rendering to complete (reduced timeout)
+        setTimeout(resolve, 500);
       });
 
-      // Convert to canvas
+      // Convert to canvas with optimized settings
       const canvas = await html2canvas(container, {
-        scale: 2,
+        scale: 1, // Reduced from 2 to 1 for smaller file size
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         width: container.scrollWidth,
         height: container.scrollHeight,
         scrollX: 0,
-        scrollY: 0
+        scrollY: 0,
+        logging: false, // Disable logging for better performance
+        imageTimeout: 5000
       });
 
       // Create PDF
       const pdf = new jsPDF({
         orientation,
         unit: 'mm',
-        format
+        format,
+        compress: true // Enable PDF compression
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.8); // 80% quality for smaller file size
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
@@ -73,7 +76,7 @@ export class PDFGenerator {
       // Add image to PDF with pagination if needed
       if (imgHeight <= pdfHeight) {
         // Single page
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
       } else {
         // Multiple pages
         let position = 0;
@@ -86,7 +89,7 @@ export class PDFGenerator {
           
           pdf.addImage(
             imgData, 
-            'PNG', 
+            'JPEG', 
             0, 
             -position, 
             imgWidth, 
@@ -157,17 +160,18 @@ export class PDFGenerator {
       const pdf = new jsPDF({
         orientation,
         unit: 'mm',
-        format
+        format,
+        compress: true // Enable PDF compression
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.8); // 80% quality for smaller file size
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
 
       // Get blob URL
       const pdfBlob = pdf.output('blob');

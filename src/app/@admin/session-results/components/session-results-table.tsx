@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import { queries } from '@/lib/supabase/queries'
+import { PDFDownloadButton } from '@/components/pdf/pdf-download-button'
 import {
   Select,
   SelectContent,
@@ -24,6 +25,9 @@ interface UserSessionResult {
   execution: number
   strategy: number
   soft: number
+  // Additional fields for PDF generation
+  session_id?: string
+  user_id?: string
 }
 
 export const SessionResultsTable = () => {
@@ -160,12 +164,22 @@ export const SessionResultsTable = () => {
                     </div>
                   </div>
                 </div>
-                <Button 
-                  variant="default"
-                  onClick={() => handleDetailClick(result.session_name, result.user_name)}
-                >
-                  Dettaglio
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="default"
+                    onClick={() => handleDetailClick(result.session_name, result.user_name)}
+                  >
+                    Dettaglio
+                  </Button>
+                  {result.session_id && result.user_id && (
+                    <PDFDownloadButton
+                      sessionId={result.session_id}
+                      userId={result.user_id}
+                      userName={result.user_name}
+                      compact={true}
+                    />
+                  )}
+                </div>
               </div>
             ))}
             
@@ -188,7 +202,7 @@ export const SessionResultsTable = () => {
                     <TableHead>EXECUTION</TableHead>
                     <TableHead>STRATEGY</TableHead>
                     <TableHead>SOFT</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[120px]">AZIONI</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -203,12 +217,23 @@ export const SessionResultsTable = () => {
                       <TableCell>{formatNumber(result.strategy)}</TableCell>
                       <TableCell>{formatNumber(result.soft)}</TableCell>
                       <TableCell>
-                        <Button 
-                          variant="default"
-                          onClick={() => handleDetailClick(result.session_name, result.user_name)}
-                        >
-                          Dettaglio
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleDetailClick(result.session_name, result.user_name)}
+                          >
+                            Dettaglio
+                          </Button>
+                          {result.session_id && result.user_id && (
+                            <PDFDownloadButton
+                              sessionId={result.session_id}
+                              userId={result.user_id}
+                              userName={result.user_name}
+                              compact={true}
+                            />
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

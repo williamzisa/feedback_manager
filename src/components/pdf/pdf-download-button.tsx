@@ -12,6 +12,7 @@ interface PDFDownloadButtonProps {
   userName?: string;
   disabled?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
 /**
@@ -23,7 +24,8 @@ export function PDFDownloadButton({
   userId, 
   userName,
   disabled = false,
-  className = ''
+  className = '',
+  compact = false
 }: PDFDownloadButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,10 +89,10 @@ export function PDFDownloadButton({
           onClick={() => setError(null)}
           disabled={disabled}
           variant="outline"
-          className={`w-full py-4 rounded-full text-lg ${className}`}
+          className={compact ? `text-sm ${className}` : `w-full py-4 rounded-full text-lg ${className}`}
         >
-          <AlertCircle className="w-5 h-5 mr-2" />
-          Riprova Download
+          <AlertCircle className={compact ? "w-4 h-4 mr-1" : "w-5 h-5 mr-2"} />
+          {compact ? "Riprova" : "Riprova Download"}
         </Button>
         <p className="text-sm text-red-600 text-center">{error}</p>
       </div>
@@ -103,10 +105,10 @@ export function PDFDownloadButton({
       <Button
         disabled={true}
         variant="outline"
-        className={`w-full py-4 rounded-full text-lg opacity-50 ${className}`}
+        className={compact ? `text-sm opacity-50 ${className}` : `w-full py-4 rounded-full text-lg opacity-50 ${className}`}
       >
-        <FileText className="w-5 h-5 mr-2" />
-        PDF non supportato
+        <FileText className={compact ? "w-4 h-4 mr-1" : "w-5 h-5 mr-2"} />
+        {compact ? "N/A" : "PDF non supportato"}
       </Button>
     );
   }
@@ -115,17 +117,20 @@ export function PDFDownloadButton({
     <Button
       onClick={handleDownload}
       disabled={disabled || isLoading}
-      className={`w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-full text-lg mt-4 transition-all duration-200 ${className}`}
+      className={compact 
+        ? `bg-red-500 hover:bg-red-600 text-white text-sm transition-all duration-200 ${className}`
+        : `w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-full text-lg mt-4 transition-all duration-200 ${className}`
+      }
     >
       {isLoading ? (
         <>
-          <div className="w-5 h-5 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          Generazione PDF...
+          <div className={compact ? "w-4 h-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent" : "w-5 h-5 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"} />
+          {compact ? "PDF..." : "Generazione PDF..."}
         </>
       ) : (
         <>
-          <Download className="w-5 h-5 mr-2" />
-          Scarica risultati
+          <Download className={compact ? "w-4 h-4 mr-1" : "w-5 h-5 mr-2"} />
+          {compact ? "PDF" : "Scarica risultati"}
         </>
       )}
     </Button>

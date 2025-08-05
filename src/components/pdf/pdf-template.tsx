@@ -7,6 +7,7 @@ import {
   getScoreColor, 
   getGradeLetter, 
   scoreToPercentage,
+  scoreToPercentageRelativeToStandard,
   PDF_STYLES 
 } from '@/lib/pdf/pdf-utils';
 
@@ -17,12 +18,12 @@ export function PDFTemplate({ data, isPreview = false }: PDFTemplateProps) {
   const containerStyle = {
     width: '210mm',
     minHeight: '297mm',
-    padding: '20mm',
+    padding: '15mm',
     fontFamily: 'Arial, sans-serif',
     backgroundColor: 'white',
     color: PDF_STYLES.colors.primary,
     fontSize: PDF_STYLES.fonts.body,
-    lineHeight: '1.4',
+    lineHeight: '1.3',
     ...(isPreview && { 
       transform: 'scale(0.7)', 
       transformOrigin: 'top left',
@@ -34,7 +35,7 @@ export function PDFTemplate({ data, isPreview = false }: PDFTemplateProps) {
     <div style={containerStyle} className="pdf-container">
       <PDFHeader sessionInfo={data.sessionInfo} />
       <PDFOverallResults results={data.overallResults} />
-      <PDFSkillResults skills={data.skillResults} />
+      <PDFSkillResults skills={data.skillResults} standardLevel={data.overallResults.standard} />
       <PDFQuestionDetails questions={data.questionDetails} />
       <PDFFooter />
     </div>
@@ -211,7 +212,7 @@ function ScoreCard({
 /**
  * Skills Results Section
  */
-function PDFSkillResults({ skills }: { skills: SkillResult[] }) {
+function PDFSkillResults({ skills, standardLevel }: { skills: SkillResult[]; standardLevel: number }) {
   if (skills.length === 0) return null;
   
   return (
@@ -231,7 +232,7 @@ function PDFSkillResults({ skills }: { skills: SkillResult[] }) {
         gap: PDF_STYLES.spacing.medium
       }}>
         {skills.map((skill, index) => (
-          <SkillRow key={index} skill={skill} />
+          <SkillRow key={index} skill={skill} standardLevel={standardLevel} />
         ))}
       </div>
     </div>
@@ -241,7 +242,7 @@ function PDFSkillResults({ skills }: { skills: SkillResult[] }) {
 /**
  * Skill Row Component
  */
-function SkillRow({ skill }: { skill: SkillResult }) {
+function SkillRow({ skill, standardLevel }: { skill: SkillResult; standardLevel: number }) {
   return (
     <div style={{ 
       display: 'grid', 
@@ -258,7 +259,7 @@ function SkillRow({ skill }: { skill: SkillResult }) {
           {skill.displayName}
         </div>
         <div style={{ fontSize: '11px', color: '#6b7280' }}>
-          Peso: {(skill.weight * 100).toFixed(0)}% • {skill.feedbackCount} feedback
+          Peso: {skill.weight.toFixed(0)}% • {skill.feedbackCount} feedback
         </div>
       </div>
       <div style={{ textAlign: 'center' }}>
@@ -290,7 +291,7 @@ function SkillRow({ skill }: { skill: SkillResult }) {
       </div>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
-          {scoreToPercentage(skill.overall)}%
+          {scoreToPercentageRelativeToStandard(skill.overall, standardLevel)}%
         </div>
       </div>
     </div>
@@ -316,22 +317,13 @@ function PDFQuestionDetails({ questions }: { questions: QuestionDetail[] }) {
       </h2>
       
       <div style={{ 
-        display: 'grid', 
+        display: 'flex',
+        flexDirection: 'column',
         gap: PDF_STYLES.spacing.small
       }}>
-        {questions.slice(0, 15).map((question, index) => (
+        {questions.map((question, index) => (
           <QuestionRow key={index} question={question} />
         ))}
-        {questions.length > 15 && (
-          <div style={{ 
-            textAlign: 'center', 
-            color: '#6b7280', 
-            fontSize: '11px',
-            padding: PDF_STYLES.spacing.small
-          }}>
-            ... e altre {questions.length - 15} domande
-          </div>
-        )}
       </div>
     </div>
   );
@@ -347,46 +339,78 @@ function QuestionRow({ question }: { question: QuestionDetail }) {
   
   return (
     <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: '3fr 1fr 1fr 1fr',
-      gap: PDF_STYLES.spacing.small,
       padding: PDF_STYLES.spacing.small,
       backgroundColor: '#fafafa',
       borderRadius: '4px',
       borderLeft: `3px solid ${skillColor}`,
-      alignItems: 'center',
       fontSize: '11px'
     }}>
-      <div>
-        <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-          {question.description.length > 80 
-            ? question.description.substring(0, 80) + '...' 
+      {/* Header row with question and scores */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '4fr 1fr 1fr 1fr',
+        gap: PDF_STYLES.spacing.small,
+        alignItems: 'center',
+        marginBottom: question.initiatives.length > 0 ? '8px' : '0'
+      }}>
+        <div style={{ fontWeight: 'bold' }}>
+          {question.description.length > 100 
+            ? question.description.substring(0, 100) + '...' 
             : question.description}
         </div>
-        {question.initiatives.length > 0 && (
-          <div style={{ color: '#6b7280', fontSize: '10px' }}>
-            Iniziative: {question.initiatives.length}
+        <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
+          {formatScore(question.overall)}
+        </div>
+        <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
+          {formatScore(question.mentorValue)}
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          {question.commentCount > 0 && (
+            <span style={{ 
+              backgroundColor: '#e5e7eb', 
+              padding: '2px 6px', 
+              borderRadius: '10px',
+              fontSize: '10px'
+            }}>
+              {question.commentCount} commenti
+            </span>
+          )}
+        </div>
+      </div>
+      
+      {/* Initiatives section - full width */}
+      {question.initiatives.length > 0 && (
+        <div style={{ 
+          color: '#6b7280', 
+          fontSize: '10px',
+          borderTop: '1px solid #e5e7eb',
+          paddingTop: '6px'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+            Iniziative ({question.initiatives.length}):
           </div>
-        )}
-      </div>
-      <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
-        {formatScore(question.overall)}
-      </div>
-      <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
-        {formatScore(question.mentorValue)}
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        {question.commentCount > 0 && (
-          <span style={{ 
-            backgroundColor: '#e5e7eb', 
-            padding: '2px 6px', 
-            borderRadius: '10px',
-            fontSize: '10px'
-          }}>
-            {question.commentCount} commenti
-          </span>
-        )}
-      </div>
+          {question.initiatives.slice(0, 5).map((initiative, idx) => (
+            <div key={idx} style={{ 
+              marginTop: '3px', 
+              paddingLeft: '8px',
+              lineHeight: '1.3',
+              wordWrap: 'break-word'
+            }}>
+              • {initiative}
+            </div>
+          ))}
+          {question.initiatives.length > 5 && (
+            <div style={{ 
+              marginTop: '3px', 
+              paddingLeft: '8px', 
+              fontStyle: 'italic',
+              color: '#9ca3af'
+            }}>
+              ... e altre {question.initiatives.length - 5} iniziative
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

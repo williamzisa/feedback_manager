@@ -78,6 +78,14 @@ export function scoreToPercentage(score: number, maxScore: number = 5): number {
 }
 
 /**
+ * Calculate percentage relative to standard level
+ */
+export function scoreToPercentageRelativeToStandard(score: number, standardLevel: number): number {
+  if (standardLevel === 0) return 0;
+  return Math.round((score / standardLevel) * 100);
+}
+
+/**
  * Get grade letter based on score
  */
 export function getGradeLetter(score: number): string {

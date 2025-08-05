@@ -11,6 +11,12 @@ import {
 } from './pdf-utils';
 import type { Database } from '@/lib/supabase/database.types';
 
+// Temporary type for question processing
+type QuestionDetailTemp = QuestionDetail & {
+  feedbacks?: Feedback[];
+  validValues?: number[];
+};
+
 type UserSession = Database['public']['Tables']['user_sessions']['Row'];
 type Feedback = Database['public']['Tables']['feedbacks']['Row'];
 
@@ -36,7 +42,8 @@ export async function aggregateSessionReportData(
           status
         ),
         users (
-          name
+          name,
+          mentor
         )
       `)
       .eq('session_id', sessionId)
@@ -56,21 +63,28 @@ export async function aggregateSessionReportData(
           id,
           description,
           type
+        ),
+        sender:users!feedbacks_sender_fkey (
+          id,
+          name,
+          surname
         )
       `)
       .eq('session_id', sessionId)
-      .eq('receiver', userId);
+      .eq('receiver', userId)
+      .not('sender', 'eq', userId); // Exclude self-feedback
 
     if (feedbackError) {
       throw new Error(`Failed to fetch feedback data: ${feedbackError.message}`);
     }
 
-    // Get initiatives for each question
+    // Get initiatives for each question (filtered by user)
     const questionIds = feedbackData?.map((f: Feedback) => f.question_id) || [];
     const { data: initiativesData, error: initiativesError } = await supabase
       .from('initiatives')
       .select('question_id, description')
-      .in('question_id', questionIds);
+      .in('question_id', questionIds)
+      .eq('user_id', userId); // Filter initiatives by current user
 
     if (initiativesError) {
       console.warn('Failed to fetch initiatives:', initiativesError.message);
@@ -112,7 +126,8 @@ export async function aggregateSessionReportData(
     const questionDetails = await processQuestionDetails(
       feedbackData || [],
       initiativesData || [],
-      commentsData || []
+      commentsData || [],
+      sessionData
     );
 
     return {
@@ -192,26 +207,51 @@ function aggregateSkillResults(
  * Process question details with initiatives and comments
  */
 async function processQuestionDetails(
-  feedbackData: (Feedback & { questions?: { id: string; description: string; type: string } | null })[],
+  feedbackData: (Feedback & { questions?: { id: string; description: string; type: string } | null; sender?: { id: string; name: string; surname: string } | null })[],
   initiativesData: { question_id: string | null; description: string | null }[],
-  commentsData: { question_id: string | null; comment: string | null }[]
+  commentsData: { question_id: string | null; comment: string | null }[],
+  sessionData: { users?: { mentor?: string | null } | null }
 ): Promise<QuestionDetail[]> {
-  const questionMap = new Map<string, QuestionDetail>();
+  const questionMap = new Map<string, QuestionDetailTemp>();
 
-  // Group feedback by question
+  // Group feedback by question and calculate aggregated values
   feedbackData.forEach(feedback => {
     const questionId = feedback.question_id;
     
-    if (questionId && !questionMap.has(questionId)) {
-      questionMap.set(questionId, {
-        id: questionId,
-        description: feedback.questions?.description || 'Unknown Question',
-        skillType: feedback.questions?.type || 'UNKNOWN',
-        overall: feedback.value || 0,
-        mentorValue: feedback.value || 0,
-        commentCount: 0,
-        initiatives: []
-      });
+    if (questionId) {
+      if (!questionMap.has(questionId)) {
+        questionMap.set(questionId, {
+          id: questionId,
+          description: feedback.questions?.description || 'Unknown Question',
+          skillType: feedback.questions?.type || 'UNKNOWN',
+          overall: 0,
+          mentorValue: 0,
+          commentCount: 0,
+          initiatives: [],
+          feedbacks: [],
+          validValues: []
+        });
+      }
+      
+      const question = questionMap.get(questionId)!;
+      
+      // Add feedback with value > 0
+      if (feedback.value && feedback.value > 0) {
+        question.feedbacks!.push(feedback);
+        question.validValues!.push(feedback.value);
+        
+        // Calculate overall as average of all valid values
+        question.overall = question.validValues!.reduce((a: number, b: number) => a + b, 0) / question.validValues!.length;
+        
+        // Set mentor value if this feedback is from a mentor
+        // Check if sender is the user's mentor or if it's marked as mentor feedback
+        const isMentorFeedback = feedback.is_mentor || 
+          (sessionData.users && feedback.sender?.id === sessionData.users.mentor);
+        
+        if (isMentorFeedback) {
+          question.mentorValue = feedback.value;
+        }
+      }
     }
   });
 
@@ -233,12 +273,18 @@ async function processQuestionDetails(
     return acc;
   }, {} as Record<string, number>);
 
-  // Update comment counts
+  // Update comment counts and clean up temporary fields
+  const finalQuestions: QuestionDetail[] = [];
   questionMap.forEach((question, questionId) => {
     question.commentCount = commentCounts[questionId] || 0;
+    // Remove temporary fields and convert to final type
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { feedbacks: _, validValues: __, ...finalQuestion } = question;
+    finalQuestions.push(finalQuestion);
   });
 
-  return Array.from(questionMap.values());
+  // Sort questions by overall value (lowest to highest)
+  return finalQuestions.sort((a, b) => a.overall - b.overall);
 }
 
 /**
